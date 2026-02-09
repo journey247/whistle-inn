@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Bed, Users, Bath, MapPin, WifiOff, Tv, Coffee, Waves, ArrowRight, Mountain, Snowflake, Fish, Gem, Utensils, Sparkles, ShoppingBag, Calendar, UserCheck } from "lucide-react";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import clsx from "clsx";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { BookingModal } from "@/components/BookingModal";
 
 const FadeIn = ({ children, delay = 0, className }: { children: React.ReactNode, delay?: number, className?: string }) => {
@@ -174,25 +175,121 @@ export default function Home() {
                     <div className="text-center mb-16">
                         <FadeIn>
                             <h2 className="text-brand-green text-sm font-bold tracking-widest uppercase mb-4">Adventure Awaits</h2>
-                            <h3 className="font-serif text-4xl md:text-5xl font-bold text-slate-900">Your Playground in the Wild</h3>
+                            <h3 className="font-serif text-4xl md:text-5xl font-bold text-slate-900 mb-6">Your Playground in the Wild</h3>
+                            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+                                Beyond the comfort of Whistle Inn, a world of natural beauty and excitement awaits. Explore the stunning Sierra Nevada foothills, where every season offers a new adventure.
+                            </p>
                         </FadeIn>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
+                    {/* Image Gallery Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
                         {[
-                            { icon: Snowflake, title: "World-Class Skiing", desc: "Minutes from premier Sierra resorts." },
-                            { icon: Fish, title: "Fishing & Hiking", desc: "Pristine lakes and endless forest paths." },
-                        ].map((adv, idx) => (
+                            { src: "/kids%20snow%20tube.jpg", alt: "Kids Snow Tubing Fun" },
+                            { src: "/flyfish.jpg", alt: "Fly Fishing on American River" },
+                            { src: "/hiking.jpg", alt: "Scenic Sierra Hiking" },
+                            { src: "/snowman.jpg", alt: "Family Snow Play" },
+                            { src: "/fishing.jpg", alt: "Gold Panning Adventure" },
+                            { src: "/skiboard.jpg", alt: "Skiing and Snowboarding" },
+                        ].map((image, idx) => (
                             <FadeIn key={idx} delay={idx * 0.1}>
-                                <div className="p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                                    <div className="w-14 h-14 bg-brand-gold/10 text-brand-gold rounded-xl flex items-center justify-center mb-6">
-                                        <adv.icon className="w-7 h-7" />
+                                <div className="relative h-72 w-full rounded-xl overflow-hidden shadow-lg group">
+                                    <Image
+                                        src={image.src}
+                                        alt={image.alt}
+                                        fill
+                                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <p className="text-white text-lg font-semibold">{image.alt}</p>
                                     </div>
-                                    <h4 className="font-serif text-xl font-bold text-slate-900 mb-3">{adv.title}</h4>
-                                    <p className="text-slate-600 leading-relaxed">{adv.desc}</p>
                                 </div>
                             </FadeIn>
                         ))}
+                    </div>
+
+                    {/* Ski Resorts Section */}
+                    <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
+                        <FadeIn>
+                            <div className="relative h-96 rounded-2xl overflow-hidden shadow-2xl">
+                                <Image
+                                    src="/skiii.jpg"
+                                    alt="Skiing in the Sierra Nevada"
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+                        </FadeIn>
+                        <FadeIn delay={0.2}>
+                            <div>
+                                <div className="inline-flex items-center gap-2 mb-4 text-brand-gold">
+                                    <Snowflake className="w-5 h-5" />
+                                    <span className="text-sm font-bold tracking-widest uppercase">Winter Wonderland</span>
+                                </div>
+                                <h3 className="font-serif text-3xl md:text-4xl font-bold text-slate-900 mb-6">
+                                    World-Class Ski Resorts Nearby
+                                </h3>
+                                <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+                                    Just a short drive from Whistle Inn, you'll find some of California's most renowned ski resorts. Embrace the thrill of fresh powder at world-class destinations like Dodge Ridge, Bear Valley, and the legendary resorts of Lake Tahoe, offering slopes for every skill level and breathtaking views of the snow-capped Sierra Nevada.
+                                </p>
+                                <p className="text-lg text-slate-600 leading-relaxed">
+                                    Whether you're a seasoned pro or trying skiing or snowboarding for the first time, the nearby resorts promise unforgettable winter adventures and cozy après-ski moments.
+                                </p>
+                            </div>
+                        </FadeIn>
+                    </div>
+
+                    {/* Fly Fishing Section */}
+                    <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
+                        <FadeIn className="order-2 md:order-1">
+                            <div>
+                                <div className="inline-flex items-center gap-2 mb-4 text-brand-green">
+                                    <Fish className="w-5 h-5" />
+                                    <span className="text-sm font-bold tracking-widest uppercase">Pristine Waters</span>
+                                </div>
+                                <h3 className="font-serif text-3xl md:text-4xl font-bold text-slate-900 mb-6">
+                                    Fly Fishing on the American & Truckee Rivers
+                                </h3>
+                                <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+                                    The American and Truckee Rivers, celebrated for their pristine waters and abundant trout, are just moments away. Cast your line into crystal-clear streams amidst stunning natural beauty, where the rhythm of the river and the challenge of the catch offer a truly peaceful escape.
+                                </p>
+                                <p className="text-lg text-slate-600 leading-relaxed">
+                                    Experience the tranquility of fly fishing in one of Northern California's most picturesque settings—perfect for both seasoned anglers and those looking to discover a new passion.
+                                </p>
+                            </div>
+                        </FadeIn>
+                        <FadeIn delay={0.2} className="order-1 md:order-2">
+                            <div className="relative h-96 rounded-2xl overflow-hidden shadow-2xl">
+                                <Image
+                                    src="/fishing2.jpg"
+                                    alt="Fly Fishing on American River"
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+                        </FadeIn>
+                    </div>
+
+                    {/* Serenity Section */}
+                    <div className="text-center py-16 max-w-4xl mx-auto">
+                        <FadeIn>
+                            <div className="inline-flex items-center gap-2 mb-4 text-brand-gold">
+                                <Mountain className="w-5 h-5" />
+                                <span className="text-sm font-bold tracking-widest uppercase">Escape the Noise</span>
+                            </div>
+                            <h3 className="font-serif text-3xl md:text-4xl font-bold text-slate-900 mb-6">
+                                A Majestic Escape from the World
+                            </h3>
+                            <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+                                Whistle Inn offers more than just a place to stay—it's an invitation to unwind in a majestic setting, far from the urban hustle. Here, the only sounds are the whispers of the wind through the pines and the gentle murmur of nature.
+                            </p>
+                            <p className="text-lg text-slate-600 mb-4 leading-relaxed">
+                                Reconnect with loved ones and yourself under a blanket of stars, where the absence of city lights reveals the true splendor of the night sky. No traffic. No noise. No light pollution. Just pure, unadulterated serenity.
+                            </p>
+                            <p className="text-xl text-brand-green font-semibold italic">
+                                Discover true peace in the heart of the Sierra Foothills.
+                            </p>
+                        </FadeIn>
                     </div>
                 </div>
             </section>
@@ -294,9 +391,10 @@ export default function Home() {
                 <div className="relative z-10">
                     <FadeIn>
                         <h2 className="font-serif text-4xl text-white mb-8">Ready to create memories?</h2>
+                        <NewsletterSignup />
                         <button
                             onClick={() => setIsBookingOpen(true)}
-                            className="inline-block bg-brand-gold text-slate-900 font-bold py-5 px-10 rounded-full text-lg hover:bg-white transition-all transform hover:scale-105 shadow-2xl"
+                            className="inline-block bg-brand-gold text-slate-900 font-bold py-5 px-10 rounded-full text-lg hover:bg-white transition-all transform hover:scale-105 shadow-2xl mt-6"
                         >
                             Reserve Your Dates
                         </button>

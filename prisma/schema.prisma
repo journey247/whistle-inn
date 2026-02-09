@@ -10,14 +10,95 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum BookingStatus {
+  pending
+  paid
+  cancelled
+}
+
 model Booking {
-  id        String   @id @default(uuid())
-  startDate DateTime
-  endDate   DateTime
-  guestName String
-  email     String
+  id         String        @id @default(uuid())
+  startDate  DateTime
+  endDate    DateTime
+  guestName  String
+  email      String
   totalPrice Float
-  status    String   // "pending", "paid"
+  status     BookingStatus @default(pending)
+  stripeSessionId String?   @unique
+  stripePaymentIntentId String?
+  notes      String?       // admin notes
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model ExternalBooking {
+  id          String   @id @default(cuid())
+  source      String   // "Airbnb", "VRBO", etc.
+  guestName   String
+  startDate   DateTime
+  endDate     DateTime
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model ICalFeed {
+  id        String   @id @default(cuid())
+  name      String   // Display name for the feed
+  url       String   @unique // iCal URL
+  source    String   // "Airbnb", "VRBO", etc.
+  lastSync  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// New admin and logging models
+model AdminUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  hashedPassword String
+  role           String?
+  createdAt      DateTime @default(now())
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  body      String
+  template  String?
+  bookingId String?
+  createdAt DateTime @default(now())
+}
+
+model SmsLog {
+  id        String   @id @default(cuid())
+  to        String
+  body      String
+  type      String?
+  bookingId String?
+  createdAt DateTime @default(now())
+}
+
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  adminId   String?
+  enabled   Boolean  @default(true)
+  events    String[] // e.g., ["booking.created","booking.paid"]
+  createdAt DateTime @default(now())
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  subject   String
+  body      String   // HTML template with placeholders like {{guestName}}, {{startDate}}
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

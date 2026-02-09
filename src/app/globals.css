@@ -25,3 +25,33 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+/* Ensure form controls are readable in both light and dark modes */
+input,
+textarea,
+select {
+  color: rgb(var(--foreground-rgb));
+  caret-color: rgb(var(--foreground-rgb));
+}
+
+/* Placeholder text should also be visible */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(var(--foreground-rgb), 0.6);
+}
+
+/* Admin panel: enforce dark text for readability across all controls */
+.admin-root,
+.admin-root * {
+  color: #0f172a !important; /* slate-900 */
+}
+.admin-root input,
+.admin-root textarea,
+.admin-root select {
+  color: #0f172a !important;
+  caret-color: #0f172a !important;
+}
+.admin-root input::placeholder,
+.admin-root textarea::placeholder {
+  color: rgba(15, 23, 39, 0.6) !important;
+}
