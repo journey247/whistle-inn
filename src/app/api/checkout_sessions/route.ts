@@ -3,9 +3,25 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { eachDayOfInterval } from 'date-fns';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-    apiVersion: '2023-10-16' as any, // Cast to any to avoid TS version mismatch in demo
-});
+export const dynamic = 'force-dynamic';
+
+// Initialize Stripe with proper validation
+function initializeStripe() {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey || secretKey.includes('placeholder')) {
+        throw new Error('Stripe secret key not configured');
+    }
+    return new Stripe(secretKey, {
+        apiVersion: '2023-10-16',
+    });
+}
+
+let stripe: Stripe;
+try {
+    stripe = initializeStripe();
+} catch (err) {
+    console.error('Stripe initialization failed:', err);
+}
 
 const WEEKDAY_PRICE = 650; // Mon-Thu
 const WEEKEND_PRICE = 700; // Fri-Sun
