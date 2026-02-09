@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "whistle-inn",
   "framework": "nextjs",
   "regions": ["iad1"],
   "buildCommand": "npm run build",
@@ -54,7 +53,7 @@
           "value": "http"
         }
       ],
-      "destination": "https://whistle-inn.vercel.app/admin/$1",
+      "destination": "https://thewhistleinn.com/admin/$1",
       "permanent": true
     }
   ]
