@@ -161,7 +161,7 @@ export default function AdminPanel() {
 
     if (!authenticated) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-green to-brand-gold">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-green to-brand-gold admin-root">
                 <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
                     <div className="text-center mb-8">
                         <Home className="w-16 h-16 mx-auto text-brand-gold mb-4" />
@@ -176,7 +176,7 @@ export default function AdminPanel() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="admin@whistleinn.com"
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition"
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900"
                                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                             />
                         </div>
@@ -187,7 +187,7 @@ export default function AdminPanel() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition"
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900"
                                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                             />
                         </div>
@@ -216,7 +216,7 @@ export default function AdminPanel() {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 flex">
+        <div className="min-h-screen bg-slate-50 flex admin-root">
             {/* Sidebar */}
             <aside className={`bg-slate-900 text-white transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} flex flex-col`}>
                 <div className="p-6 flex items-center justify-between border-b border-slate-800">
