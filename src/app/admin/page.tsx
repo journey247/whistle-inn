@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import dynamic from 'next/dynamic';
+import { ToastProvider, useToast } from "@/components/ui/toast-context";
+import { RevenueChart } from "@/components/admin/RevenueChart";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
     LayoutDashboard, Calendar, Users, Mail, TrendingUp, ExternalLink,
     Settings, LogOut, Search, Filter, Download, Plus, RefreshCw,
@@ -57,6 +60,15 @@ type SchedulerStatus = {
 };
 
 export default function AdminPanel() {
+    return (
+        <ToastProvider>
+            <AdminPanelContent />
+        </ToastProvider>
+    );
+}
+
+function AdminPanelContent() {
+    const { addToast } = useToast();
     const [authenticated, setAuthenticated] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState("");
@@ -306,7 +318,12 @@ export default function AdminPanel() {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto w-full md:w-auto h-screen">
+            <main 
+                className={`
+                    flex-1 overflow-y-auto h-screen w-full transition-all duration-300
+                    ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'}
+                `}
+            >
                 {/* Header */}
                 <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 md:py-6 sticky top-0 z-10">
                     <div className="flex items-center justify-between">
@@ -547,7 +564,12 @@ export default function AdminPanel() {
                                     <button
                                         onClick={async () => {
                                             setSyncing(true);
-                                            await fetch("/api/admin/ical-feeds/sync", { method: "POST" });
+                                            try {
+                                                await fetch("/api/admin/ical-feeds/sync", { method: "POST" });
+                                                addToast("Calendars synced successfully", "success");
+                                            } catch (e) {
+                                                addToast("Failed to sync calendars", "error");
+                                            }
                                             setSyncing(false);
                                             fetchData();
                                         }}
@@ -616,6 +638,7 @@ export default function AdminPanel() {
                                                     setShowAddIcal(false);
                                                     setNewIcalFeed({ name: "", url: "", source: "Airbnb" });
                                                     fetchData();
+                                                    addToast("iCal feed added", "success");
                                                 }}
                                                 className="px-4 py-2 bg-brand-gold hover:bg-yellow-500 text-white rounded-lg transition"
                                             >
@@ -662,6 +685,7 @@ export default function AdminPanel() {
                                                         if (confirm('Remove this feed?')) {
                                                             await fetch(`/api/admin/ical-feeds/${feed.id}`, { method: "DELETE" });
                                                             fetchData();
+                                                            addToast("Feed deleted", "success");
                                                         }
                                                     }}
                                                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
@@ -742,6 +766,7 @@ export default function AdminPanel() {
                                                     setShowAddExternal(false);
                                                     setNewExternalBooking({ source: "Airbnb", guestName: "", startDate: "", endDate: "", notes: "" });
                                                     fetchData();
+                                                    addToast("Manual booking added", "success");
                                                 }}
                                                 className="px-4 py-2 bg-brand-green hover:bg-green-600 text-white rounded-lg transition"
                                             >
@@ -805,7 +830,26 @@ export default function AdminPanel() {
                                     <h3 className="text-lg font-bold text-slate-900">Newsletter Subscribers</h3>
                                     <p className="text-sm text-slate-600">{subscribers.length} total subscribers</p>
                                 </div>
-                                <button className="flex items-center gap-2 px-4 py-2 bg-brand-gold hover:bg-yellow-500 text-white rounded-lg transition">
+                                <button
+                                    onClick={() => {
+                                        if (subscribers.length === 0) {
+                                            addToast("No subscribers to export", "info");
+                                            return;
+                                        }
+                                        const headers = ["Email", "Name"];
+                                        const csvContent = [
+                                            headers.join(","),
+                                            ...subscribers.map(s => `${s.email},${s.name || ''}`)
+                                        ].join("\n");
+                                        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                                        const link = document.createElement("a");
+                                        link.href = URL.createObjectURL(blob);
+                                        link.download = "subscribers.csv";
+                                        link.click();
+                                        addToast("Subscribers exported", "success");
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-brand-gold hover:bg-yellow-500 text-white rounded-lg transition"
+                                >
                                     <Download className="w-4 h-4" />
                                     Export List
                                 </button>
@@ -841,6 +885,7 @@ export default function AdminPanel() {
                     )}
 
                     {/* Analytics Tab */}
+                    {activeTab === "analytics" && !analytics && <DashboardSkeleton />}
                     {activeTab === "analytics" && analytics && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -886,8 +931,8 @@ export default function AdminPanel() {
 
                             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                                 <h3 className="text-lg font-bold text-slate-900 mb-4">Revenue Trends</h3>
-                                <div className="h-64 flex items-center justify-center text-slate-500">
-                                    <p>Chart visualization would go here</p>
+                                <div className="h-64 w-full">
+                                    <RevenueChart data={[]} />
                                 </div>
                             </div>
 
