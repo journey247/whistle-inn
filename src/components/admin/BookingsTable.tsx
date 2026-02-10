@@ -87,36 +87,38 @@ export function BookingsTable() {
                 <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${bookings.length} bookings`}</div>
             </div>
 
-            <table className="w-full text-sm">
-                <thead>
-                    <tr className="text-left text-gray-600 border-b">
-                        <th className="p-2">Guest</th>
-                        <th className="p-2">Dates</th>
-                        <th className="p-2">Price</th>
-                        <th className="p-2">Status</th>
-                        <th className="p-2">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {bookings.map(b => (
-                        <tr key={b.id} className="border-b">
-                            <td className="p-2">{b.guestName}<div className="text-xs text-gray-400">{b.email}</div></td>
-                            <td className="p-2">{new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}</td>
-                            <td className="p-2">${b.totalPrice}</td>
-                            <td className="p-2">
-                                <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)} className="p-2 border rounded">
-                                    <option value="pending">Pending</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </td>
-                            <td className="p-2 space-x-2">
-                                <button onClick={() => resendConfirmation(b)} className="px-3 py-1 bg-blue-500 text-white rounded">Resend</button>
-                            </td>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                    <thead>
+                        <tr className="text-left text-gray-600 border-b">
+                            <th className="p-2">Guest</th>
+                            <th className="p-2">Dates</th>
+                            <th className="p-2">Price</th>
+                            <th className="p-2">Status</th>
+                            <th className="p-2">Actions</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {bookings.map(b => (
+                            <tr key={b.id} className="border-b">
+                                <td className="p-2">{b.guestName}<div className="text-xs text-gray-400">{b.email}</div></td>
+                                <td className="p-2">{new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}</td>
+                                <td className="p-2">${b.totalPrice}</td>
+                                <td className="p-2">
+                                    <select value={b.status} onChange={(e) => updateStatus(b.id, e.target.value)} className="p-2 border rounded">
+                                        <option value="pending">Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </td>
+                                <td className="p-2 space-x-2">
+                                    <button onClick={() => resendConfirmation(b)} className="px-3 py-1 bg-blue-500 text-white rounded">Resend</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

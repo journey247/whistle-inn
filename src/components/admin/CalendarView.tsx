@@ -38,17 +38,19 @@ export function CalendarView() {
     };
 
     return (
-        <div className="bg-white rounded shadow p-4">
+        <div className="bg-white rounded shadow p-4 overflow-x-auto">
             <h3 className="font-semibold mb-3">Bookings Calendar</h3>
             {loading ? (
                 <div className="text-sm text-gray-500">Loading...</div>
             ) : (
-                <DayPicker
-                    mode="single"
-                    disabled={[{ before: new Date() }, ...bookedDates]}
-                    modifiers={{ booked: bookedDates }}
-                    modifiersStyles={{ booked: { backgroundColor: '#ef4444', color: 'white' } }}
-                />
+                <div className="flex justify-center">
+                    <DayPicker
+                        mode="single"
+                        disabled={[{ before: new Date() }, ...bookedDates]}
+                        modifiers={{ booked: bookedDates }}
+                        modifiersStyles={{ booked: { backgroundColor: '#ef4444', color: 'white' } }}
+                    />
+                </div>
             )}
         </div>
     );

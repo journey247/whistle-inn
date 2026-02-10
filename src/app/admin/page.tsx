@@ -86,6 +86,11 @@ export default function AdminPanel() {
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
+        // Close sidebar on mobile by default
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setSidebarOpen(false);
+        }
+
         const token = localStorage.getItem('admin_token');
         if (token) {
             fetch('/api/admin/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
@@ -216,13 +221,36 @@ export default function AdminPanel() {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 flex admin-root">
+        <div className="min-h-screen bg-slate-50 flex admin-root relative">
+            {/* Mobile Sidebar Overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className={`bg-slate-900 text-white transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} flex flex-col`}>
+            <aside className={`
+                fixed inset-y-0 left-0 z-50 bg-slate-900 text-white transition-transform duration-300 flex flex-col
+                w-64 
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                md:relative md:translate-x-0
+                ${sidebarOpen ? 'md:w-64' : 'md:w-20'}
+            `}>
                 <div className="p-6 flex items-center justify-between border-b border-slate-800">
-                    {sidebarOpen && <h1 className="text-xl font-bold">Whistle Inn</h1>}
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-800 rounded-lg">
+                    {(sidebarOpen || (typeof window !== 'undefined' && window.innerWidth < 768)) && <h1 className="text-xl font-bold">Whistle Inn</h1>}
+                    <button
+                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="p-2 hover:bg-slate-800 rounded-lg hidden md:block"
+                    >
                         {sidebarOpen ? <CloseIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                    </button>
+                    <button
+                        onClick={() => setSidebarOpen(false)}
+                        className="p-2 hover:bg-slate-800 rounded-lg md:hidden"
+                    >
+                        <CloseIcon className="w-5 h-5" />
                     </button>
                 </div>
 
@@ -230,14 +258,20 @@ export default function AdminPanel() {
                     {navItems.map((item) => (
                         <button
                             key={item.id}
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => {
+                                setActiveTab(item.id);
+                                if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false);
+                            }}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
                                 ? 'bg-brand-gold text-white shadow-lg'
-                                : 'hover:bg-slate-800 text-slate-300'
+                                : 'hover:bg-slate-800 text-white md:text-slate-300'
                                 }`}
                         >
                             <item.icon className="w-5 h-5 flex-shrink-0" />
-                            {sidebarOpen && <span className="font-medium">{item.label}</span>}
+                            <span className={`font-medium transition-opacity duration-200 ${!sidebarOpen ? 'md:hidden md:opacity-0 md:w-0 overflow-hidden' : 'block opacity-100'
+                                }`}>
+                                {item.label}
+                            </span>
                         </button>
                     ))}
                 </nav>
@@ -248,40 +282,51 @@ export default function AdminPanel() {
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-600 transition-all text-slate-300 hover:text-white"
                     >
                         <LogOut className="w-5 h-5 flex-shrink-0" />
-                        {sidebarOpen && <span className="font-medium">Logout</span>}
+                        <span className={`font-medium transition-opacity duration-200 ${!sidebarOpen ? 'md:hidden md:opacity-0 md:w-0 overflow-hidden' : 'block opacity-100'
+                            }`}>
+                            Logout
+                        </span>
                     </button>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto w-full md:w-auto h-screen">
                 {/* Header */}
-                <header className="bg-white border-b border-slate-200 px-8 py-6 sticky top-0 z-10">
+                <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 md:py-6 sticky top-0 z-10">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-2xl font-bold text-slate-900">
-                                {navItems.find(item => item.id === activeTab)?.label}
-                            </h2>
-                            <p className="text-slate-600 text-sm mt-1">
-                                {activeTab === "dashboard" && "Overview of your property performance"}
-                                {activeTab === "bookings" && "Manage and track all reservations"}
-                                {activeTab === "external" && "Sync with Airbnb, VRBO, and more"}
-                                {activeTab === "customers" && "View and manage customer data"}
-                                {activeTab === "emails" && "Send and manage email communications"}
-                                {activeTab === "analytics" && "Detailed insights and metrics"}
-                            </p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg touch-manipulation"
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+                            <div>
+                                <h2 className="text-xl md:text-2xl font-bold text-slate-900">
+                                    {navItems.find(item => item.id === activeTab)?.label}
+                                </h2>
+                                <p className="text-slate-600 text-xs md:text-sm mt-1 hidden sm:block">
+                                    {activeTab === "dashboard" && "Overview of your property performance"}
+                                    {activeTab === "bookings" && "Manage and track all reservations"}
+                                    {activeTab === "external" && "Sync with Airbnb, VRBO, and more"}
+                                    {activeTab === "customers" && "View and manage customer data"}
+                                    {activeTab === "emails" && "Send and manage email communications"}
+                                    {activeTab === "analytics" && "Detailed insights and metrics"}
+                                </p>
+                            </div>
                         </div>
                         <button
                             onClick={fetchData}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                            className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition touch-manipulation"
                         >
                             <RefreshCw className="w-4 h-4" />
-                            <span className="font-medium">Refresh</span>
+                            <span className="font-medium hidden sm:inline">Refresh</span>
                         </button>
                     </div>
                 </header>
 
-                <div className="p-8">
+                <div className="p-4 md:p-8 space-y-6 pb-20 md:pb-8">
                     {/* Dashboard Tab */}
                     {activeTab === "dashboard" && analytics && (
                         <div className="space-y-6">
@@ -345,13 +390,13 @@ export default function AdminPanel() {
                                         ) : (
                                             upcomingBookings.map((booking) => (
                                                 <div key={booking.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                                                    <div>
-                                                        <p className="font-semibold text-slate-900">{booking.guestName}</p>
-                                                        <p className="text-sm text-slate-600">
+                                                    <div className="flex-1 min-w-0 mr-4">
+                                                        <p className="font-semibold text-slate-900 truncate">{booking.guestName}</p>
+                                                        <p className="text-sm text-slate-600 truncate">
                                                             {new Date(booking.startDate).toLocaleDateString()} - {new Date(booking.endDate).toLocaleDateString()}
                                                         </p>
                                                     </div>
-                                                    <div className="text-right">
+                                                    <div className="text-right flex-shrink-0">
                                                         <p className="font-bold text-brand-gold">${booking.totalPrice}</p>
                                                         <span className={`text-xs px-2 py-1 rounded-full ${booking.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                                                             }`}>
@@ -375,7 +420,7 @@ export default function AdminPanel() {
                                         ) : (
                                             recentBookings.map((booking) => (
                                                 <div key={booking.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
-                                                    <div className={`p-2 rounded-lg ${booking.status === 'paid' ? 'bg-green-100' : 'bg-yellow-100'
+                                                    <div className={`p-2 rounded-lg flex-shrink-0 ${booking.status === 'paid' ? 'bg-green-100' : 'bg-yellow-100'
                                                         }`}>
                                                         {booking.status === 'paid' ? (
                                                             <CheckCircle className="w-5 h-5 text-green-600" />
@@ -383,11 +428,11 @@ export default function AdminPanel() {
                                                             <Clock className="w-5 h-5 text-yellow-600" />
                                                         )}
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <p className="font-semibold text-slate-900">{booking.guestName}</p>
-                                                        <p className="text-sm text-slate-600">{booking.email}</p>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold text-slate-900 truncate">{booking.guestName}</p>
+                                                        <p className="text-sm text-slate-600 truncate">{booking.email}</p>
                                                     </div>
-                                                    <div className="text-right">
+                                                    <div className="text-right flex-shrink-0">
                                                         <p className="font-bold text-slate-900">${booking.totalPrice}</p>
                                                         <p className="text-xs text-slate-500">{new Date(booking.startDate).toLocaleDateString()}</p>
                                                     </div>
@@ -434,8 +479,8 @@ export default function AdminPanel() {
                     {/* Bookings Tab */}
                     {activeTab === "bookings" && (
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="relative flex-1 max-w-md">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="relative w-full md:w-auto md:flex-1 md:max-w-md">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <input
                                         type="text"
@@ -445,12 +490,12 @@ export default function AdminPanel() {
                                         className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent"
                                     />
                                 </div>
-                                <div className="flex gap-3">
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                                <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition whitespace-nowrap touch-manipulation">
                                         <Filter className="w-4 h-4" />
                                         Filter
                                     </button>
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition whitespace-nowrap touch-manipulation">
                                         <Download className="w-4 h-4" />
                                         Export
                                     </button>
