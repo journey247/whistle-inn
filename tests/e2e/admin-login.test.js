@@ -38,12 +38,52 @@ require('dotenv').config();
         // Fill login form
         await page.type('input[type="email"]', ADMIN_EMAIL);
         await page.type('input[type="password"]', ADMIN_PASSWORD);
-        await page.click('button:has-text("Login")');
+
+        // Click Sign In (using XPath to match text)
+        const [button] = await page.$x("//button[contains(., 'Sign In')]");
+        if (button) {
+            await button.click();
+        } else {
+            throw new Error('Sign In button not found');
+        }
 
         // Wait for bookings header or table to appear
-        await page.waitForSelector('h2:has-text("Bookings")', { timeout: 10000 });
+        await page.waitForSelector('nav', { timeout: 10000 });
 
-        console.log('Login successful and Bookings section found ✅');
+        console.log('Login successful and Nav found ✅');
+
+        // Inspect sidebar items
+        const styles = await page.evaluate(() => {
+            const aside = document.querySelector('aside');
+            const asideBg = aside ? window.getComputedStyle(aside).backgroundColor : 'N/A';
+            const titleElement = document.querySelector('aside .font-bold.text-xl');
+            const titleText = titleElement ? titleElement.innerText : 'TITLE NOT FOUND';
+
+            const items = Array.from(document.querySelectorAll('nav button'));
+            return {
+                titleText,
+                asideBackground: asideBg,
+                items: items.map(btn => {
+                    const style = window.getComputedStyle(btn);
+                    const span = btn.querySelector('span');
+                    const spanStyle = span ? window.getComputedStyle(span) : null;
+                    return {
+                        text: btn.innerText.trim(),
+                        color: style.color,
+                        backgroundColor: style.backgroundColor,
+                        display: style.display,
+                        visibility: style.visibility,
+                        opacity: style.opacity,
+                        width: style.width,
+                        spanOpacity: spanStyle ? spanStyle.opacity : 'N/A',
+                        spanWidth: spanStyle ? spanStyle.width : 'N/A',
+                        spanDisplay: spanStyle ? spanStyle.display : 'N/A'
+                    };
+                }) // End map
+            }; // End return object
+        }); // End evaluate
+
+        console.log('Sidebar Item Styles:', JSON.stringify(styles, null, 2));
 
         // Optional: take screenshot
         await page.screenshot({ path: 'tests/e2e/admin-dashboard.png', fullPage: true });

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { IcalSyncInitializer } from '@/components/IcalSyncInitializer';
@@ -6,17 +6,18 @@ import { IcalSyncInitializer } from '@/components/IcalSyncInitializer';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
 
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover',
+    themeColor: '#DAA520',
+};
+
 export const metadata: Metadata = {
     title: 'Whistle Inn Private Getaway in the Sierra',
     description: 'A beautifully appointed Victorian Farmhouse in Alta, California. Perfect for family gatherings, retreats, and getting away from it all.',
-    viewport: {
-        width: 'device-width',
-        initialScale: 1,
-        maximumScale: 5,
-        userScalable: true,
-        viewportFit: 'cover'
-    },
-    themeColor: '#DAA520',
     appleWebApp: {
         capable: true,
         statusBarStyle: 'default',

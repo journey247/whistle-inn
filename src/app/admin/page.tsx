@@ -231,63 +231,75 @@ export default function AdminPanel() {
             )}
 
             {/* Sidebar */}
-            <aside className={`
-                fixed inset-y-0 left-0 z-50 bg-slate-900 text-white transition-transform duration-300 flex flex-col
-                w-64 
-                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-                md:relative md:translate-x-0
-                ${sidebarOpen ? 'md:w-64' : 'md:w-20'}
-            `}>
-                <div className="p-6 flex items-center justify-between border-b border-slate-800">
-                    {(sidebarOpen || (typeof window !== 'undefined' && window.innerWidth < 768)) && <h1 className="text-xl font-bold">Whistle Inn</h1>}
+            <aside
+                className={`
+                    fixed inset-y-0 left-0 z-50 flex flex-col bg-slate-900 text-white transition-all duration-300
+                    ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-20'}
+                `}
+            >
+                {/* Logo & Toggle */}
+                <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-slate-800">
+                    <div className={`font-bold text-xl truncate transition-all duration-300 ${!sidebarOpen && 'md:w-0 md:opacity-0 md:overflow-hidden'}`}>
+                        Whistle Inn
+                    </div>
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="p-2 hover:bg-slate-800 rounded-lg hidden md:block"
+                        className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
                     >
-                        {sidebarOpen ? <CloseIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                    </button>
-                    <button
-                        onClick={() => setSidebarOpen(false)}
-                        className="p-2 hover:bg-slate-800 rounded-lg md:hidden"
-                    >
-                        <CloseIcon className="w-5 h-5" />
+                        {sidebarOpen ? <CloseIcon size={20} /> : <Menu size={20} />}
                     </button>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => {
-                                setActiveTab(item.id);
-                                if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false);
-                            }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
-                                activeTab === item.id
-                                    ? 'bg-brand-gold text-white shadow-lg'
-                                    : 'text-white hover:bg-slate-800'
-                            }`}
-                        >
-                            <item.icon className="w-5 h-5 flex-shrink-0" />
-                            <span className={`font-medium whitespace-nowrap ${
-                                sidebarOpen ? 'block opacity-100' : 'max-md:block md:hidden md:opacity-0 md:w-0'
-                            }`}>
-                                {item.label}
-                            </span>
-                        </button>
-                    ))}
+                {/* Nav Items */}
+                <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4">
+                    <ul className="space-y-1 px-2">
+                        {navItems.map((item) => (
+                            <li key={item.id}>
+                                <button
+                                    onClick={() => {
+                                        setActiveTab(item.id);
+                                        // Close sidebar on mobile when clicking an item
+                                        if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false);
+                                    }}
+                                    className={`
+                                        flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-medium transition-colors group
+                                        ${activeTab === item.id
+                                            ? 'bg-brand-gold text-white shadow-md'
+                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                        }
+                                    `}
+                                    title={!sidebarOpen ? item.label : ''}
+                                    style={{ color: activeTab === item.id ? 'white' : '#cbd5e1' }}
+                                >
+                                    <item.icon
+                                        className={`h-5 w-5 flex-shrink-0 transition-colors ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}
+                                        style={{ color: activeTab === item.id ? 'white' : '#94a3b8' }}
+                                    />
+                                    <span
+                                        className={`ml-3 whitespace-nowrap transition-all duration-300 ${sidebarOpen ? 'w-auto opacity-100' : 'md:w-0 md:opacity-0 md:overflow-hidden'
+                                            }`}
+                                        style={{ color: activeTab === item.id ? 'white' : '#cbd5e1' }}
+                                    >
+                                        {item.label}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
                 </nav>
 
-                <div className="p-4 border-t border-slate-800">
+                {/* Footer / Logout */}
+                <div className="border-t border-slate-800 p-4">
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-600 transition-colors duration-200 text-white hover:text-white"
+                        className="flex w-full items-center rounded-lg px-3 py-3 text-sm font-medium text-slate-400 transition-colors hover:bg-red-900/20 hover:text-red-400 group"
+                        title={!sidebarOpen ? 'Logout' : ''}
                     >
-                        <LogOut className="w-5 h-5 flex-shrink-0" />
-                        <span className={`font-medium whitespace-nowrap ${
-                            sidebarOpen ? 'block opacity-100' : 'max-md:block md:hidden md:opacity-0 md:w-0'
-                        }`}>
-                            Logout
+                        <LogOut className="h-5 w-5 flex-shrink-0 group-hover:text-red-400" />
+                        <span
+                            className={`ml-3 whitespace-nowrap transition-all duration-300 ${sidebarOpen ? 'w-auto opacity-100' : 'md:w-0 md:opacity-0 md:overflow-hidden'
+                                }`}
+                        >
                         </span>
                     </button>
                 </div>
