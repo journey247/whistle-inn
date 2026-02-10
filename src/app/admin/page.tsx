@@ -233,7 +233,7 @@ function AdminPanelContent() {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 flex admin-root relative">
+        <div className="min-h-screen bg-slate-50 admin-root">
             {/* Mobile Sidebar Overlay */}
             {sidebarOpen && (
                 <div
@@ -318,9 +318,9 @@ function AdminPanelContent() {
             </aside>
 
             {/* Main Content */}
-            <main 
+            <main
                 className={`
-                    flex-1 overflow-y-auto h-screen w-full transition-all duration-300
+                    h-screen overflow-y-auto transition-all duration-300
                     ${sidebarOpen ? 'md:ml-64' : 'md:ml-20'}
                 `}
             >
