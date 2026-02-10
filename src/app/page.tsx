@@ -37,7 +37,7 @@ export default function Home() {
             <BookingModal isOpen={isBookingOpen} onClose={() => setIsBookingOpen(false)} />
 
             {/* Hero Section */}
-            <section className="relative h-[95vh] flex items-center justify-center overflow-hidden">
+            <section className="relative min-h-screen sm:h-[95vh] flex items-center justify-center overflow-hidden">
                 <motion.div
                     className="absolute inset-0 z-0"
                     style={{ y: y1 }}
@@ -53,7 +53,7 @@ export default function Home() {
                 </motion.div>
 
                 <motion.div
-                    className="relative z-10 text-center max-w-5xl px-6"
+                    className="relative z-10 text-center max-w-5xl px-4 sm:px-6"
                     style={{ opacity: opacityHero }}
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -62,11 +62,11 @@ export default function Home() {
                     <div className="mb-4 inline-block px-4 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-white/90 text-sm font-medium tracking-wider uppercase">
                         The Ultimate Freedom
                     </div>
-                    <h1 className="text-5xl md:text-8xl font-serif font-bold text-white mb-6 tracking-tight drop-shadow-2xl">
+                    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-serif font-bold text-white mb-4 sm:mb-6 tracking-tight drop-shadow-2xl leading-tight">
                         Whistle Inn
-                        <span className="block text-2xl md:text-4xl font-light mt-4 italic font-sans opacity-90">Live Your Sierra Dream</span>
+                        <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light mt-2 sm:mt-4 italic font-sans opacity-90">Live Your Sierra Dream</span>
                     </h1>
-                    <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-lg font-light">
+                    <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-lg font-light px-2">
                         A serene sanctuary hidden in the Alta mountains. Where gold rushes meet powder days,
                         and pure luxury meets untouched wilderness. Peaceful, private, picture-perfect.
                     </p>
@@ -76,7 +76,7 @@ export default function Home() {
                     >
                         <button
                             onClick={() => setIsBookingOpen(true)}
-                            className="group relative inline-flex items-center justify-center px-8 py-4 text-white font-semibold transition-all duration-300 ease-in-out bg-brand-gold rounded-full hover:bg-yellow-500 hover:shadow-[0_0_20px_rgba(218,165,32,0.5)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold"
+                            className="group relative inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 text-white font-semibold transition-all duration-300 ease-in-out bg-brand-gold rounded-full hover:bg-yellow-500 hover:shadow-[0_0_20px_rgba(218,165,32,0.5)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold active:scale-95 touch-manipulation min-h-[48px]"
                         >
                             Book Your Stay
                             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -90,21 +90,21 @@ export default function Home() {
             </section>
 
             {/* Quick Stats - Floating Card */}
-            <div className="relative z-20 -mt-20 max-w-6xl mx-auto px-4">
+            <div className="relative z-20 -mt-12 sm:-mt-20 max-w-6xl mx-auto px-4">
                 <FadeIn delay={0.4}>
-                    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 grid grid-cols-2 lg:grid-cols-4 gap-8 md:divide-x divide-gray-100 border border-white/40">
+                    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 lg:divide-x divide-gray-100 border border-white/40">
                         {[
                             { icon: Users, label: "14 Guests", sub: "Perfect for reunions" },
                             { icon: Bed, label: "5 Bedrooms", sub: "Spacious comfort" },
                             { icon: Bed, label: "8 Beds", sub: "Flexible sleeping" },
                             { icon: Bath, label: "4.5 Baths", sub: "Luxury amenities" }
                         ].map((stat, i) => (
-                            <div key={i} className="flex flex-col items-center text-center group cursor-default">
-                                <div className="p-3 rounded-full bg-brand-green/5 text-brand-green mb-3 group-hover:bg-brand-green group-hover:text-white transition-colors duration-300">
-                                    <stat.icon className="w-6 h-6" />
+                            <div key={i} className="flex flex-col items-center text-center group cursor-default min-h-[80px] justify-center">
+                                <div className="p-2 sm:p-3 rounded-full bg-brand-green/5 text-brand-green mb-2 sm:mb-3 group-hover:bg-brand-green group-hover:text-white transition-colors duration-300">
+                                    <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                                 </div>
-                                <span className="font-serif font-bold text-xl text-slate-900">{stat.label}</span>
-                                <span className="text-sm text-slate-500 mt-1">{stat.sub}</span>
+                                <span className="font-serif font-bold text-lg sm:text-xl text-slate-900">{stat.label}</span>
+                                <span className="text-xs sm:text-sm text-slate-500 mt-1">{stat.sub}</span>
                             </div>
                         ))}
                     </div>
@@ -112,16 +112,16 @@ export default function Home() {
             </div>
 
             {/* Intro / About */}
-            <section className="py-24 md:py-32 px-6">
+            <section className="py-16 sm:py-24 md:py-32 px-4 sm:px-6">
                 <div className="max-w-4xl mx-auto text-center">
                     <FadeIn>
-                        <h2 className="text-brand-green text-sm font-bold tracking-widest uppercase mb-4">A Year-Round Paradise</h2>
-                        <h3 className="font-serif text-4xl md:text-5xl font-bold text-slate-900 mb-8 leading-tight">
+                        <h2 className="text-brand-green text-xs sm:text-sm font-bold tracking-widest uppercase mb-3 sm:mb-4">A Year-Round Paradise</h2>
+                        <h3 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6 sm:mb-8 leading-tight px-2">
                             Escape the Noise. <span className="text-brand-gold italic">Awaken Your Soul.</span>
                         </h3>
                     </FadeIn>
                     <FadeIn delay={0.2}>
-                        <p className="text-lg md:text-xl text-slate-600 leading-relaxed max-w-3xl mx-auto">
+                        <p className="text-base sm:text-lg md:text-xl text-slate-600 leading-relaxed max-w-3xl mx-auto px-2">
                             Immerse yourself in beauty all around you. Whether it's the thrill of winter ski resorts,
                             the rush of spring fishing, or the serenity of summer gold prospecting, Whistle Inn is your perfect basecamp.
                             Without the crowds. Without the noise. Just pure, unadulterated peace in nature's lap.
@@ -131,13 +131,13 @@ export default function Home() {
             </section>
 
             {/* Parallax Gallery Strip */}
-            <section className="py-10 bg-black overflow-hidden relative">
+            <section className="py-8 sm:py-10 bg-black overflow-hidden relative">
                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                 <div className="max-w-7xl mx-auto px-4 relative z-10">
                     <FadeIn>
-                        <h2 className="text-white font-serif text-3xl md:text-4xl mb-12 text-center">Highlights of the Estate</h2>
+                        <h2 className="text-white font-serif text-2xl sm:text-3xl md:text-4xl mb-8 sm:mb-12 text-center px-2">Highlights of the Estate</h2>
                     </FadeIn>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-[600px] md:h-96">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 h-auto sm:h-[600px] md:h-96">
                         {[
                             { src: "/pool.webp", title: "Saltwater Pool", sub: "Heated & Private" },
                             { src: "/fullkitchen.avif", title: "Chef's Kitchen", sub: "Gather & Feast" },

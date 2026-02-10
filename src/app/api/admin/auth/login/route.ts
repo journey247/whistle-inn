@@ -56,22 +56,20 @@ export async function POST(request: Request) {
 
         // Create JWT with shorter expiry time
         const sessionTimeout = process.env.SESSION_TIMEOUT_HOURS || '8';
-        const expiresIn = `${sessionTimeout}h`;
 
         const token = jwt.sign(
             {
                 sub: user.id,
                 email: user.email,
-                role: user.role,
-                iat: Math.floor(Date.now() / 1000)
+                role: user.role
             },
             jwtSecret,
-            { expiresIn }
+            { expiresIn: '8h' }
         );
 
         console.log(`Successful login for ${sanitizedEmail} from ${clientIP}`);
 
-        return NextResponse.json({ token, expiresIn });
+        return NextResponse.json({ token, expiresIn: `${sessionTimeout}h` });
     } catch (err) {
         console.error('Authentication error:', err);
         return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });

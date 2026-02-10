@@ -9,6 +9,19 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfa
 export const metadata: Metadata = {
     title: 'Whistle Inn Private Getaway in the Sierra',
     description: 'A beautifully appointed Victorian Farmhouse in Alta, California. Perfect for family gatherings, retreats, and getting away from it all.',
+    viewport: {
+        width: 'device-width',
+        initialScale: 1,
+        maximumScale: 5,
+        userScalable: true,
+        viewportFit: 'cover'
+    },
+    themeColor: '#DAA520',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'Whistle Inn'
+    }
 };
 
 export default function RootLayout({

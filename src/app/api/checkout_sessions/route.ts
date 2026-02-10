@@ -12,7 +12,7 @@ function initializeStripe() {
         throw new Error('Stripe secret key not configured');
     }
     return new Stripe(secretKey, {
-        apiVersion: '2023-10-16',
+        apiVersion: '2026-01-28.clover',
     });
 }
 

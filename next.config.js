@@ -64,6 +64,9 @@ const nextConfig = {
     // Enhanced security configuration
     poweredByHeader: false, // Hide X-Powered-By header
 
+    // Turbopack configuration (Next.js 16+)
+    turbopack: {},
+
     // Webpack configuration for security
     webpack: (config, { dev }) => {
         if (!dev) {

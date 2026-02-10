@@ -158,106 +158,173 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+                        transition={{ type: "spring", duration: 0.5 }}
+                        className="fixed inset-2 sm:inset-4 md:left-1/2 md:top-1/2 md:h-fit md:max-h-[90vh] md:w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 z-50 flex items-center justify-center"
                     >
-                        <div className="bg-white pointer-events-auto rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-lg md:max-w-4xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+                            {/* Mobile-optimized header */}
+                            <div className="p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
                                 <div>
-                                    <h2 className="font-serif text-2xl font-bold text-slate-800">Book Your Stay</h2>
+                                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-800">Book Your Stay</h2>
                                     <p className="text-sm text-slate-500">Select dates for your getaway</p>
                                 </div>
                                 <button
                                     onClick={onClose}
-                                    className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                                    className="p-2 hover:bg-gray-200 rounded-full transition-colors active:scale-95 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                    aria-label="Close booking modal"
                                 >
                                     <X className="w-5 h-5 text-gray-500" />
                                 </button>
                             </div>
 
-                            <div className="p-6 overflow-y-auto">
-                                <div className="flex justify-center mb-6">
-                                    {loadingAvailability ? (
-                                        <div className="flex items-center justify-center p-8">
-                                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                                            <span className="ml-2 text-gray-500">Loading availability...</span>
+                            <div className="flex-1 overflow-y-auto">
+                                {loadingAvailability ? (
+                                    <div className="flex items-center justify-center p-8 sm:p-12">
+                                        <div className="text-center">
+                                            <Loader2 className="w-8 h-8 animate-spin text-brand-gold mx-auto mb-4" />
+                                            <p className="text-slate-600">Loading availability...</p>
                                         </div>
-                                    ) : (
-                                        <DayPicker
-                                            mode="range"
-                                            selected={range}
-                                            onSelect={setRange}
-                                            disabled={[
-                                                { before: new Date() },
-                                                ...bookedDates
-                                            ]}
-                                            modifiers={{ booked: bookedDates }}
-                                            modifiersStyles={{
-                                                booked: {
-                                                    color: 'white',
-                                                    backgroundColor: '#ef4444',
-                                                    textDecoration: 'line-through'
+                                    </div>
+                                ) : (
+                                    <div className="md:grid md:grid-cols-3 md:gap-6 h-full">
+                                        {/* Calendar Section - Mobile First */}
+                                        <div className="md:col-span-2 p-4 sm:p-6">
+                                            <style jsx>{`
+                                                .rdp {
+                                                    --rdp-cell-size: 36px;
+                                                    --rdp-accent-color: #DAA520;
+                                                    --rdp-background-color: #DAA520;
+                                                    margin: 0;
                                                 }
-                                            }}
-                                            className="border rounded-xl p-4 shadow-sm bg-white"
-                                        />
-                                    )}
-                                </div>
+                                                @media (min-width: 640px) {
+                                                    .rdp {
+                                                        --rdp-cell-size: 40px;
+                                                    }
+                                                }
+                                                .rdp-button:hover:not([disabled]) {
+                                                    background-color: #f3f4f6;
+                                                }
+                                                .rdp-button:focus-visible {
+                                                    outline: 2px solid #DAA520;
+                                                    outline-offset: 2px;
+                                                }
+                                                .rdp-months {
+                                                    justify-content: center;
+                                                }
+                                            `}</style>
+                                            <DayPicker
+                                                mode="range"
+                                                selected={range}
+                                                onSelect={setRange}
+                                                disabled={[
+                                                    { before: new Date() },
+                                                    ...bookedDates
+                                                ]}
+                                                numberOfMonths={1}
+                                                modifiers={{ booked: bookedDates }}
+                                                modifiersStyles={{
+                                                    booked: {
+                                                        color: 'white',
+                                                        backgroundColor: '#ef4444',
+                                                        textDecoration: 'line-through'
+                                                    }
+                                                }}
+                                                className="w-full"
+                                            />
 
-                                {bookedDates.length > 0 && (
-                                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                        <p className="text-sm text-red-700">
-                                            <span className="font-medium">Note:</span> Red dates are already booked and cannot be selected.
-                                        </p>
-                                    </div>
-                                )}
+                                            {bookedDates.length > 0 && (
+                                                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                    <p className="text-sm text-red-700">
+                                                        <span className="font-medium">Note:</span> Red dates are already booked.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
 
-                                {range?.from && range?.to && numNights > 0 && (
-                                    <div className="space-y-4 bg-gray-50 p-6 rounded-xl border border-gray-100">
-                                        {!meetsMinimum && (
-                                            <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                                <p className="text-sm text-amber-800 font-medium">
-                                                    Minimum {MINIMUM_NIGHTS} night stay required
-                                                </p>
+                                        {/* Booking Summary - Mobile responsive */}
+                                        <div className="md:col-span-1 bg-slate-50 border-t md:border-t-0 md:border-l border-gray-200">
+                                            <div className="p-4 sm:p-6 sticky top-0">
+                                                <h3 className="font-serif font-bold text-lg mb-4 text-slate-900">Summary</h3>
+
+                                                {range?.from && range?.to ? (
+                                                    <div className="space-y-3 mb-6">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-slate-600">Check-in</span>
+                                                            <span className="font-medium">{format(range.from, 'MMM dd')}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-slate-600">Check-out</span>
+                                                            <span className="font-medium">{format(range.to, 'MMM dd')}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-slate-600">Nights</span>
+                                                            <span className="font-medium">{numNights}</span>
+                                                        </div>
+                                                        {numNights > 0 && (
+                                                            <>
+                                                                <hr className="my-3" />
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span className="text-slate-600">Accommodation</span>
+                                                                        <span>${accommodationTotal.toLocaleString()}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span className="text-slate-600">Cleaning fee</span>
+                                                                        <span>${CLEANING_FEE}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <hr className="my-3" />
+                                                                <div className="flex justify-between font-bold">
+                                                                    <span>Total</span>
+                                                                    <span className="text-brand-gold">${total.toLocaleString()}</span>
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-6">
+                                                        <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                                                        <p className="text-slate-500 text-sm">Select dates to see pricing</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Mobile-optimized booking actions */}
+                                                {range?.from && range?.to && numNights > 0 && (
+                                                    <div className="space-y-3">
+                                                        {!meetsMinimum && (
+                                                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                                                <p className="text-xs sm:text-sm text-amber-800 font-medium">
+                                                                    Minimum {MINIMUM_NIGHTS} nights required
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        {hasDateConflict && (
+                                                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                                <p className="text-xs sm:text-sm text-red-800 font-medium">
+                                                                    Selected dates are unavailable
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            onClick={handleCheckout}
+                                                            disabled={loading || !meetsMinimum || hasDateConflict}
+                                                            className="w-full bg-brand-gold hover:bg-yellow-500 disabled:bg-gray-300 text-white font-semibold py-3 px-6 rounded-xl transition-all active:scale-95 touch-manipulation min-h-[48px] flex items-center justify-center gap-2"
+                                                        >
+                                                            {loading ? (
+                                                                <>
+                                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                                    <span>Processing...</span>
+                                                                </>
+                                                            ) : (
+                                                                `Book Now - $${total.toLocaleString()}`
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                        <div className="flex justify-between text-slate-600">
-                                            <span>{numNights} nights</span>
-                                            <span>${accommodationTotal}</span>
-                                        </div>
-                                        <p className="text-xs text-slate-500">
-                                            $650/night Mon-Thu, $700/night Fri-Sun
-                                        </p>
-                                        <div className="flex justify-between text-slate-600">
-                                            <span>Cleaning Fee</span>
-                                            <span>${CLEANING_FEE}</span>
-                                        </div>
-                                        <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-slate-900 text-lg">
-                                            <span>Total</span>
-                                            <span>${total}</span>
                                         </div>
                                     </div>
                                 )}
-                            </div>
-
-                            <div className="p-6 border-t border-gray-100 bg-gray-50">
-                                <button
-                                    onClick={handleCheckout}
-                                    disabled={!range?.from || !range?.to || loading || hasDateConflict || loadingAvailability || !meetsMinimum}
-                                    className="w-full py-4 bg-brand-gold text-white font-bold rounded-xl shadow-lg hover:bg-yellow-500 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                                >
-                                    {loading ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : hasDateConflict ? (
-                                        "Dates Unavailable"
-                                    ) : !meetsMinimum && numNights > 0 ? (
-                                        `Minimum ${MINIMUM_NIGHTS} Nights Required`
-                                    ) : (
-                                        `Reserve for $${range?.from && range?.to ? total : '...'}`
-                                    )}
-                                </button>
-                                <p className="text-center text-xs text-gray-400 mt-3">
-                                    You strictly won't be charged yet. This is a demo.
-                                </p>
                             </div>
                         </div>
                     </motion.div>

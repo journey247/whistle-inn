@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import dynamic from 'next/dynamic';
-import { 
-    LayoutDashboard, Calendar, Users, Mail, TrendingUp, ExternalLink, 
+import {
+    LayoutDashboard, Calendar, Users, Mail, TrendingUp, ExternalLink,
     Settings, LogOut, Search, Filter, Download, Plus, RefreshCw,
     DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon
 } from "lucide-react";
@@ -161,12 +161,12 @@ export default function AdminPanel() {
 
     if (!authenticated) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-green to-brand-gold admin-root">
-                <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
-                    <div className="text-center mb-8">
-                        <Home className="w-16 h-16 mx-auto text-brand-gold mb-4" />
-                        <h1 className="text-3xl font-bold text-slate-900 mb-2">Whistle Inn Admin</h1>
-                        <p className="text-slate-600">Sign in to access your dashboard</p>
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-green to-brand-gold admin-root p-4">
+                <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md">
+                    <div className="text-center mb-6 sm:mb-8">
+                        <Home className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-brand-gold mb-3 sm:mb-4" />
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Whistle Inn Admin</h1>
+                        <p className="text-sm sm:text-base text-slate-600">Sign in to access your dashboard</p>
                     </div>
                     <div className="space-y-4">
                         <div>
@@ -176,30 +176,30 @@ export default function AdminPanel() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="admin@whistleinn.com"
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900"
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900 touch-manipulation"
                                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font -medium text-slate-700 mb-2">Password</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
-                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900"
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900 touch-manipulation"
                                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                             />
                         </div>
-                        <button 
+                        <button
                             onClick={handleLogin}
-                            className="w-full bg-brand-gold hover:bg-yellow-500 text-white font-semibold py-3 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg"
+                            className="w-full bg-brand-gold hover:bg-yellow-500 text-white font-semibold py-3 rounded-lg transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg touch-manipulation min-h-[48px]"
                         >
                             Sign In
                         </button>
                     </div>
-                    <p className="text-xs text-slate-500 text-center mt-6">
-                        Need help? Run <code className="bg-slate-100 px-2 py-1 rounded">node scripts/create_admin.js</code>
+                    <p className="text-xs text-slate-500 text-center mt-4 sm:mt-6">
+                        Need help? Run <code className="bg-slate-100 px-2 py-1 rounded text-xs">node scripts/create_admin.js</code>
                     </p>
                 </div>
             </div>
@@ -231,11 +231,10 @@ export default function AdminPanel() {
                         <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                                activeTab === item.id 
-                                    ? 'bg-brand-gold text-white shadow-lg' 
-                                    : 'hover:bg-slate-800 text-slate-300'
-                            }`}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
+                                ? 'bg-brand-gold text-white shadow-lg'
+                                : 'hover:bg-slate-800 text-slate-300'
+                                }`}
                         >
                             <item.icon className="w-5 h-5 flex-shrink-0" />
                             {sidebarOpen && <span className="font-medium">{item.label}</span>}
@@ -354,9 +353,8 @@ export default function AdminPanel() {
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="font-bold text-brand-gold">${booking.totalPrice}</p>
-                                                        <span className={`text-xs px-2 py-1 rounded-full ${
-                                                            booking.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                                                        }`}>
+                                                        <span className={`text-xs px-2 py-1 rounded-full ${booking.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                                            }`}>
                                                             {booking.status}
                                                         </span>
                                                     </div>
@@ -377,9 +375,8 @@ export default function AdminPanel() {
                                         ) : (
                                             recentBookings.map((booking) => (
                                                 <div key={booking.id} className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
-                                                    <div className={`p-2 rounded-lg ${
-                                                        booking.status === 'paid' ? 'bg-green-100' : 'bg-yellow-100'
-                                                    }`}>
+                                                    <div className={`p-2 rounded-lg ${booking.status === 'paid' ? 'bg-green-100' : 'bg-yellow-100'
+                                                        }`}>
                                                         {booking.status === 'paid' ? (
                                                             <CheckCircle className="w-5 h-5 text-green-600" />
                                                         ) : (
@@ -476,9 +473,8 @@ export default function AdminPanel() {
                         <div className="space-y-6">
                             {/* Scheduler Status Banner */}
                             {schedulerStatus && (
-                                <div className={`rounded-xl p-4 flex items-center gap-4 ${
-                                    schedulerStatus.isRunning ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-                                }`}>
+                                <div className={`rounded-xl p-4 flex items-center gap-4 ${schedulerStatus.isRunning ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                                    }`}>
                                     <div className={`w-3 h-3 rounded-full ${schedulerStatus.isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                                     <div className="flex-1">
                                         <p className="font-semibold text-slate-900">
