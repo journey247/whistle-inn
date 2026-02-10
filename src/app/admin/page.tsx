@@ -264,15 +264,13 @@ export default function AdminPanel() {
                             }}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
                                 ? 'bg-brand-gold text-white shadow-lg'
-                                : 'hover:bg-slate-800 text-white md:text-slate-300'
+                                : 'hover:bg-slate-800 text-white'
                                 }`}
                         >
                             <item.icon className="w-5 h-5 flex-shrink-0" />
-                            <span className={`font-medium transition-opacity duration-200 ${
-                                // On mobile: always visible if sidebar is open (controlled by parent visibility)
-                                // On desktop: hide if sidebar strictly closed
-                                !sidebarOpen ? 'max-md:block md:hidden md:opacity-0 md:w-0 md:overflow-hidden' : 'block opacity-100'
-                            }`}>
+                            <span className={`font-medium transition-all duration-200 ${
+                                sidebarOpen ? 'opacity-100' : 'md:opacity-0 md:w-0 md:overflow-hidden'
+                                }`}>
                                 {item.label}
                             </span>
                         </button>
@@ -282,11 +280,11 @@ export default function AdminPanel() {
                 <div className="p-4 border-t border-slate-800">
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-600 transition-all text-white md:text-slate-300 hover:text-white"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-600 transition-all text-white hover:text-white"
                     >
                         <LogOut className="w-5 h-5 flex-shrink-0" />
-                        <span className={`font-medium transition-opacity duration-200 ${
-                            !sidebarOpen ? 'max-md:block md:hidden md:opacity-0 md:w-0 md:overflow-hidden' : 'block opacity-100'
+                        <span className={`font-medium transition-all duration-200 ${
+                            sidebarOpen ? 'opacity-100' : 'md:opacity-0 md:w-0 md:overflow-hidden'
                         }`}>
                             Logout
                         </span>
