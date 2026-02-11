@@ -4,13 +4,9 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { loadStripe } from "@stripe/stripe-js";
 import { X, Calendar, Loader2 } from "lucide-react";
 import { format, differenceInCalendarDays, eachDayOfInterval } from "date-fns";
 import clsx from "clsx";
-
-// Initialize Stripe (replace with your publishable key)
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder");
 
 const WEEKDAY_PRICE = 650; // Mon-Thu
 const WEEKEND_PRICE = 700; // Fri-Sun
@@ -117,11 +113,11 @@ export function BookingModal({ isOpen, onClose }: BookingModalProps) {
                 throw new Error(data.error || 'Checkout failed');
             }
 
-            const { sessionId } = data;
-            const stripe = await stripePromise;
-            if (stripe) {
-                const { error: stripeError } = await (stripe as any).redirectToCheckout({ sessionId });
-                if (stripeError) console.error(stripeError);
+            // Redirect to Stripe Checkout using the session URL
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error('No checkout URL received');
             }
         } catch (err) {
             console.error(err);

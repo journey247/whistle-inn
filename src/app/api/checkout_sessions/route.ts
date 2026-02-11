@@ -162,7 +162,11 @@ export async function POST(request: Request) {
             data: { stripeSessionId: session.id }
         });
 
-        return NextResponse.json({ sessionId: session.id, bookingId: booking.id });
+        return NextResponse.json({ 
+            sessionId: session.id, 
+            bookingId: booking.id,
+            url: session.url 
+        });
     } catch (err: any) {
         console.error('Stripe error:', err);
         return NextResponse.json({ error: err.message }, { status: 500 });
