@@ -159,14 +159,13 @@ export function BookingsTable() {
                                     ${b.totalPrice}
                                 </td>
                                 <td className="py-3 px-4">
-                                    <select 
-                                        value={b.status} 
-                                        onChange={(e) => updateStatus(b.id, e.target.value)} 
-                                        className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 focus:ring-brand-gold pr-8 ${
-                                            b.status === 'paid' ? 'bg-green-100 text-green-700' : 
-                                            b.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                            'bg-yellow-100 text-yellow-700'
-                                        }`}
+                                    <select
+                                        value={b.status}
+                                        onChange={(e) => updateStatus(b.id, e.target.value)}
+                                        className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 focus:ring-brand-gold pr-8 ${b.status === 'paid' ? 'bg-green-100 text-green-700' :
+                                                b.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                    'bg-yellow-100 text-yellow-700'
+                                            }`}
                                     >
                                         <option value="pending">Pending</option>
                                         <option value="paid">Paid</option>
@@ -174,8 +173,8 @@ export function BookingsTable() {
                                     </select>
                                 </td>
                                 <td className="py-3 px-4">
-                                    <button 
-                                        onClick={() => resendConfirmation(b)} 
+                                    <button
+                                        onClick={() => resendConfirmation(b)}
                                         className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors px-3 py-1 rounded hover:bg-blue-50"
                                     >
                                         Resend Email

@@ -7,13 +7,17 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
     LayoutDashboard, Calendar, Users, Mail, TrendingUp, ExternalLink,
     Settings, LogOut, Search, Filter, Download, Plus, RefreshCw,
-    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon
+    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon, FileText, Tag
 } from "lucide-react";
 
 // Client components loaded dynamically
 const BookingsTable = dynamic(() => import('@/components/admin/BookingsTable').then(m => m.BookingsTable), { ssr: false });
 const CalendarView = dynamic(() => import('@/components/admin/CalendarView').then(m => m.CalendarView), { ssr: false });
 const EmailPanel = dynamic(() => import('@/components/admin/EmailPanel').then(m => m.EmailPanel), { ssr: false });
+const ContentEditor = dynamic(() => import('@/components/admin/ContentEditor').then(m => m.ContentEditor), { ssr: false });
+const UserManagement = dynamic(() => import('@/components/admin/UserManagement').then(m => m.UserManagement), { ssr: false });
+const CouponsPanel = dynamic(() => import('@/components/admin/CouponsPanel'), { ssr: false });
+const PricingPanel = dynamic(() => import('@/components/admin/PricingPanel'), { ssr: false });
 
 type Booking = {
     id: string;
@@ -226,10 +230,14 @@ function AdminPanelContent() {
     const navItems = [
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         { id: "bookings", label: "Bookings", icon: Calendar },
+        { id: "pricing", label: "Rates & Seasons", icon: DollarSign },
+        { id: "coupons", label: "Coupons", icon: Tag },
+        { id: "content", label: "Site Content", icon: FileText },
         { id: "external", label: "External Sync", icon: ExternalLink },
         { id: "customers", label: "Customers", icon: Users },
         { id: "emails", label: "Email Center", icon: Mail },
         { id: "analytics", label: "Analytics", icon: TrendingUp },
+        { id: "settings", label: "Settings", icon: Settings },
     ];
 
     return (
@@ -582,6 +590,35 @@ function AdminPanelContent() {
                                 </div>
                             )}
 
+                            {/* Export Calendar Card */}
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                                <h3 className="text-lg font-bold text-slate-900 mb-2 flex items-center gap-2">
+                                    <Download className="w-5 h-5 text-brand-gold" />
+                                    Export Calendar
+                                </h3>
+                                <p className="text-slate-600 mb-4">
+                                    Share your website bookings with external platforms (Airbnb, VRBO, Google).
+                                    Paste this URL into their "Import Calendar" settings.
+                                </p>
+                                <div className="flex gap-2">
+                                    <input
+                                        readOnly
+                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/calendar/ical`}
+                                        className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 font-mono text-sm select-all"
+                                        onClick={(e) => e.currentTarget.select()}
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}/api/calendar/ical`);
+                                            addToast("Copied to clipboard", "success");
+                                        }}
+                                        className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition whitespace-nowrap"
+                                    >
+                                        Copy URL
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* iCal Feeds Section */}
                             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                                 <div className="flex items-center justify-between mb-6">
@@ -877,6 +914,13 @@ function AdminPanelContent() {
                         </div>
                     )}
 
+                    {/* Content Tab */}
+                    {activeTab === "content" && (
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <ContentEditor />
+                        </div>
+                    )}
+
                     {/* Emails Tab */}
                     {activeTab === "emails" && (
                         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -981,6 +1025,30 @@ function AdminPanelContent() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Pricing Tab */}
+                    {activeTab === "pricing" && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Rates & Seasons</h2>
+                            <PricingPanel />
+                        </div>
+                    )}
+
+                    {/* Coupons Tab */}
+                    {activeTab === "coupons" && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Coupons & Promotions</h2>
+                            <CouponsPanel />
+                        </div>
+                    )}
+
+                    {/* Settings Tab */}
+                    {activeTab === "settings" && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6">System Settings</h2>
+                            <UserManagement />
                         </div>
                     )}
                 </div>

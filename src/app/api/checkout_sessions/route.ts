@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
-import { eachDayOfInterval } from 'date-fns';
+import { calculateQuote } from '@/lib/pricing-server';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize Stripe with proper validation
 function initializeStripe() {
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey || secretKey.includes('placeholder')) {
@@ -23,30 +22,7 @@ try {
     console.error('Stripe initialization failed:', err);
 }
 
-const WEEKDAY_PRICE = 650; // Mon-Thu
-const WEEKEND_PRICE = 700; // Fri-Sun
-const CLEANING_FEE = 150;
 const MINIMUM_NIGHTS = 3;
-
-// Calculate total price based on day of week
-function calculateTotalPrice(startDate: Date, endDate: Date): number {
-    const days = eachDayOfInterval({ start: startDate, end: endDate });
-    // Exclude the last day (checkout day)
-    const nightDays = days.slice(0, -1);
-
-    let total = 0;
-    nightDays.forEach(day => {
-        const dayOfWeek = day.getDay();
-        // Friday (5), Saturday (6), Sunday (0) = weekend pricing
-        if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
-            total += WEEKEND_PRICE;
-        } else {
-            total += WEEKDAY_PRICE;
-        }
-    });
-
-    return total;
-}
 
 export async function POST(request: Request) {
     try {
@@ -59,7 +35,11 @@ export async function POST(request: Request) {
 
         const start = new Date(startDate);
         const end = new Date(endDate);
-        const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Use server-side quote calculation for security
+        const { nights, accommodationTotal, cleaningFee, total, discountAmount, couponId } = await calculateQuote(start, end, body.couponCode);
+
+        // Increase Guest Count if needed (Pricing is per night, not per guest, but we store it)
 
         if (nights < MINIMUM_NIGHTS) {
             return NextResponse.json({ error: `Minimum ${MINIMUM_NIGHTS} night stay required` }, { status: 400 });
@@ -96,9 +76,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'These dates are already booked' }, { status: 409 });
         }
 
-        const accommodationTotal = calculateTotalPrice(start, end);
-        const totalAmount = accommodationTotal + CLEANING_FEE;
-
         // Create a pending booking record
         const booking = await prisma.booking.create({
             data: {
@@ -106,7 +83,10 @@ export async function POST(request: Request) {
                 endDate: end,
                 guestName: "Pending Guest", // Will update after payment
                 email: "pending@example.com",
-                totalPrice: totalAmount,
+                guestCount: guestCount || 1,
+                totalPrice: total,
+                discount: discountAmount,
+                couponId: couponId || undefined,
                 status: 'pending',
             }
         });
@@ -115,46 +95,73 @@ export async function POST(request: Request) {
         let session: any;
         const isMock = (process.env.STRIPE_SECRET_KEY || 'placeholder').includes('placeholder');
 
+        // Determine base URL safely
+        const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
         if (isMock) {
             console.log('Using mock Stripe session');
             session = {
                 id: 'cs_test_mock_' + Date.now(),
-                url: `${request.headers.get('origin')}/success?session_id=cs_test_mock_${Date.now()}&booking_id=${booking.id}`
+                url: `${origin}/success?session_id=cs_test_mock_${Date.now()}&booking_id=${booking.id}`
             };
         } else {
-            session = await stripe.checkout.sessions.create({
-                payment_method_types: ['card'],
-                line_items: [
-                    {
-                        price_data: {
-                            currency: 'usd',
-                            product_data: {
-                                name: 'Whistle Inn Reservation',
-                                description: `${nights} nights stay ($650/night Mon-Thu, $700/night Fri-Sun)`,
+            try {
+                // Calculate line items handling discounts
+                // We apply the discount to the accommodation line item directly
+                // to avoid complex coupon creation in Stripe for now.
+                const finalAccommodationPrice = Math.max(0, accommodationTotal - discountAmount);
+                const accommodationDescription = discountAmount > 0 
+                    ? `${nights} nights stay (Discount applied: -$${discountAmount})`
+                    : `${nights} nights stay`;
+
+                session = await stripe.checkout.sessions.create({
+                    payment_method_types: ['card'],
+                    line_items: [
+                        {
+                            price_data: {
+                                currency: 'usd',
+                                product_data: {
+                                    name: 'Whistle Inn Reservation',
+                                    description: accommodationDescription,
+                                },
+                                unit_amount: Math.round(finalAccommodationPrice * 100),
                             },
-                            unit_amount: accommodationTotal * 100,
+                            quantity: 1,
                         },
-                        quantity: 1,
-                    },
-                    {
-                        price_data: {
-                            currency: 'usd',
-                            product_data: {
-                                name: 'Cleaning Fee',
+                        {
+                            price_data: {
+                                currency: 'usd',
+                                product_data: {
+                                    name: 'Cleaning Fee',
+                                },
+                                unit_amount: cleaningFee * 100,
                             },
-                            unit_amount: CLEANING_FEE * 100,
+                            quantity: 1,
                         },
-                        quantity: 1,
+                    ],
+                    mode: 'payment',
+                    success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
+                    cancel_url: `${origin}/?canceled=true`,
+                    metadata: {
+                        bookingId: booking.id,
+                        guestCount: String(guestCount),
+                        couponId: couponId || '',
                     },
-                ],
-                mode: 'payment',
-                success_url: `${request.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
-                cancel_url: `${request.headers.get('origin')}/?canceled=true`,
-                metadata: {
-                    bookingId: booking.id,
-                },
-            });
+                });
+            } catch (err: any) {
+                // If Stripe Auth fails (wrong key in dev), fallback to mock
+                if (err.statusCode === 401 || err.type === 'StripeAuthenticationError') {
+                    console.warn('[Stripe] Auth failed - Using Mock Session Fallback');
+                    session = {
+                        id: 'cs_test_mock_' + Date.now(),
+                        url: `${request.headers.get('origin')}/success?session_id=cs_test_mock_${Date.now()}&booking_id=${booking.id}`
+                    };
+                } else {
+                    throw err;
+                }
+            }
         }
+
 
         // Update booking with the session ID
         await prisma.booking.update({
@@ -162,7 +169,11 @@ export async function POST(request: Request) {
             data: { stripeSessionId: session.id }
         });
 
-        return NextResponse.json({ sessionId: session.id, bookingId: booking.id });
+        return NextResponse.json({
+            sessionId: session.id,
+            bookingId: booking.id,
+            url: session.url
+        });
     } catch (err: any) {
         console.error('Stripe error:', err);
         return NextResponse.json({ error: err.message }, { status: 500 });

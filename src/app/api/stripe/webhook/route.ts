@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,16 +93,26 @@ export async function POST(request: Request) {
                         },
                     });
 
-                    // Log the transaction
-                    await prisma.emailLog.create({
-                        data: {
-                            to: session.customer_details?.email || existingBooking.email,
-                            subject: 'Booking Confirmation',
-                            body: `Payment confirmed for booking ${bookingId}. Stripe session: ${session.id}`,
-                            template: 'booking_confirmation',
-                            bookingId,
-                        },
-                    });
+                    // Send confirmation email
+                    const recipientEmail = session.customer_details?.email || existingBooking.email;
+                    try {
+                        await sendEmail({
+                            to: recipientEmail,
+                            templateName: 'booking_confirmation',
+                            variables: {
+                                guestName: session.customer_details?.name || existingBooking.guestName,
+                                bookingId: bookingId,
+                                startDate: new Date(existingBooking.startDate).toLocaleDateString(),
+                                endDate: new Date(existingBooking.endDate).toLocaleDateString(),
+                                amount: (session.amount_total ? session.amount_total / 100 : existingBooking.totalPrice).toFixed(2),
+                            },
+                            bookingId: bookingId
+                        });
+                        console.log(`Confirmation email sent to ${recipientEmail} for booking ${bookingId}`);
+                    } catch (emailError) {
+                        console.error(`Failed to send confirmation email for booking ${bookingId}:`, emailError);
+                        // Continue - do not fail the webhook because email failed
+                    }
 
                     console.log(`Booking ${bookingId} successfully confirmed via webhook`);
                 } catch (dbErr) {

@@ -22,11 +22,18 @@ model Booking {
   endDate    DateTime
   guestName  String
   email      String
+  guestCount Int           @default(1)
   totalPrice Float
   status     BookingStatus @default(pending)
   stripeSessionId String?   @unique
   stripePaymentIntentId String?
   notes      String?       // admin notes
+  
+  // Coupon linking
+  couponId   String?
+  coupon     Coupon?       @relation(fields: [couponId], references: [id])
+  discount   Float         @default(0) // Amount saved
+
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 }
@@ -40,7 +47,7 @@ model Subscriber {
 
 model ExternalBooking {
   id          String   @id @default(cuid())
-  source      String   // "Airbnb", "VRBO", etc.
+  source      String   // "Airbnb", "VRBO", "Blocked"
   guestName   String
   startDate   DateTime
   endDate     DateTime
@@ -101,4 +108,41 @@ model EmailTemplate {
   body      String   // HTML template with placeholders like {{guestName}}, {{startDate}}
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Lite CMS for dynamic site content
+model ContentBlock {
+  key         String   @id
+  value       String  
+  label       String   
+  category    String   
+  type        String   @default("text") // "text", "textarea", "markdown", "image"
+  section     String?  // grouping, e.g. "Hero Section", "Footer"
+  updatedAt   DateTime @updatedAt
+}
+
+// Phase 2: Pricing & Promotions
+model Coupon {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  discountType String  // "PERCENT", "FIXED"
+  value       Float    // 10.0 (for 10% or $10)
+  validFrom   DateTime?
+  validUntil  DateTime?
+  maxUses     Int?
+  usedCount   Int      @default(0)
+  isActive    Boolean  @default(true)
+  bookings    Booking[]
+  createdAt   DateTime @default(now())
+}
+
+model SpecialRate {
+  id          String   @id @default(cuid())
+  label       String   // e.g. "Peak Season"
+  startDate   DateTime
+  endDate     DateTime
+  pricePerNight Float? // Overrides base price
+  multiplier  Float?   // e.g., 1.5x regular price
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

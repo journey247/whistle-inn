@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { IcalSyncInitializer } from '@/components/IcalSyncInitializer';
+import { ToastProvider } from '@/components/ui/toast-context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
@@ -33,8 +34,10 @@ export default function RootLayout({
     return (
         <html lang="en" className="scroll-smooth">
             <body className={`${inter.variable} ${playfair.variable} font-sans`}>
-                <IcalSyncInitializer />
-                {children}
+                <ToastProvider>
+                    <IcalSyncInitializer />
+                    {children}
+                </ToastProvider>
             </body>
         </html>
     );
