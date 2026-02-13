@@ -58,7 +58,7 @@ const blocks = [
   { key: 'fishing_title', value: 'World-Class Fishing & Hiking', label: 'Fishing Title', section: 'Fishing' },
   { key: 'fishing_desc_1', value: 'The American and Truckee Rivers flow with crystal-clear waters teeming with trout, while nearby alpine lakes offer serene fishing spots surrounded by towering pines. Cast your line in the morning mist, then explore miles of hiking trails through wildflower meadows and along rushing streams. The fresh mountain air invigorates every adventure.', label: 'Fishing Desc 1', type: 'textarea', section: 'Fishing' },
   { key: 'fishing_desc_2', value: "From gentle riverside walks to challenging summit hikes, the trails around Whistle Inn showcase the Sierra's natural splendor. Spot wildlife, discover hidden waterfalls, and breathe deeply in one of California's most pristine mountain environments.", label: 'Fishing Desc 2', type: 'textarea', section: 'Fishing' },
-  { key: 'fishing_img', value: '/fishing2.jpg', label: 'Fishing Image', type: 'image', section: 'Fishing' },
+  { key: 'fishing_img', value: '/fishing.jpg', label: 'Fishing Image', type: 'image', section: 'Fishing' },
 
   // Train Notice (Transparent Disclosure)
   { key: 'train_notice_title', value: 'About the Railroad', label: 'Train Notice Title', section: 'Train Notice' },
