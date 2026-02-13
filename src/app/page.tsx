@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import PageClient from "@/components/PageClient";
 
 export const revalidate = 60; // Revalidate every 60 seconds
+export const dynamic = 'force-dynamic';
 
 async function getContent() {
     try {
