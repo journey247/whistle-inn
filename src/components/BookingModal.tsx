@@ -54,7 +54,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     useEffect(() => {
         if (range?.from && range?.to) {
             setAppliedCoupon(""); // Reset coupon on date change
-            setCouponCode(""); 
+            setCouponCode("");
             fetchQuote();
         } else {
             setQuote(null);
@@ -91,7 +91,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
 
     const fetchQuote = async (codeToApply?: string) => {
         if (!range?.from || !range?.to) return;
-        
+
         setQuoteLoading(true);
         setCouponError("");
 
@@ -105,9 +105,9 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                     couponCode: codeToApply
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (!response.ok) {
                 if (codeToApply) {
                     setCouponError(data.error || "Invalid coupon");
@@ -368,15 +368,15 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                                         <span className="font-medium">Accommodation ({quote.nights} nights)</span>
                                                                         <span className="font-semibold">${quote.accommodationTotal.toLocaleString()}</span>
                                                                     </div>
-                                                                    
+
                                                                     <div className="flex justify-between items-start text-slate-700">
                                                                         <span className="flex items-center gap-1 font-medium">Cleaning Fee <Info className="w-3 h-3 text-slate-400" /></span>
                                                                         <span className="font-semibold">${quote.cleaningFee}</span>
                                                                     </div>
-                                                                    
+
                                                                     {quote.discountAmount > 0 && (
                                                                         <div className="flex justify-between items-center text-green-700 bg-green-50 p-2 rounded">
-                                                                            <span className="font-medium flex items-center gap-1"><Tag className="w-3 h-3"/> Discount ({appliedCoupon})</span>
+                                                                            <span className="font-medium flex items-center gap-1"><Tag className="w-3 h-3" /> Discount ({appliedCoupon})</span>
                                                                             <span className="font-semibold">-${quote.discountAmount.toLocaleString()}</span>
                                                                         </div>
                                                                     )}
@@ -388,14 +388,14 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                         <div className="mt-4 pt-4 border-t border-slate-200">
                                                             <label className="text-xs font-semibold uppercase text-slate-500 block mb-2">Promo Code</label>
                                                             <div className="flex gap-2">
-                                                                <input 
-                                                                    type="text" 
+                                                                <input
+                                                                    type="text"
                                                                     value={couponCode}
                                                                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                                                                     placeholder="Enter code"
                                                                     className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 uppercase focus:border-brand-gold focus:ring-1 focus:ring-brand-gold outline-none"
                                                                 />
-                                                                <button 
+                                                                <button
                                                                     onClick={handleApplyCoupon}
                                                                     disabled={!couponCode || quoteLoading}
                                                                     className="bg-slate-800 text-white text-xs font-bold px-4 rounded-lg hover:bg-slate-700 disabled:opacity-50"

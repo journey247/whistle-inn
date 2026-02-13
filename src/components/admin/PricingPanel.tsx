@@ -1,19 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Loader2, Trash, Plus, Calendar } from "lucide-react";
-import { format } from "date-fns";
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { Calendar, Trash2, Plus, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
 
-export default function PricingPanel() {
-    const [rates, setRates] = useState<any[]>([]);
+interface SpecialRate {
+    id: string;
+    startDate: string;
+    endDate: string;
+    price: number;
+    minStay: number;
+    note?: string;
+}
+
+export function PricingPanel() {
+    const [rates, setRates] = useState<SpecialRate[]>([]);
     const [loading, setLoading] = useState(true);
-    const [formData, setFormData] = useState({
-        label: "",
-        startDate: "",
-        endDate: "",
-        type: "MULTIPLIER", // MULTIPLIER or FIXED
-        value: ""
-    });
+    const { register, handleSubmit, reset } = useForm();
 
     useEffect(() => {
         fetchRates();
@@ -21,182 +25,134 @@ export default function PricingPanel() {
 
     const fetchRates = async () => {
         try {
-            const res = await fetch('/api/admin/rates');
-            if (res.ok) setRates(await res.json());
-        } catch (e) {
-            console.error(e);
+            const res = await fetch('/api/admin/pricing');
+            const data = await res.json();
+            setRates(data);
+        } catch (error) {
+            console.error('Failed to fetch rates:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        
-        const payload: any = {
-            label: formData.label,
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-        };
-
-        if (formData.type === 'MULTIPLIER') {
-            payload.multiplier = formData.value;
-        } else {
-            payload.pricePerNight = formData.value;
-        }
-
+    const onSubmit = async (data: any) => {
         try {
-            const res = await fetch('/api/admin/rates', {
+            const res = await fetch('/api/admin/pricing', {
                 method: 'POST',
-                body: JSON.stringify(payload),
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...data,
+                    price: Number(data.price),
+                    minStay: Number(data.minStay)
+                })
             });
             if (res.ok) {
-                setFormData({
-                    label: "",
-                    startDate: "",
-                    endDate: "",
-                    type: "MULTIPLIER",
-                    value: ""
-                });
+                reset();
                 fetchRates();
             } else {
-                const err = await res.json();
-                alert(err.error || 'Failed to create rate');
+                alert('Failed to create rate. Check date overlap.');
             }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
+        } catch (error) {
+            console.error('Create error:', error);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure?')) return;
+        if (!confirm('Delete this special rate?')) return;
         try {
-            await fetch(`/api/admin/rates?id=${id}`, { method: 'DELETE' });
+            await fetch(`/api/admin/pricing?id=${id}`, { method: 'DELETE' });
             fetchRates();
-        } catch (e) { console.error(e); }
+        } catch (error) {
+            console.error('Delete error:', error);
+        }
     };
 
     return (
-        <div className="space-y-8">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <Plus className="w-5 h-5" /> Add Seasonal Rate
+        <div className="space-y-6">
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-serif text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-brand-gold" /> Add Special Rate
                 </h3>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Label</label>
-                        <input
-                            required
-                            className="w-full p-2 border rounded-lg"
-                            value={formData.label}
-                            onChange={e => setFormData({ ...formData, label: e.target.value })}
-                            placeholder="e.g. Peak Season 2024"
-                        />
-                    </div>
+                <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
+                        <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Start Date</label>
                         <input
-                            required
                             type="date"
-                            className="w-full p-2 border rounded-lg"
-                            value={formData.startDate}
-                            onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                            {...register("startDate", { required: true })}
+                            className="w-full p-2 border border-gray-300 rounded-lg"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
+                        <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">End Date</label>
                         <input
-                            required
                             type="date"
-                            className="w-full p-2 border rounded-lg"
-                            value={formData.endDate}
-                            onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                            {...register("endDate", { required: true })}
+                            className="w-full p-2 border border-gray-300 rounded-lg"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Pricing Type</label>
-                        <select
-                            className="w-full p-2 border rounded-lg"
-                            value={formData.type}
-                            onChange={e => setFormData({ ...formData, type: e.target.value })}
-                        >
-                            <option value="MULTIPLIER">Multiplier (e.g. 1.5x)</option>
-                            <option value="FIXED">Fixed Price ($/night)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Value</label>
+                        <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Price / Night</label>
                         <input
-                            required
                             type="number"
-                            step="0.01"
-                            className="w-full p-2 border rounded-lg"
-                            value={formData.value}
-                            onChange={e => setFormData({ ...formData, value: e.target.value })}
-                            placeholder={formData.type === 'MULTIPLIER' ? '1.5' : '450.00'}
+                            {...register("price", { required: true, min: 0 })}
+                            placeholder="350"
+                            className="w-full p-2 border border-gray-300 rounded-lg"
                         />
                     </div>
-                    
-                    <div className="md:col-span-2">
-                        <button type="submit" disabled={loading} className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-800 disabled:opacity-50">
-                            Add Rate
-                        </button>
+                    <div>
+                        <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Min Stay</label>
+                        <input
+                            type="number"
+                            {...register("minStay", { required: true, min: 1 })}
+                            defaultValue={3}
+                            className="w-full p-2 border border-gray-300 rounded-lg"
+                        />
                     </div>
+                    <button type="submit" className="bg-brand-gold text-white p-2 rounded-lg font-bold hover:bg-yellow-600 transition-colors shadow-md">
+                        Add Rate
+                    </button>
                 </form>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-6 border-b border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                        <Calendar className="w-5 h-5" /> Seasonal Rates
-                    </h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                            <tr>
-                                <th className="px-6 py-3">Label</th>
-                                <th className="px-6 py-3">Date Range</th>
-                                <th className="px-6 py-3">Modification</th>
-                                <th className="px-6 py-3 text-right">Action</th>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-gray-200">
+                        <tr>
+                            <th className="p-4">Date Range</th>
+                            <th className="p-4">Price</th>
+                            <th className="p-4">Min Stay</th>
+                            <th className="p-4">Note</th>
+                            <th className="p-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {rates.map((rate) => (
+                            <tr key={rate.id} className="hover:bg-slate-50">
+                                <td className="p-4 font-mono text-slate-800">
+                                    {format(new Date(rate.startDate), 'MMM dd')} - {format(new Date(rate.endDate), 'MMM dd, yyyy')}
+                                </td>
+                                <td className="p-4 font-bold text-green-700">${rate.price}</td>
+                                <td className="p-4 text-slate-600">{rate.minStay} nights</td>
+                                <td className="p-4 text-slate-500 italic">{rate.note || '-'}</td>
+                                <td className="p-4 text-right">
+                                    <button
+                                        onClick={() => handleDelete(rate.id)}
+                                        className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {rates.map(rate => (
-                                <tr key={rate.id} className="border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-bold">{rate.label}</td>
-                                    <td className="px-6 py-4">
-                                        {format(new Date(rate.startDate), 'MMM d')} - {format(new Date(rate.endDate), 'MMM d, yyyy')}
-                                    </td>
-                                    <td className="px-6 py-4 font-mono">
-                                        {rate.multiplier ? `${rate.multiplier}x` : `$${rate.pricePerNight}`}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button 
-                                            onClick={() => handleDelete(rate.id)}
-                                            className="text-red-600 hover:text-red-900 p-2"
-                                            title="Delete"
-                                        >
-                                            <Trash className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {rates.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
-                                        No special rates found
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                        ))}
+                        {rates.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="p-8 text-center text-slate-500 italic">No special rates configured. Standard base rate applies.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
 }
+

@@ -1,73 +1,91 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
-import { EditableImage } from './content/EditableImage';
 
-interface ImageConfig {
-    key: string;
-    defaultSrc: string;
+type HeroImage = {
+    src: string;
     alt: string;
-}
+    attribution?: string;
+};
 
-interface HeroImageSliderProps {
-    images?: Array<{ src: string; alt: string }>; // Fallback
-    imageConfig?: ImageConfig[];
-}
+export const images: HeroImage[] = [
+    { src: "/Exterior.avif", alt: "Whistle Inn Victorian Farmhouse Exterior" },
+    { src: "/1650.webp", alt: "Whistle Inn Train View", attribution: "Photo By: Annette Rogers Purther" },
+    { src: "/pool.webp", alt: "Whistle Inn Pool Area" },
+    { src: "/LivingRoom.webp", alt: "Whistle Inn Living Room" },
+    { src: "/DiningArea.webp", alt: "Whistle Inn Dining Area" },
+    { src: "/balcony.webp", alt: "Whistle Inn Balcony View" },
+    { src: "/entry.jpg", alt: "Whistle Inn Grand Entrance" },
+    { src: "/patio.webp", alt: "Whistle Inn Patio" },
+    { src: "/fullkitchen.avif", alt: "Whistle Inn Kitchen" },
+    { src: "/Bedroom1.webp", alt: "Whistle Inn Primary Bedroom" },
+];
 
-export const HeroImageSlider = ({ images, imageConfig }: HeroImageSliderProps) => {
+// Custom hook to share slider state
+export const useHeroSlider = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    const length = imageConfig ? imageConfig.length : (images?.length || 0);
-
     useEffect(() => {
-        if (length === 0) return;
         const interval = setInterval(() => {
-            setCurrentIndex((prevIndex) => (prevIndex + 1) % length);
-        }, 8000); // Change image every 8 seconds
+            setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+        }, 8000);
         return () => clearInterval(interval);
-    }, [length]);
+    }, []);
 
-    if (!images && !imageConfig) return null;
+    return { currentIndex, currentImage: images[currentIndex] };
+};
+
+export const HeroImageSlider = () => {
+    const { currentIndex, currentImage } = useHeroSlider();
 
     return (
-        <div className="absolute inset-0 z-0">
-            <AnimatePresence initial={false}>
-                <motion.div
-                    key={currentIndex}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 2 }}
-                    className="absolute inset-0"
-                >
-                    {imageConfig ? (
-                        <EditableImage
-                            contentKey={imageConfig[currentIndex].key}
-                            defaultValue={imageConfig[currentIndex].defaultSrc}
-                            alt={imageConfig[currentIndex].alt}
-                            containerClassName="h-full w-full"
+        <>
+            <div className="absolute inset-0 z-0">
+                <AnimatePresence initial={false}>
+                    <motion.div
+                        key={currentImage.src}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 2 }}
+                        className="absolute inset-0"
+                    >
+                        <Image
+                            src={currentImage.src}
+                            alt={currentImage.alt}
                             fill
                             className="object-cover"
-                            priority={currentIndex === 0}
+                            priority={currentIndex === 0} // Only prioritize the first image
                             style={{
                                 objectPosition: 'center',
-                                transform: 'scale(1.1)',
+                                transform: 'scale(1.1)', // Ken Burns effect: initial zoom
+                                animation: 'kenburns 10s forwards infinite' // Apply animation
                             }}
                         />
-                    ) : (
-                        // Fallback 
-                        <img
-                            src={images![currentIndex].src}
-                            alt={images![currentIndex].alt}
-                            className="w-full h-full object-cover"
-                        />
-                    )}
-                </motion.div>
-            </AnimatePresence>
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50/10" />
+                    </motion.div>
+                </AnimatePresence>
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50/10" />
 
-            {/* Ken Burns effect was here but difficult to apply to the editable Next/Image wrapper consistently without complex DOM manipulation, simplifying for Edit Mode stability */}
-        </div>
+                {/* Ken Burns effect CSS in a style tag for simplicity.
+                    In a real app, this might be in a global CSS file or a styled-component. */}
+                <style jsx global>{`
+                    @keyframes kenburns {
+                        0% {
+                            transform: scale(1.1) translateX(0%);
+                            object-position: center;
+                        }
+                        50% {
+                            transform: scale(1) translateX(5%);
+                            object-position: top right;
+                        }
+                        100% {
+                            transform: scale(1.1) translateX(0%);
+                            object-position: center;
+                        }
+                    }
+                `}</style>
+            </div>
+        </>
     );
 };

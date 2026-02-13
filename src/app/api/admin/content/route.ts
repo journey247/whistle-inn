@@ -4,47 +4,56 @@ import { verifyAdmin } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
+// GET all content blocks
 export async function GET(request: Request) {
     try {
+        // Verify admin token
         verifyAdmin(request);
-        const content = await prisma.contentBlock.findMany({
+
+        const blocks = await prisma.contentBlock.findMany({
             orderBy: { key: 'asc' }
         });
-        return NextResponse.json(content);
-    } catch (error: any) {
-        if (error.message === 'Authentication failed' || error.message === 'Invalid token' || error.message.includes('Missing or invalid authorization')) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-        console.error('Failed to fetch content:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json(blocks);
+    } catch (error) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 }
 
+// PUT (Upsert) content block
 export async function PUT(request: Request) {
     try {
         verifyAdmin(request);
+
         const body = await request.json();
-        const { key, value, label, section } = body;
 
-        if (!key || value === undefined) {
-            return NextResponse.json({ error: 'Missing key or value' }, { status: 400 });
-        }
+        const { key, value, label, type, section, category } = body;
 
-        const updated = await prisma.contentBlock.update({
+        if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
+
+        // Upsert allows creating if not exists, or updating value
+        const block = await prisma.contentBlock.upsert({
             where: { key },
-            data: {
+            update: {
                 value,
+                // Update metadata if provided, otherwise keep existing
                 ...(label && { label }),
-                ...(section && { section })
+                ...(type && { type }),
+                ...(section && { section }),
+                ...(category && { category })
+            },
+            create: {
+                key,
+                value,
+                label: label || key,
+                type: type || 'text',
+                section: section || 'Other',
+                category: category || 'General'
             }
         });
 
-        return NextResponse.json(updated);
-    } catch (error: any) {
-        if (error.message === 'Authentication failed' || error.message === 'Invalid token' || error.message.includes('Missing or invalid authorization')) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-        console.error('Failed to update content:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json(block);
+    } catch (error) {
+        console.error("Content Save Error", error);
+        return NextResponse.json({ error: 'Failed to save content' }, { status: 500 });
     }
 }

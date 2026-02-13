@@ -1,21 +1,25 @@
-import { getAllContent } from "@/lib/content";
-import HomeClient from "@/components/HomeClient";
+// src/app/page.tsx - Server Component
+import { prisma } from "@/lib/prisma";
+import PageClient from "@/components/PageClient";
 
-// Force dynamic rendering to ensure fresh content
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // Revalidate every 60 seconds
 
-export default async function Home() {
-    // 1. Fetch all content blocks efficiently
-    const contentBlocks = await getAllContent();
+async function getContent() {
+    try {
+        const blocks = await prisma.contentBlock.findMany();
+        const contentMap: Record<string, string> = {};
+        blocks.forEach(b => {
+            contentMap[b.key] = b.value;
+        });
+        return contentMap;
+    } catch (error) {
+        console.error("Failed to fetch content:", error);
+        return {};
+    }
+}
 
-    // 2. Transform blocks to a simple key-value map
-    const content = Array.isArray(contentBlocks)
-        ? contentBlocks.reduce((acc: Record<string, string>, block: any) => {
-            acc[block.key] = block.value;
-            return acc;
-        }, {})
-        : {};
+export default async function Page() {
+    const content = await getContent();
 
-    // 3. Pass content to the client component
-    return <HomeClient content={content} />;
+    return <PageClient content={content} />;
 }

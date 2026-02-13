@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { calculateQuote } from '@/lib/pricing-server';
 
@@ -15,20 +16,17 @@ export async function POST(request: Request) {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            return NextResponse.json({ error: 'Invalid dates' }, { status: 400 });
-        }
-        
         if (start >= end) {
-             return NextResponse.json({ error: 'End date must be after start date' }, { status: 400 });
+            return NextResponse.json({ error: 'Invalid date range' }, { status: 400 });
         }
 
-        const quote = await calculateQuote(start, end, couponCode);
-
-        // Filter out sensitive data if any (though calculateQuote is pretty clean)
-        return NextResponse.json(quote);
+        try {
+            const quote = await calculateQuote(start, end, couponCode);
+            return NextResponse.json(quote);
+        } catch (error: any) {
+            return NextResponse.json({ error: error.message }, { status: 400 });
+        }
     } catch (error) {
-        console.error('Quote error:', error);
-        return NextResponse.json({ error: 'Failed to calculate quote' }, { status: 500 });
+        return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 }

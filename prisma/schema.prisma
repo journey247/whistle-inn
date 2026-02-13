@@ -22,18 +22,15 @@ model Booking {
   endDate    DateTime
   guestName  String
   email      String
-  guestCount Int           @default(1)
   totalPrice Float
   status     BookingStatus @default(pending)
   stripeSessionId String?   @unique
   stripePaymentIntentId String?
   notes      String?       // admin notes
-  
-  // Coupon linking
+  guestCount Int           @default(1)
+  discount   Float         @default(0)
   couponId   String?
   coupon     Coupon?       @relation(fields: [couponId], references: [id])
-  discount   Float         @default(0) // Amount saved
-
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 }
@@ -47,7 +44,7 @@ model Subscriber {
 
 model ExternalBooking {
   id          String   @id @default(cuid())
-  source      String   // "Airbnb", "VRBO", "Blocked"
+  source      String   // "Airbnb", "VRBO", etc.
   guestName   String
   startDate   DateTime
   endDate     DateTime
@@ -110,23 +107,12 @@ model EmailTemplate {
   updatedAt DateTime @updatedAt
 }
 
-// Lite CMS for dynamic site content
-model ContentBlock {
-  key         String   @id
-  value       String  
-  label       String   
-  category    String   
-  type        String   @default("text") // "text", "textarea", "markdown", "image"
-  section     String?  // grouping, e.g. "Hero Section", "Footer"
-  updatedAt   DateTime @updatedAt
-}
-
 // Phase 2: Pricing & Promotions
 model Coupon {
   id          String   @id @default(cuid())
   code        String   @unique
-  discountType String  // "PERCENT", "FIXED"
-  value       Float    // 10.0 (for 10% or $10)
+  discountType String  // 'PERCENT', 'FIXED'
+  value       Float    // 10.0 (for 10% or )
   validFrom   DateTime?
   validUntil  DateTime?
   maxUses     Int?
@@ -138,7 +124,7 @@ model Coupon {
 
 model SpecialRate {
   id          String   @id @default(cuid())
-  label       String   // e.g. "Peak Season"
+  label       String?   // e.g. 'Peak Season'
   startDate   DateTime
   endDate     DateTime
   pricePerNight Float? // Overrides base price
@@ -146,3 +132,15 @@ model SpecialRate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// Phase 3: Content Management
+model ContentBlock {
+  key       String   @id
+  value     String
+  label     String
+  type      String   // "text", "textarea", "image_url", "markdown"
+  section   String   // "Hero Section", "About Section"
+  category  String   // "Home"
+  updatedAt DateTime @updatedAt
+}
+

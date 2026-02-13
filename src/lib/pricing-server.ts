@@ -1,122 +1,127 @@
-import { prisma } from '@/lib/prisma';
-import { eachDayOfInterval, isWithinInterval } from 'date-fns';
-import { PRICING, PriceBreakdown } from './pricing';
+import { prisma } from './prisma';
+import { differenceInCalendarDays, eachDayOfInterval, isWithinInterval } from 'date-fns';
 
-export interface QuoteResult extends PriceBreakdown {
-    originalTotal: number;
+export const PRICING = {
+    WEEKDAY_NIGHT: 650, // Mon-Thu
+    WEEKEND_NIGHT: 700, // Fri-Sun
+    CLEANING_FEE: 150,
+    MINIMUM_NIGHTS: 3,
+};
+
+export interface PriceBreakdown {
+    total: number;
+    accommodationTotal: number;
+    cleaningFee: number;
+    nights: number;
+    weekdayNights: number;
+    weekendNights: number;
     discountAmount: number;
-    couponApplied?: string;
-    appliedRates: { date: string; price: number; label: string }[];
-    error?: string;
     couponId?: string;
+    currency: string;
 }
 
-export async function calculateQuote(startDate: Date|string, endDate: Date|string, couponCode?: string): Promise<QuoteResult> {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+export async function calculateQuote(
+    startDate: Date, 
+    endDate: Date, 
+    couponCode?: string
+): Promise<PriceBreakdown> {
+    const nights = differenceInCalendarDays(endDate, startDate);
     
-    // 1. Fetch Special Rates (Basic overlap check)
-    // Overlapping logic: (StartA <= EndB) and (EndA >= StartB)
+    // Fetch special rates that overlap with the booking
     const specialRates = await prisma.specialRate.findMany({
         where: {
-            startDate: { lte: end },
-            endDate: { gte: start }
+            OR: [
+                {
+                    startDate: { lte: startDate },
+                    endDate: { gte: startDate }
+                },
+                {
+                    startDate: { lte: endDate },
+                    endDate: { gte: endDate }
+                },
+                {
+                    startDate: { gte: startDate },
+                    endDate: { lte: endDate }
+                }
+            ]
         }
     });
 
-    // 2. Calculate Base Price (Day by Day)
-    const days = eachDayOfInterval({ start, end });
-    const nightDays = days.slice(0, -1); // Exclude checkout day
-
+    const days = eachDayOfInterval({ start: startDate, end: new Date(endDate.getTime() - 86400000) });
     let accommodationTotal = 0;
     let weekdayNights = 0;
     let weekendNights = 0;
-    const appliedRates: { date: string; price: number; label: string }[] = [];
 
-    for (const day of nightDays) {
-        let price = 0;
-        let label = 'Standard';
-        
-        // Check for special rate
-        // We find the LAST matching special rate to allow overrides if multiple exist?
-        // Or specific logic. Let's take the first found for now.
-        const special = specialRates.find(r => 
-            isWithinInterval(day, { start: r.startDate, end: r.endDate })
+    for (const day of days) {
+        // Check for special rate override
+        const specialRate = specialRates.find(rate => 
+            isWithinInterval(day, { start: rate.startDate, end: rate.endDate })
         );
 
-        if (special) {
-            if (special.pricePerNight !== null) {
-                price = special.pricePerNight;
-                label = special.label;
-            } else if (special.multiplier !== null) {
-                const dayOfWeek = day.getDay();
-                const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6;
-                const base = isWeekend ? PRICING.WEEKEND_NIGHT : PRICING.WEEKDAY_NIGHT;
-                price = base * special.multiplier;
-                label = `${special.label} (${special.multiplier}x)`;
+        let nightlyPrice = 0;
+        const dayOfWeek = day.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek >= 5; // Fri, Sat, Sun
+
+        if (specialRate) {
+            if (specialRate.pricePerNight) {
+                nightlyPrice = specialRate.pricePerNight;
+            } else if (specialRate.multiplier) {
+                nightlyPrice = (isWeekend ? PRICING.WEEKEND_NIGHT : PRICING.WEEKDAY_NIGHT) * specialRate.multiplier;
             }
         } else {
-            const dayOfWeek = day.getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) {
-                price = PRICING.WEEKEND_NIGHT;
-                label = 'Weekend';
-                weekendNights++;
-            } else {
-                price = PRICING.WEEKDAY_NIGHT;
-                label = 'Weekday';
-                weekdayNights++;
-            }
+            nightlyPrice = isWeekend ? PRICING.WEEKEND_NIGHT : PRICING.WEEKDAY_NIGHT;
         }
-        
-        accommodationTotal += price;
-        appliedRates.push({ date: day.toISOString(), price, label });
+
+        accommodationTotal += nightlyPrice;
+
+        if (isWeekend) weekendNights++;
+        else weekdayNights++;
     }
 
-    let total = accommodationTotal + PRICING.CLEANING_FEE;
-    const originalTotal = total;
     let discountAmount = 0;
-    let couponId: string | undefined = undefined;
+    let validCouponId: string | undefined = undefined;
 
-    // 3. Apply Coupon
     if (couponCode) {
         const coupon = await prisma.coupon.findUnique({
-            where: { code: couponCode }
+            where: { code: couponCode },
+            include: { bookings: true } // to check usage count if needed (though count is on model)
         });
 
         if (coupon && coupon.isActive) {
-            // Validate dates
             const now = new Date();
-            const validFrom = !coupon.validFrom || coupon.validFrom <= now;
-            const validUntil = !coupon.validUntil || coupon.validUntil >= now;
-            const hasUses = coupon.maxUses === null || coupon.usedCount < coupon.maxUses;
-
-            if (validFrom && validUntil && hasUses) {
-                if (coupon.discountType === 'PERCENT') {
-                    discountAmount = (accommodationTotal * coupon.value) / 100;
-                } else {
-                    discountAmount = coupon.value;
-                }
-                
-                // Cap discount at total - 100 (keep small charge) or just 0
-                if (discountAmount > (total)) discountAmount = total; 
-                
-                total -= discountAmount;
-                couponId = coupon.id;
+            if (
+                (!coupon.validFrom || coupon.validFrom <= now) &&
+                (!coupon.validUntil || coupon.validUntil >= now) &&
+                (!coupon.maxUses || coupon.usedCount < coupon.maxUses)
+            ) {
+                 if (coupon.discountType === 'PERCENT') {
+                     discountAmount = accommodationTotal * (coupon.value / 100);
+                 } else if (coupon.discountType === 'FIXED') {
+                     discountAmount = coupon.value;
+                 }
+                 validCouponId = coupon.id;
+            } else {
+                throw new Error("Invalid or expired coupon");
             }
+        } else {
+            throw new Error("Invalid or expired coupon");
         }
     }
 
+    // Cap discount at accommodation total
+    discountAmount = Math.min(discountAmount, accommodationTotal);
+
+    const total = accommodationTotal + PRICING.CLEANING_FEE - discountAmount;
+
     return {
-        nights: nightDays.length,
-        weekdayNights,
-        weekendNights,
+        total,
         accommodationTotal,
         cleaningFee: PRICING.CLEANING_FEE,
-        total,
-        originalTotal,
+        nights,
+        weekdayNights,
+        weekendNights,
         discountAmount,
-        couponApplied: couponId ? couponCode : undefined,
-        couponId,
-        appliedRates
+        couponId: validCouponId,
+        currency: 'usd',
     };
 }
