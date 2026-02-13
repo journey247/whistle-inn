@@ -46,6 +46,7 @@ export const HeroImageSlider = ({ images, imageConfig }: HeroImageSliderProps) =
                             contentKey={imageConfig[currentIndex].key}
                             defaultValue={imageConfig[currentIndex].defaultSrc}
                             alt={imageConfig[currentIndex].alt}
+                            containerClassName="h-full w-full"
                             fill
                             className="object-cover"
                             priority={currentIndex === 0}
