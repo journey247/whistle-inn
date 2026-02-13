@@ -3,25 +3,27 @@ import { prisma } from '@/lib/prisma';
 import { verifyAdmin } from '@/lib/adminAuth';
 import bcrypt from 'bcryptjs';
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const admin = verifyAdmin(request);
+        const { id } = await params;
 
         // Prevent deleting self (using 'sub' claim from JWT)
-        if (admin.sub === params.id) {
+        if (admin.sub === id) {
             return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
         }
 
-        await prisma.adminUser.delete({ where: { id: params.id } });
+        await prisma.adminUser.delete({ where: { id } });
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: 'Unauthorized or Error' }, { status: 401 });
     }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         verifyAdmin(request);
+        const { id } = await params;
         const { password, role } = await request.json();
 
         const data: any = {};
@@ -33,7 +35,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         }
 
         const updated = await prisma.adminUser.update({
-            where: { id: params.id },
+            where: { id },
             data,
             select: { id: true, email: true, role: true }
         });

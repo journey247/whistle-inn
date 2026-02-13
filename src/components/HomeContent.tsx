@@ -8,7 +8,7 @@ import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import clsx from "clsx";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { BookingModal } from "@/components/BookingModal";
-import { HeroImageSlider, useHeroSlider } from "@/components/HeroImageSlider";
+import { HeroImageSlider, useHeroSlider, images } from "@/components/HeroImageSlider";
 import { useContent } from "@/components/content/ContentProvider";
 
 // Helper to render editable content
@@ -76,7 +76,7 @@ export default function Home() {
     const opacityHero = useTransform(scrollY, [0, 400], [1, 0]);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const { content } = useContent();
-    const { currentImage } = useHeroSlider();
+    const { currentImage } = useHeroSlider(images);
 
     return (
         <main className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-brand-gold selection:text-white">
@@ -89,7 +89,7 @@ export default function Home() {
                     className="absolute inset-0 z-0"
                     style={{ y: y1 }}
                 >
-                    <HeroImageSlider />
+                    <HeroImageSlider images={images} />
                 </motion.div>
 
                 <motion.div

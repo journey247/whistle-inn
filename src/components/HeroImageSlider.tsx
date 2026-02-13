@@ -24,7 +24,7 @@ export const images: HeroImage[] = [
 ];
 
 // Custom hook to share slider state
-export const useHeroSlider = () => {
+export const useHeroSlider = (images: HeroImage[]) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     useEffect(() => {
@@ -32,13 +32,13 @@ export const useHeroSlider = () => {
             setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
         }, 8000);
         return () => clearInterval(interval);
-    }, []);
+    }, [images.length]);
 
     return { currentIndex, currentImage: images[currentIndex] };
 };
 
-export const HeroImageSlider = () => {
-    const { currentIndex, currentImage } = useHeroSlider();
+export const HeroImageSlider = ({ images }: { images: HeroImage[] }) => {
+    const { currentIndex, currentImage } = useHeroSlider(images);
 
     return (
         <>

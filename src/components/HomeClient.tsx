@@ -52,6 +52,11 @@ export default function HomeClient({ content }: { content: ContentMap }) {
         { key: 'hero_slider_9', defaultSrc: "/DiningArea.webp", alt: "Dining Area" },
     ];
 
+    const heroImages = heroImageKeys.map(({ key, defaultSrc, alt }) => ({
+        src: t(key, defaultSrc),
+        alt,
+    }));
+
     return (
         <ContentProvider initialContent={content}>
             <main className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-brand-gold selection:text-white">
@@ -64,7 +69,7 @@ export default function HomeClient({ content }: { content: ContentMap }) {
                         style={{ y: y1 }}
                     >
                         {/* Use the new slider component if available, OR fallback to single image */}
-                        <HeroImageSlider imageConfig={heroImageKeys} />
+                        <HeroImageSlider images={heroImages} />
                     </motion.div>
 
                     <motion.div
