@@ -7,13 +7,16 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
     LayoutDashboard, Calendar, Users, Mail, TrendingUp, ExternalLink,
     Settings, LogOut, Search, Filter, Download, Plus, RefreshCw,
-    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon
+    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon, Tag
 } from "lucide-react";
 
 // Client components loaded dynamically
 const BookingsTable = dynamic(() => import('@/components/admin/BookingsTable').then(m => m.BookingsTable), { ssr: false });
 const CalendarView = dynamic(() => import('@/components/admin/CalendarView').then(m => m.CalendarView), { ssr: false });
 const EmailPanel = dynamic(() => import('@/components/admin/EmailPanel').then(m => m.EmailPanel), { ssr: false });
+const CouponsPanel = dynamic(() => import('@/components/admin/CouponsPanel').then(m => m.CouponsPanel), { ssr: false });
+const PricingPanel = dynamic(() => import('@/components/admin/PricingPanel').then(m => m.PricingPanel), { ssr: false });
+const ContentEditor = dynamic(() => import('@/components/admin/ContentEditor').then(m => m.ContentEditor), { ssr: false });
 
 type Booking = {
     id: string;
@@ -226,7 +229,10 @@ function AdminPanelContent() {
     const navItems = [
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         { id: "bookings", label: "Bookings", icon: Calendar },
-        { id: "external", label: "External Sync", icon: ExternalLink },
+        { id: "pricing", label: "Pricing", icon: DollarSign },
+        { id: "coupons", label: "Coupons", icon: Tag },
+        { id: "content", label: "Site Content", icon: Settings },
+        { id: "external", label: "Sync", icon: ExternalLink },
         { id: "customers", label: "Customers", icon: Users },
         { id: "emails", label: "Email Center", icon: Mail },
         { id: "analytics", label: "Analytics", icon: TrendingUp },
@@ -341,6 +347,8 @@ function AdminPanelContent() {
                                 <p className="text-slate-600 text-xs md:text-sm mt-1 hidden sm:block">
                                     {activeTab === "dashboard" && "Overview of your property performance"}
                                     {activeTab === "bookings" && "Manage and track all reservations"}
+                                    {activeTab === "pricing" && "Manage seasonal rates and special offers"}
+                                    {activeTab === "coupons" && "Create and manage discount codes"}
                                     {activeTab === "external" && "Sync with Airbnb, VRBO, and more"}
                                     {activeTab === "customers" && "View and manage customer data"}
                                     {activeTab === "emails" && "Send and manage email communications"}
@@ -820,6 +828,21 @@ function AdminPanelContent() {
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {/* Pricing Tab */}
+                    {activeTab === "pricing" && (
+                        <PricingPanel />
+                    )}
+
+                    {/* Coupons Tab */}
+                    {activeTab === "coupons" && (
+                        <CouponsPanel />
+                    )}
+
+                    {/* Content Tab */}
+                    {activeTab === "content" && (
+                        <ContentEditor />
                     )}
 
                     {/* Customers Tab */}
