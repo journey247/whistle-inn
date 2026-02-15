@@ -1,5 +1,6 @@
 {
     "chat.allowAnonymousAccess": true,
     "chat.customAgentInSubagent.enabled": true,
-    "chat.edits2.enabled": true
+    "chat.edits2.enabled": true,
+    "python.terminal.useEnvFile": true
 }

@@ -19,19 +19,28 @@ interface Coupon {
 export function CouponsPanel() {
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [loading, setLoading] = useState(true);
+    const [token, setToken] = useState<string | null>(null);
     const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
     useEffect(() => {
-        fetchCoupons();
+        const t = localStorage.getItem('admin_token');
+        setToken(t);
+        fetchCoupons(t);
     }, []);
 
-    const fetchCoupons = async () => {
+    const fetchCoupons = async (authToken?: string | null) => {
         try {
-            const res = await fetch('/api/admin/coupons');
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+            const res = await fetch('/api/admin/coupons', { headers });
+            if (!res.ok) {
+                throw new Error('Failed to fetch coupons');
+            }
             const data = await res.json();
-            setCoupons(data);
+            setCoupons(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch coupons:', error);
+            setCoupons([]);
         } finally {
             setLoading(false);
         }
@@ -39,9 +48,11 @@ export function CouponsPanel() {
 
     const onSubmit = async (data: any) => {
         try {
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
             const res = await fetch('/api/admin/coupons', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     ...data,
                     discountValue: Number(data.discountValue),
@@ -50,7 +61,7 @@ export function CouponsPanel() {
             });
             if (res.ok) {
                 reset();
-                fetchCoupons();
+                fetchCoupons(token);
             } else {
                 alert('Failed to create coupon');
             }
@@ -62,8 +73,10 @@ export function CouponsPanel() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this coupon?')) return;
         try {
-            await fetch(`/api/admin/coupons?id=${id}`, { method: 'DELETE' });
-            fetchCoupons();
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            await fetch(`/api/admin/coupons?id=${id}`, { method: 'DELETE', headers });
+            fetchCoupons(token);
         } catch (error) {
             console.error('Delete error:', error);
         }
@@ -118,7 +131,7 @@ export function CouponsPanel() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {coupons.map((coupon) => (
+                        {Array.isArray(coupons) && coupons.map((coupon) => (
                             <tr key={coupon.id} className="hover:bg-slate-50">
                                 <td className="p-4 font-mono font-bold text-slate-800">{coupon.code}</td>
                                 <td className="p-4">
@@ -143,7 +156,7 @@ export function CouponsPanel() {
                                 </td>
                             </tr>
                         ))}
-                        {coupons.length === 0 && (
+                        {(!Array.isArray(coupons) || coupons.length === 0) && (
                             <tr>
                                 <td colSpan={5} className="p-8 text-center text-slate-500 italic">No active coupons found.</td>
                             </tr>

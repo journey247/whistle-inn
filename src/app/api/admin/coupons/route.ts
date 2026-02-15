@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { invalidatePricingCache } from '@/lib/pricing-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,9 @@ export async function POST(request: Request) {
             }
         });
 
+        // Invalidate cache to ensure real-time pricing updates
+        invalidatePricingCache();
+
         return NextResponse.json(coupon);
     } catch (error) {
         console.error('Coupon creation error:', error);
@@ -63,6 +67,10 @@ export async function DELETE(request: Request) {
         await prisma.coupon.delete({
             where: { id }
         });
+
+        // Invalidate cache to ensure real-time pricing updates
+        invalidatePricingCache();
+
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to delete coupon' }, { status: 500 });

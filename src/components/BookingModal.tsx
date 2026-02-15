@@ -34,7 +34,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     const [loadingAvailability, setLoadingAvailability] = useState(true);
     const [guestCount, setGuestCount] = useState(2);
     const MAX_GUESTS = 10;
-    const MINIMUM_NIGHTS = 3; // Should match server validation
+    const [minimumNights, setMinimumNights] = useState(3); // Dynamic minimum nights
 
     // Pricing State
     const [quote, setQuote] = useState<Quote | null>(null);
@@ -47,6 +47,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     useEffect(() => {
         if (isOpen) {
             fetchAvailability();
+            fetchMinimumNights();
         }
     }, [isOpen]);
 
@@ -86,6 +87,22 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
             console.error('Failed to fetch availability:', error);
         } finally {
             setLoadingAvailability(false);
+        }
+    };
+
+    const fetchMinimumNights = async () => {
+        try {
+            const response = await fetch('/api/admin/content');
+            if (response.ok) {
+                const blocks = await response.json();
+                const minNightsBlock = blocks.find((block: any) => block.key === 'minimum_nights');
+                if (minNightsBlock) {
+                    setMinimumNights(parseInt(minNightsBlock.value) || 3);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch minimum nights:', error);
+            // Keep default value
         }
     };
 
@@ -200,7 +217,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
 
     const hasDateConflict = range?.from && range?.to ? checkDateConflict(range.from, range.to) : false;
     const numNights = quote?.nights || 0;
-    const meetsMinimum = numNights >= MINIMUM_NIGHTS;
+    const meetsMinimum = numNights >= minimumNights;
 
     return (
         <AnimatePresence>
@@ -343,7 +360,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                             <div>
                                                 <h3 className="font-serif font-bold text-base sm:text-lg md:text-xl mb-4 sm:mb-6 text-slate-900 border-b pb-2">Reservation Summary</h3>
 
-                                                {range?.from && range?.to && quote ? (
+                                                {range?.from && range?.to && quote && !quote.error ? (
                                                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                                         <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                                                             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
@@ -362,7 +379,11 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                                 <div className="py-4 flex justify-center text-slate-500">
                                                                     <Loader2 className="w-5 h-5 animate-spin" />
                                                                 </div>
-                                                            ) : (
+                                                            ) : quote?.error ? (
+                                                                <div className="py-4 text-center text-red-600 bg-red-50 p-3 rounded-lg">
+                                                                    <p className="text-sm font-medium">{quote.error}</p>
+                                                                </div>
+                                                            ) : quote ? (
                                                                 <>
                                                                     <div className="flex justify-between items-center text-slate-700">
                                                                         <span className="font-medium">Accommodation ({quote.nights} nights)</span>
@@ -381,7 +402,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                                         </div>
                                                                     )}
                                                                 </>
-                                                            )}
+                                                            ) : null}
                                                         </div>
 
                                                         {/* Coupon Input */}
@@ -432,7 +453,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-pulse">
                                                         <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                                                         <p className="text-xs sm:text-sm text-amber-800 font-medium">
-                                                            Minimum {MINIMUM_NIGHTS} nights required for this stay.
+                                                            Minimum {minimumNights} nights required for this stay.
                                                         </p>
                                                     </div>
                                                 )}

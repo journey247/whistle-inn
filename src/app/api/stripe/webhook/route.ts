@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
+import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
                     }
 
                     // Update booking as paid
-                    await prisma.booking.update({
+                    const updatedBooking = await prisma.booking.update({
                         where: { id: bookingId },
                         data: {
                             status: 'paid',
@@ -92,6 +93,15 @@ export async function POST(request: Request) {
                                 : (session.payment_intent as Stripe.PaymentIntent)?.id,
                         },
                     });
+
+                    // Send admin notification for successful payment
+                    try {
+                        const paymentAmount = session.amount_total ? session.amount_total / 100 : updatedBooking.totalPrice;
+                        await notifyAdminOfPayment(NotificationType.PAYMENT_SUCCESS, updatedBooking, paymentAmount);
+                    } catch (notificationError) {
+                        console.error(`Failed to send payment success notification for booking ${bookingId}:`, notificationError);
+                        // Continue - don't fail webhook because notification failed
+                    }
 
                     // Send confirmation email
                     const recipientEmail = session.customer_details?.email || existingBooking.email;
@@ -125,7 +135,21 @@ export async function POST(request: Request) {
             case 'payment_intent.payment_failed': {
                 const paymentIntent = event.data.object as Stripe.PaymentIntent;
                 console.warn(`Payment failed for intent: ${paymentIntent.id}`);
-                // Handle failed payment if needed
+
+                // Try to find the associated booking
+                const booking = await prisma.booking.findFirst({
+                    where: { stripePaymentIntentId: paymentIntent.id }
+                });
+
+                if (booking) {
+                    try {
+                        const paymentAmount = paymentIntent.amount ? paymentIntent.amount / 100 : booking.totalPrice;
+                        await notifyAdminOfPayment(NotificationType.PAYMENT_FAILED, booking, paymentAmount);
+                    } catch (notificationError) {
+                        console.error(`Failed to send payment failed notification for booking ${booking.id}:`, notificationError);
+                    }
+                }
+
                 break;
             }
 

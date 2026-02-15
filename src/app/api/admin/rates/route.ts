@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { invalidatePricingCache } from '@/lib/pricing-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        
+
         if (!body.label || !body.startDate || !body.endDate) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
@@ -47,6 +48,9 @@ export async function POST(request: Request) {
             }
         });
 
+        // Invalidate cache to ensure real-time pricing updates
+        invalidatePricingCache();
+
         return NextResponse.json(rate);
     } catch (error) {
         console.error(error);
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
     const auth = await verifyAdmin(request);
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -67,6 +71,10 @@ export async function DELETE(request: Request) {
         await prisma.specialRate.delete({
             where: { id }
         });
+
+        // Invalidate cache to ensure real-time pricing updates
+        invalidatePricingCache();
+
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to delete rate' }, { status: 500 });

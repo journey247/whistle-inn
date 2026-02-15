@@ -85,8 +85,8 @@ export function BookingsTable() {
     return (
         <div className="p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Bookings</h2>
-                <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${bookings.length} bookings`}</div>
+                <h2 className="text-xl font-semibold">Guest Reservations</h2>
+                <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${bookings.length} reservations`}</div>
             </div>
 
             <div className="md:hidden space-y-4">
@@ -106,7 +106,7 @@ export function BookingsTable() {
                         </div>
 
                         <div className="text-sm text-slate-600">
-                            <span className="font-medium">Dates:</span> {new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}
+                            <span className="font-medium">Stay:</span> {new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}
                         </div>
 
                         <div className="flex items-center gap-2 pt-2 border-t border-slate-200 mt-2">
@@ -135,8 +135,8 @@ export function BookingsTable() {
                     <thead>
                         <tr className="border-b border-slate-200">
                             <th className="py-3 px-4 font-semibold text-slate-700">Guest</th>
-                            <th className="py-3 px-4 font-semibold text-slate-700">Dates</th>
-                            <th className="py-3 px-4 font-semibold text-slate-700">Price</th>
+                            <th className="py-3 px-4 font-semibold text-slate-700">Stay Dates</th>
+                            <th className="py-3 px-4 font-semibold text-slate-700">Total</th>
                             <th className="py-3 px-4 font-semibold text-slate-700">Status</th>
                             <th className="py-3 px-4 font-semibold text-slate-700">Actions</th>
                         </tr>
@@ -163,8 +163,8 @@ export function BookingsTable() {
                                         value={b.status}
                                         onChange={(e) => updateStatus(b.id, e.target.value)}
                                         className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 focus:ring-brand-gold pr-8 ${b.status === 'paid' ? 'bg-green-100 text-green-700' :
-                                                b.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                                                    'bg-yellow-100 text-yellow-700'
+                                            b.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                'bg-yellow-100 text-yellow-700'
                                             }`}
                                     >
                                         <option value="pending">Pending</option>

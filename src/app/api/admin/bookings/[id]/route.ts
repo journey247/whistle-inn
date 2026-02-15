@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
+import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
     apiVersion: '2023-10-16' as any,
@@ -90,6 +91,16 @@ export async function PATCH(request: Request) {
             where: { id },
             data: { status, notes },
         });
+
+        // Send notification for status changes
+        if (status === 'cancelled') {
+            try {
+                await notifyAdminOfBooking(NotificationType.BOOKING_CANCELLED, update);
+            } catch (notificationError) {
+                console.error(`Failed to send cancellation notification for booking ${id}:`, notificationError);
+                // Continue - don't fail the update because notification failed
+            }
+        }
 
         // If booking marked as paid, send confirmation email using template
         if (status === 'paid') {

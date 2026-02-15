@@ -110,6 +110,16 @@ const blocks = [
   { key: 'footer_title', value: 'Ready for your Sierra adventure?', label: 'Footer Title', section: 'Footer' },
   { key: 'footer_button', value: 'Book Your Stay', label: 'Footer Button', section: 'Footer' },
   { key: 'footer_img', value: '/patio.webp', label: 'Footer Background', type: 'image', section: 'Footer' },
+
+  // Pricing Configuration
+  { key: 'base_weekday_price', value: '650', label: 'Base Weekday Price (Mon-Thu)', type: 'number', section: 'Pricing', category: 'Base Rates' },
+  { key: 'base_weekend_price', value: '700', label: 'Base Weekend Price (Fri-Sun)', type: 'number', section: 'Pricing', category: 'Base Rates' },
+  { key: 'cleaning_fee', value: '150', label: 'Cleaning Fee', type: 'number', section: 'Pricing', category: 'Fees' },
+  { key: 'minimum_nights', value: '3', label: 'Minimum Nights Required', type: 'number', section: 'Pricing', category: 'Policies' },
+
+  // Stripe Product IDs (will be populated when admin updates pricing)
+  { key: 'stripe_cleaning_product_id', value: '', label: 'Stripe Cleaning Product ID', type: 'text', section: 'Stripe', category: 'Products' },
+  { key: 'stripe_cleaning_price_id', value: '', label: 'Stripe Cleaning Price ID', type: 'text', section: 'Stripe', category: 'Prices' },
 ];
 
 async function main() {

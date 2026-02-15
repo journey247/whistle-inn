@@ -152,21 +152,22 @@ export function CalendarView() {
                             blocked: { backgroundColor: '#f1f5f9', color: '#64748b', textDecoration: 'line-through' }
                         }}
                         disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
-                        className="m-0 admin-calendar"
+                        className="m-0 admin-calendar text-slate-900 [&_*]:text-slate-900"
+                        style={{ color: '#0f172a' }}
                     />
                 )}
                 <div className="flex flex-wrap gap-4 mt-6 text-xs text-slate-500 justify-center border-t border-slate-100 pt-4">
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-600"></span>
-                        Whistle Inn
+                        <span>Whistle Inn Guests</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-sky-100 border border-sky-600"></span>
-                        Airbnb/VRBO
+                        <span>Airbnb/VRBO Guests</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-slate-100 border border-slate-400"></span>
-                        Blocked
+                        <span>Blocked Dates</span>
                     </div>
                 </div>
             </div>
@@ -273,17 +274,15 @@ export function CalendarView() {
                     </div>
                 )}
 
-                {!range?.from && !selectedDate && (
-                    <div className="p-8 border-2 border-dashed border-slate-200 rounded-xl text-center">
-                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CalendarIcon className="w-8 h-8 text-slate-400" />
-                        </div>
-                        <h3 className="text-slate-900 font-medium mb-1">Calendar Management</h3>
-                        <p className="text-sm text-slate-500 max-w-[200px] mx-auto">
-                            Select dates to block them off, or click existing bookings to view details.
-                        </p>
+                <div className="p-8 border-2 border-dashed border-slate-200 rounded-xl text-center">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CalendarIcon className="w-8 h-8 text-slate-400" />
                     </div>
-                )}
+                    <h3 className="text-slate-900 font-medium mb-1">Property Calendar</h3>
+                    <p className="text-sm text-slate-500 max-w-[200px] mx-auto">
+                        Select dates to block them off, or click existing bookings to see guest details.
+                    </p>
+                </div>
             </div>
         </div>
     );

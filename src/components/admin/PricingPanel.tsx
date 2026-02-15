@@ -17,19 +17,28 @@ interface SpecialRate {
 export function PricingPanel() {
     const [rates, setRates] = useState<SpecialRate[]>([]);
     const [loading, setLoading] = useState(true);
+    const [token, setToken] = useState<string | null>(null);
     const { register, handleSubmit, reset } = useForm();
 
     useEffect(() => {
-        fetchRates();
+        const t = localStorage.getItem('admin_token');
+        setToken(t);
+        fetchRates(t);
     }, []);
 
-    const fetchRates = async () => {
+    const fetchRates = async (authToken?: string | null) => {
         try {
-            const res = await fetch('/api/admin/pricing');
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+            const res = await fetch('/api/admin/pricing', { headers });
+            if (!res.ok) {
+                throw new Error('Failed to fetch rates');
+            }
             const data = await res.json();
-            setRates(data);
+            setRates(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch rates:', error);
+            setRates([]);
         } finally {
             setLoading(false);
         }
@@ -37,9 +46,11 @@ export function PricingPanel() {
 
     const onSubmit = async (data: any) => {
         try {
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
             const res = await fetch('/api/admin/pricing', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     ...data,
                     price: Number(data.price),
@@ -48,7 +59,7 @@ export function PricingPanel() {
             });
             if (res.ok) {
                 reset();
-                fetchRates();
+                fetchRates(token);
             } else {
                 alert('Failed to create rate. Check date overlap.');
             }
@@ -60,8 +71,10 @@ export function PricingPanel() {
     const handleDelete = async (id: string) => {
         if (!confirm('Delete this special rate?')) return;
         try {
-            await fetch(`/api/admin/pricing?id=${id}`, { method: 'DELETE' });
-            fetchRates();
+            const headers: any = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            await fetch(`/api/admin/pricing?id=${id}`, { method: 'DELETE', headers });
+            fetchRates(token);
         } catch (error) {
             console.error('Delete error:', error);
         }
@@ -126,7 +139,7 @@ export function PricingPanel() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {rates.map((rate) => (
+                        {Array.isArray(rates) && rates.map((rate) => (
                             <tr key={rate.id} className="hover:bg-slate-50">
                                 <td className="p-4 font-mono text-slate-800">
                                     {format(new Date(rate.startDate), 'MMM dd')} - {format(new Date(rate.endDate), 'MMM dd, yyyy')}
@@ -144,7 +157,7 @@ export function PricingPanel() {
                                 </td>
                             </tr>
                         ))}
-                        {rates.length === 0 && (
+                        {(!Array.isArray(rates) || rates.length === 0) && (
                             <tr>
                                 <td colSpan={5} className="p-8 text-center text-slate-500 italic">No special rates configured. Standard base rate applies.</td>
                             </tr>

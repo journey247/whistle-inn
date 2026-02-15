@@ -144,3 +144,31 @@ model ContentBlock {
   updatedAt DateTime @updatedAt
 }
 
+// Phase 4: Notifications
+model Notification {
+  id               String   @id @default(cuid())
+  type             String   // "booking_created", "payment_success", etc.
+  title            String
+  message          String
+  recipientEmail   String?
+  recipientPhone   String?
+  recipientUserId  String?
+  data             Json?    // Additional notification data
+  read             Boolean  @default(false)
+  readAt           DateTime?
+  createdAt        DateTime @default(now())
+}
+
+model NotificationLog {
+  id               String   @id @default(cuid())
+  type             String
+  channels         String   // comma-separated: "email,sms,in_app"
+  recipientEmail   String?
+  recipientPhone   String?
+  recipientUserId  String?
+  data             Json?
+  successCount     Int      @default(0)
+  failureCount     Int      @default(0)
+  sentAt           DateTime @default(now())
+}
+

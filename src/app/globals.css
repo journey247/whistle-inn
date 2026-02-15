@@ -18,12 +18,9 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
+  background: linear-gradient(to bottom,
       transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
 }
 
 /* Mobile-first responsive optimizations */
@@ -36,7 +33,10 @@ body {
   touch-action: manipulation;
 }
 
-button, [role="button"], input[type="submit"], input[type="button"] {
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"] {
   touch-action: manipulation;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   min-height: 44px;
@@ -44,13 +44,19 @@ button, [role="button"], input[type="submit"], input[type="button"] {
 }
 
 /* Mobile form optimizations */
-input, textarea, select {
-  font-size: 16px; /* Prevents zoom on iOS */
+input,
+textarea,
+select {
+  font-size: 16px;
+  /* Prevents zoom on iOS */
   border-radius: 8px;
 }
 
 @media (max-width: 768px) {
-  input, textarea, select {
+
+  input,
+  textarea,
+  select {
     padding: 12px 16px;
   }
 }
@@ -102,6 +108,7 @@ textarea::placeholder {
   color: #0f172a !important;
   caret-color: #0f172a !important;
 }
+
 .admin-root input::placeholder,
 .admin-root textarea::placeholder {
   color: rgba(15, 23, 39, 0.6) !important;
@@ -113,10 +120,11 @@ textarea::placeholder {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
   }
+
   .admin-root .sidebar-mobile.open {
     transform: translateX(0);
   }
-  
+
   .admin-root .mobile-overlay {
     position: fixed;
     inset: 0;
@@ -172,14 +180,37 @@ textarea::placeholder {
 
 /* Improved mobile typography */
 @media (max-width: 640px) {
-  h1 { font-size: 2rem; line-height: 2.25rem; }
-  h2 { font-size: 1.75rem; line-height: 2rem; }
-  h3 { font-size: 1.5rem; line-height: 1.75rem; }
-  h4 { font-size: 1.25rem; line-height: 1.5rem; }
-  
-  .mobile-text-sm { font-size: 0.875rem; }
-  .mobile-text-base { font-size: 1rem; }
-  .mobile-text-lg { font-size: 1.125rem; }
+  h1 {
+    font-size: 2rem;
+    line-height: 2.25rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    line-height: 2rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    line-height: 1.75rem;
+  }
+
+  h4 {
+    font-size: 1.25rem;
+    line-height: 1.5rem;
+  }
+
+  .mobile-text-sm {
+    font-size: 0.875rem;
+  }
+
+  .mobile-text-base {
+    font-size: 1rem;
+  }
+
+  .mobile-text-lg {
+    font-size: 1.125rem;
+  }
 }
 
 /* Safe area handling for mobile */
@@ -193,6 +224,7 @@ textarea::placeholder {
 
 /* Mobile-optimized animations */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -220,4 +252,30 @@ textarea::placeholder {
     align-items: center;
     justify-content: center;
   }
+}
+
+/* Admin Calendar Text Visibility Fix - Force all calendar text to be visible */
+.admin-calendar,
+.admin-calendar .rdp,
+.admin-calendar .rdp * {
+  color: #0f172a !important;
+}
+
+.admin-calendar .rdp-button {
+  color: #0f172a !important;
+  background-color: transparent !important;
+}
+
+.admin-calendar .rdp-button:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.admin-calendar .rdp-button:focus {
+  background-color: #e2e8f0 !important;
+}
+
+/* Ensure event dates still show their custom colors */
+.admin-calendar .rdp-button[aria-pressed="true"],
+.admin-calendar .rdp-button[data-selected="true"] {
+  color: inherit !important;
 }

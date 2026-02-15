@@ -1,0 +1,4 @@
+httpx
+python-dotenv
+flask
+python-json-logger

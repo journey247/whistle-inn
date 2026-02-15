@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { invalidatePricingCache } from '@/lib/pricing-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,9 @@ export async function POST(request: Request) {
             }
         });
 
+        // Invalidate cache to ensure real-time pricing updates
+        invalidatePricingCache();
+
         return NextResponse.json(rate);
     } catch (error) {
         console.error('Rate creation error:', error);
@@ -71,6 +75,10 @@ export async function DELETE(request: Request) {
         await prisma.specialRate.delete({
             where: { id }
         });
+
+        // Invalidate cache to ensure real-time pricing updates
+        invalidatePricingCache();
+
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to delete rate' }, { status: 500 });

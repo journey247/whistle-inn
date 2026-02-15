@@ -7,7 +7,7 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
     LayoutDashboard, Calendar, Users, Mail, TrendingUp, ExternalLink,
     Settings, LogOut, Search, Filter, Download, Plus, RefreshCw,
-    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon, Tag
+    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon, Tag, Bot
 } from "lucide-react";
 
 // Client components loaded dynamically
@@ -17,6 +17,8 @@ const EmailPanel = dynamic(() => import('@/components/admin/EmailPanel').then(m 
 const CouponsPanel = dynamic(() => import('@/components/admin/CouponsPanel').then(m => m.CouponsPanel), { ssr: false });
 const PricingPanel = dynamic(() => import('@/components/admin/PricingPanel').then(m => m.PricingPanel), { ssr: false });
 const ContentEditor = dynamic(() => import('@/components/admin/ContentEditor').then(m => m.ContentEditor), { ssr: false });
+const AIHelper = dynamic(() => import('@/components/admin/AIHelper').then(m => m.AIHelper), { ssr: false });
+const NotificationsPanel = dynamic(() => import('@/components/admin/NotificationsPanel').then(m => m.NotificationsPanel), { ssr: false });
 
 type Booking = {
     id: string;
@@ -185,17 +187,17 @@ function AdminPanelContent() {
                 <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md">
                     <div className="text-center mb-6 sm:mb-8">
                         <Home className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-brand-gold mb-3 sm:mb-4" />
-                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Whistle Inn Admin</h1>
-                        <p className="text-sm sm:text-base text-slate-600">Sign in to access your dashboard</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Welcome Back!</h1>
+                        <p className="text-sm sm:text-base text-slate-600">Sign in to manage your Whistle Inn property</p>
                     </div>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Your Email</label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="admin@whistleinn.com"
+                                placeholder="your.email@example.com"
                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900 touch-manipulation"
                                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                             />
@@ -206,20 +208,20 @@ function AdminPanelContent() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
+                                placeholder="Enter your password"
                                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent transition bg-white text-slate-900 touch-manipulation"
                                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                             />
                         </div>
                         <button
                             onClick={handleLogin}
-                            className="w-full bg-brand-gold hover:bg-yellow-500 text-white font-semibold py-3 rounded-lg transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg touch-manipulation min-h-[48px]"
+                            className="w-full bg-brand-gold hover:bg-yellow-500 text-white font-semibold py-3 rounded-lg transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg touch-manipulation min-h-[48px] text-lg"
                         >
                             Sign In
                         </button>
                     </div>
                     <p className="text-xs text-slate-500 text-center mt-4 sm:mt-6">
-                        Need help? Run <code className="bg-slate-100 px-2 py-1 rounded text-xs">node scripts/create_admin.js</code>
+                        Need help signing in? Call (555) 123-4567 or email help@whistleinn.com
                     </p>
                 </div>
             </div>
@@ -227,15 +229,15 @@ function AdminPanelContent() {
     }
 
     const navItems = [
-        { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { id: "bookings", label: "Bookings", icon: Calendar },
-        { id: "pricing", label: "Pricing", icon: DollarSign },
-        { id: "coupons", label: "Coupons", icon: Tag },
-        { id: "content", label: "Site Content", icon: Settings },
-        { id: "external", label: "Sync", icon: ExternalLink },
-        { id: "customers", label: "Customers", icon: Users },
-        { id: "emails", label: "Email Center", icon: Mail },
-        { id: "analytics", label: "Analytics", icon: TrendingUp },
+        { id: "dashboard", label: "Home", icon: LayoutDashboard, description: "Overview & quick actions" },
+        { id: "bookings", label: "Reservations", icon: Calendar, description: "Manage guest bookings" },
+        { id: "calendar", label: "Availability", icon: Calendar, description: "Check & block dates" },
+        { id: "pricing", label: "Rates", icon: DollarSign, description: "Set prices & discounts" },
+        { id: "content", label: "Website", icon: Settings, description: "Update photos & text" },
+        { id: "ai-helper", label: "AI Assistant", icon: Bot, description: "Get AI help with tasks" },
+        { id: "sync", label: "Airbnb/VRBO", icon: ExternalLink, description: "Connect booking sites" },
+        { id: "customers", label: "Guests", icon: Users, description: "Contact information" },
+        { id: "help", label: "Help", icon: Mail, description: "Get support" },
     ];
 
     return (
@@ -280,7 +282,7 @@ function AdminPanelContent() {
                                         if (typeof window !== 'undefined' && window.innerWidth < 768) setSidebarOpen(false);
                                     }}
                                     className={`
-                                        flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-medium transition-colors group
+                                        w-full text-left rounded-lg px-3 py-3 text-sm font-medium transition-colors group
                                         ${activeTab === item.id
                                             ? 'bg-brand-gold text-white shadow-md'
                                             : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -289,17 +291,18 @@ function AdminPanelContent() {
                                     title={!sidebarOpen ? item.label : ''}
                                     style={{ color: activeTab === item.id ? 'white' : '#cbd5e1' }}
                                 >
-                                    <item.icon
-                                        className={`h-5 w-5 flex-shrink-0 transition-colors ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}
-                                        style={{ color: activeTab === item.id ? 'white' : '#94a3b8' }}
-                                    />
-                                    <span
-                                        className={`ml-3 whitespace-nowrap transition-all duration-300 ${sidebarOpen ? 'w-auto opacity-100' : 'md:w-0 md:opacity-0 md:overflow-hidden'
-                                            }`}
-                                        style={{ color: activeTab === item.id ? 'white' : '#cbd5e1' }}
-                                    >
-                                        {item.label}
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <item.icon
+                                            className={`h-5 w-5 flex-shrink-0 transition-colors ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}
+                                            style={{ color: activeTab === item.id ? 'white' : '#94a3b8' }}
+                                        />
+                                        <div className={`transition-all duration-300 ${sidebarOpen ? 'w-auto opacity-100' : 'md:w-0 md:opacity-0 md:overflow-hidden'}`}>
+                                            <div className="font-semibold">{item.label}</div>
+                                            {sidebarOpen && (
+                                                <div className="text-xs opacity-75 mt-0.5">{item.description}</div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </button>
                             </li>
                         ))}
@@ -345,24 +348,28 @@ function AdminPanelContent() {
                                     {navItems.find(item => item.id === activeTab)?.label}
                                 </h2>
                                 <p className="text-slate-600 text-xs md:text-sm mt-1 hidden sm:block">
-                                    {activeTab === "dashboard" && "Overview of your property performance"}
-                                    {activeTab === "bookings" && "Manage and track all reservations"}
-                                    {activeTab === "pricing" && "Manage seasonal rates and special offers"}
-                                    {activeTab === "coupons" && "Create and manage discount codes"}
-                                    {activeTab === "external" && "Sync with Airbnb, VRBO, and more"}
-                                    {activeTab === "customers" && "View and manage customer data"}
-                                    {activeTab === "emails" && "Send and manage email communications"}
-                                    {activeTab === "analytics" && "Detailed insights and metrics"}
+                                    {activeTab === "dashboard" && "Welcome! Here's your property overview and daily tasks"}
+                                    {activeTab === "bookings" && "View and manage all guest reservations"}
+                                    {activeTab === "calendar" && "Check availability and block dates for maintenance"}
+                                    {activeTab === "pricing" && "Set your nightly rates and special pricing"}
+                                    {activeTab === "content" && "Update your website photos and descriptions"}
+                                    {activeTab === "ai-helper" && "Get AI-powered assistance with bookings and insights"}
+                                    {activeTab === "sync" && "Connect with Airbnb, VRBO, and other booking sites"}
+                                    {activeTab === "customers" && "View guest contact information"}
+                                    {activeTab === "help" && "Get help and contact support"}
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={fetchData}
-                            className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition touch-manipulation"
-                        >
-                            <RefreshCw className="w-4 h-4" />
-                            <span className="font-medium hidden sm:inline">Refresh</span>
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <NotificationsPanel />
+                            <button
+                                onClick={fetchData}
+                                className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition touch-manipulation"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                <span className="font-medium hidden sm:inline">Refresh</span>
+                            </button>
+                        </div>
                     </div>
                 </header>
 
@@ -370,6 +377,35 @@ function AdminPanelContent() {
                     {/* Dashboard Tab */}
                     {activeTab === "dashboard" && analytics && (
                         <div className="space-y-6">
+                            {/* Welcome Message for New Users */}
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <CheckCircle className="w-6 h-6 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 mb-2">Welcome to Your Property Manager!</h3>
+                                        <p className="text-slate-700 mb-3">
+                                            Everything is set up and ready to go. Here's what you need to know:
+                                        </p>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <span>Bookings update automatically</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <span>Payments are handled securely</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <span>Help is always available</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Stats Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
@@ -484,32 +520,32 @@ function AdminPanelContent() {
                             </div>
 
                             {/* Quick Actions */}
-                            <div className="bg-gradient-to-r from-brand-gold to-brand-green rounded-xl shadow-lg p-6 text-white">
-                                <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-gradient-to-r from-brand-gold to-brand-green rounded-xl shadow-lg p-8 text-white">
+                                <h3 className="text-2xl font-bold mb-6 text-center">What would you like to do today?</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <button
                                         onClick={() => setActiveTab("bookings")}
-                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-4 text-left transition-all"
+                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl p-6 text-left transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                                     >
-                                        <Calendar className="w-6 h-6 mb-2" />
-                                        <p className="font-semibold">View All Bookings</p>
-                                        <p className="text-sm opacity-90">Manage reservations</p>
+                                        <Calendar className="w-8 h-8 mb-3" />
+                                        <p className="font-bold text-lg mb-1">Check Reservations</p>
+                                        <p className="text-sm opacity-90">View new bookings and confirm payments</p>
                                     </button>
                                     <button
-                                        onClick={() => setActiveTab("external")}
-                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-4 text-left transition-all"
+                                        onClick={() => setActiveTab("calendar")}
+                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl p-6 text-left transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                                     >
-                                        <RefreshCw className="w-6 h-6 mb-2" />
-                                        <p className="font-semibold">Sync Calendars</p>
-                                        <p className="text-sm opacity-90">Update external bookings</p>
+                                        <Calendar className="w-8 h-8 mb-3" />
+                                        <p className="font-bold text-lg mb-1">Update Availability</p>
+                                        <p className="text-sm opacity-90">Block dates or check what's booked</p>
                                     </button>
                                     <button
-                                        onClick={() => setActiveTab("emails")}
-                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg p-4 text-left transition-all"
+                                        onClick={() => setActiveTab("help")}
+                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl p-6 text-left transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
                                     >
-                                        <Mail className="w-6 h-6 mb-2" />
-                                        <p className="font-semibold">Send Email</p>
-                                        <p className="text-sm opacity-90">Contact guests</p>
+                                        <Mail className="w-8 h-8 mb-3" />
+                                        <p className="font-bold text-lg mb-1">Get Help</p>
+                                        <p className="text-sm opacity-90">Questions? We're here to help!</p>
                                     </button>
                                 </div>
                             </div>
@@ -553,8 +589,100 @@ function AdminPanelContent() {
                         </div>
                     )}
 
-                    {/* External Bookings Tab */}
-                    {activeTab === "external" && (
+                    {/* Help Tab */}
+                    {activeTab === "help" && (
+                        <div className="space-y-6">
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                                <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                    <Mail className="w-6 h-6 text-blue-600" />
+                                    Need Help?
+                                </h3>
+                                <p className="text-slate-700 mb-4">
+                                    Don't worry! This admin panel is designed to be simple. Here's how to get started:
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-white p-4 rounded-lg border border-blue-100">
+                                        <h4 className="font-semibold text-slate-900 mb-2">📞 Quick Support</h4>
+                                        <p className="text-sm text-slate-600 mb-2">Call or text: (555) 123-4567</p>
+                                        <p className="text-xs text-slate-500">Available 9 AM - 6 PM Pacific Time</p>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg border border-blue-100">
+                                        <h4 className="font-semibold text-slate-900 mb-2">📧 Email Support</h4>
+                                        <p className="text-sm text-slate-600 mb-2">help@whistleinn.com</p>
+                                        <p className="text-xs text-slate-500">We respond within 24 hours</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                                        <CheckCircle className="w-6 h-6 text-green-600" />
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 mb-2">Daily Tasks</h4>
+                                    <ul className="text-sm text-slate-600 space-y-1">
+                                        <li>• Check new reservations</li>
+                                        <li>• Confirm payments</li>
+                                        <li>• Update blocked dates</li>
+                                    </ul>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                                        <Calendar className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 mb-2">Weekly Tasks</h4>
+                                    <ul className="text-sm text-slate-600 space-y-1">
+                                        <li>• Update pricing</li>
+                                        <li>• Check website photos</li>
+                                        <li>• Review guest feedback</li>
+                                    </ul>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                                        <Settings className="w-6 h-6 text-purple-600" />
+                                    </div>
+                                    <h4 className="font-bold text-slate-900 mb-2">Monthly Tasks</h4>
+                                    <ul className="text-sm text-slate-600 space-y-1">
+                                        <li>• Update calendar feeds</li>
+                                        <li>• Review financial reports</li>
+                                        <li>• Plan seasonal pricing</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+                                <h4 className="font-bold text-slate-900 mb-2 flex items-center gap-2">
+                                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                                    Important Reminders
+                                </h4>
+                                <ul className="text-sm text-slate-700 space-y-2">
+                                    <li>• <strong>Always check the dashboard first</strong> - it shows your most important tasks</li>
+                                    <li>• <strong>Blue buttons are safe to click</strong> - they show information or let you make changes</li>
+                                    <li>• <strong>Red buttons delete things</strong> - be careful with these</li>
+                                    <li>• <strong>Save your changes</strong> - look for green "Save" or "Update" buttons</li>
+                                    <li>• <strong>Need help with anything?</strong> Just call us - we're here to help!</li>
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Calendar Tab (renamed from bookings calendar) */}
+                    {activeTab === "calendar" && (
+                        <div className="space-y-6">
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                                <h3 className="text-lg font-bold text-slate-900 mb-4">Property Availability Calendar</h3>
+                                <p className="text-slate-600 mb-6">
+                                    View all bookings and block dates when needed. Click on any date to see details, or select a range to block dates.
+                                </p>
+                                <CalendarView />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sync Tab (renamed from external) */}
+                    {activeTab === "sync" && (
                         <div className="space-y-6">
                             {/* Scheduler Status Banner */}
                             {schedulerStatus && (
@@ -843,6 +971,11 @@ function AdminPanelContent() {
                     {/* Content Tab */}
                     {activeTab === "content" && (
                         <ContentEditor />
+                    )}
+
+                    {/* AI Helper Tab */}
+                    {activeTab === "ai-helper" && (
+                        <AIHelper />
                     )}
 
                     {/* Customers Tab */}
