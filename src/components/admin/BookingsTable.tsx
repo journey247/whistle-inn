@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/toast-context";
+import { useToast } from "@/components/ui/use-toast";
 
 type Booking = {
     id: string;

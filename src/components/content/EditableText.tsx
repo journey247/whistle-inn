@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect } from 'react';
 import { useContent } from './ContentProvider';
 import { Pencil, Save, X } from 'lucide-react';

@@ -48,3 +48,9 @@ private/
 
 .vercel
 /backups
+
+# Python virtual environment
+/.venv
+
+# Local AI agent folder
+/ai-agent

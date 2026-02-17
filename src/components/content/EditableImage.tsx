@@ -1,3 +1,4 @@
+"use client";
 // src/components/content/EditableImage.tsx
 import { useState } from 'react';
 import Image, { ImageProps } from 'next/image';

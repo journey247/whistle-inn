@@ -1,0 +1,1 @@
+Copilot access instructions: [.github/copilot-instructions.md](.github/copilot-instructions.md)

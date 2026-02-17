@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../ui/toast-context';
+import { useToast } from '../ui/use-toast';
 import { Trash2, UserPlus, Shield } from 'lucide-react';
 
 type AdminUser = {

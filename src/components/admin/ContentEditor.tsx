@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useToast } from "@/components/ui/toast-context";
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Image as ImageIcon, FileText, Type, Edit2, X, UploadCloud } from "lucide-react";
 import { ImagePicker } from "./ImagePicker";
 
@@ -17,6 +17,7 @@ type ContentBlock = {
 export const ContentEditor = () => {
     const [blocks, setBlocks] = useState<ContentBlock[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState<string | null>(null);
     const [editingMeta, setEditingMeta] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<string>("Hero Section");
@@ -24,11 +25,9 @@ export const ContentEditor = () => {
     const [pickerTarget, setPickerTarget] = useState<string | null>(null);
     const { addToast } = useToast();
 
-    useEffect(() => {
-        fetchContent();
-    }, []);
-
-    const fetchContent = async () => {
+    // fetchContent is intentionally omitted from deps to avoid reloading while editing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const fetchContent = useCallback(async () => {
         try {
             const token = localStorage.getItem('admin_token');
             const res = await fetch('/api/admin/content', {
@@ -36,24 +35,38 @@ export const ContentEditor = () => {
                     'Authorization': `Bearer ${token}`
                 }
             });
+            const data = await res.json();
             if (res.ok) {
-                const data = await res.json();
                 setBlocks(data);
-                // Set initial active section
+                setError(null);
+                // Set initial active section using functional setter to avoid deps
                 const uniqueSections = Array.from(new Set(data.map((b: ContentBlock) => b.section || 'Other'))) as string[];
-                if (uniqueSections.length > 0 && !uniqueSections.includes(activeSection)) {
-                    if (uniqueSections.includes("Hero Section")) setActiveSection("Hero Section");
-                    else setActiveSection(uniqueSections[0]);
+                if (uniqueSections.length > 0) {
+                    setActiveSection(prev => {
+                        if (uniqueSections.includes(prev)) return prev;
+                        if (uniqueSections.includes('Hero Section')) return 'Hero Section';
+                        return uniqueSections[0];
+                    });
                 }
             } else {
-                addToast("Error fetching content", "error");
+                const msg = data?.error || 'Error fetching content';
+                setError(msg);
+                addToast(msg, "error");
             }
         } catch (error) {
+            console.error(error);
+            setError('Failed to fetch content');
             console.error(error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [addToast]);
+
+    useEffect(() => {
+        fetchContent();
+    }, [fetchContent]);
+
+
 
     const handleSave = async (key: string, value: string, label?: string, section?: string) => {
         setSaving(key);
@@ -139,8 +152,8 @@ export const ContentEditor = () => {
                                     key={section}
                                     onClick={() => setActiveSection(section)}
                                     className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === section
-                                            ? 'bg-brand-gold text-white shadow-sm'
-                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                        ? 'bg-brand-gold text-white shadow-sm'
+                                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                                         }`}
                                 >
                                     {section}
@@ -152,7 +165,26 @@ export const ContentEditor = () => {
 
                 {/* Main Editor Area */}
                 <div className="flex-1 overflow-y-auto min-h-0 bg-slate-50 rounded-lg border border-slate-200">
-                    {activeSection && sections[activeSection] ? (
+                    {error ? (
+                        <div className="p-8 text-center text-slate-600">
+                            <p className="mb-4 font-semibold">Unable to load content</p>
+                            <p className="text-sm mb-4">{error}</p>
+                            <div className="flex justify-center gap-3">
+                                <button
+                                    onClick={() => { setLoading(true); fetchContent(); }}
+                                    className="px-4 py-2 bg-brand-gold text-white rounded-lg"
+                                >
+                                    Retry
+                                </button>
+                                <button
+                                    onClick={() => setError(null)}
+                                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                    ) : activeSection && sections[activeSection] ? (
                         <div className="bg-white m-1 rounded-lg">
                             <div className="px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10 rounded-t-lg">
                                 <h3 className="font-bold text-lg text-slate-800">{activeSection}</h3>

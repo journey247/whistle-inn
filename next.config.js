@@ -71,6 +71,7 @@ const nextConfig = {
     // Turbopack configuration (Next.js 16+)
     turbopack: {},
 
+
     // Webpack configuration for security
     webpack: (config, { dev }) => {
         if (!dev) {

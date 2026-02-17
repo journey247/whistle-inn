@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import dynamic from 'next/dynamic';
-import { ToastProvider, useToast } from "@/components/ui/toast-context";
+import { ToastProvider } from "@/components/ui/toast-context";
+import { useToast } from "@/components/ui/use-toast";
 import { RevenueChart } from "@/components/admin/RevenueChart";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
@@ -993,11 +994,12 @@ function AdminPanelContent() {
                                             return;
                                         }
                                         const headers = ["Email", "Name"];
-                                        const csvContent = [
+                                        const csvRows = [
                                             headers.join(","),
-                                            ...subscribers.map(s => `${s.email},${s.name || ''}`)
-                                        ].join("\n");
-                                        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                                            ...subscribers.map(s => `${s.email},${(s.name || '').replace(/,/g, '')}`)
+                                        ];
+                                        const csvContent = csvRows.join("\n");
+                                        const blob = new Blob([csvContent], { type: 'text/csv' });
                                         const link = document.createElement("a");
                                         link.href = URL.createObjectURL(blob);
                                         link.download = "subscribers.csv";
@@ -1140,7 +1142,7 @@ function AdminPanelContent() {
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

@@ -100,127 +100,47 @@ Specialized agent for studio-operations tasks. See detailed instructions in `.gi
 
 Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/finance-tracker.md`
 
-### infrastructure-maintainer (studio-operations)
+# GitHub Copilot — Project Instructions (whistle-inn)
 
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/infrastructure-maintainer.md`
+This file tells AI coding agents how this repository is structured, how to run important workflows, and where to look for the code paths that commonly cause build/deploy issues.
 
-### legal-compliance-checker (studio-operations)
+# GitHub Copilot — Agent Instructions (whistle-inn)
 
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/legal-compliance-checker.md`
+Purpose: ensure AI coding agents can make safe, high‑impact edits and understand the repo's build/deploy pitfalls.
 
-### support-responder (studio-operations)
+Quick commands
+- Dev server: npm run dev
+- Prod build: npm run build  (runs `prisma generate` then `next build`)
+- Regenerate Prisma: rm -rf node_modules/.prisma && npx prisma generate
+- Create admin helper: npm run create-admin
 
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/support-responder.md`
+High-level architecture (what to read first)
+- Frontend: Next.js (app router) in `src/app` — server components by default; root layout is `src/app/layout.tsx`.
+- Client UI: `src/components` (client-only components must include `"use client"`). Important files: `content/ContentProvider.tsx`, `ui/toast-context.tsx`, `ClientProviders.tsx`, `HeroImageSlider.tsx`.
+- Backend: Next route handlers in `src/app/api/**/route.ts` and helpers in `src/lib` (prisma, email, sms, stripe, ical).
+- Database: Prisma schema in `prisma/schema.prisma` (client generated during build).
 
-### experiment-tracker (project-management)
+Project-specific rules & gotchas
+- Server vs Client boundaries: never import client-hook-using modules into server components that run at build time (e.g., `_global-error` or `layout`). If you see "Cannot read properties of null (reading 'useContext')" during prerender, trace imports for client hooks.
+- Global error page: `src/app/_global-error/page.tsx` and `src/app/not-found/page.tsx` must avoid importing client code; mark `export const dynamic = 'force-dynamic'` or move client code behind a client wrapper.
+- Prisma on Windows: watch for EPERM when `prisma generate` renames native engines — kill processes locking `node_modules/.prisma` and delete `.prisma` tmp files before regenerating.
+- Toast & content providers: patterns use a client provider + a server-safe fallback. See `src/components/ui/toast-context.tsx` and `src/components/content/ContentProvider.tsx` for examples.
 
-Specialized agent for project-management tasks. See detailed instructions in `.github/project-management/experiment-tracker.md`
+Where to look for common changes
+- Edit UI/providers safely: `src/components/ClientProviders.tsx` (wraps client providers), and `src/app/layout.tsx` (server layout).
+- API hooks: `src/lib/prisma.ts`, `src/lib/sms.ts` (SMS is stubbed), `src/lib/email.ts`, `src/lib/ical-sync-scheduler.ts`.
+- Scripts & migrations: `scripts/` and `prisma/migrations/`.
 
-### project-shipper (project-management)
+Safe edit checklist for agents
+1. Read the failing stack trace from `npm run build` and identify the first server file that failed prerendering.
+2. Open that file and print its import graph (which modules it imports). Check each import for `"use client"` or hook usage.
+3. If a client hook is imported, either:
+   - convert the imported component to a client wrapper (add `"use client"`) and import the wrapper only from client entry, or
+   - mark the page `export const dynamic = 'force-dynamic'` if runtime behavior is required.
+4. For Prisma errors on Windows: stop Node processes, remove tmp `.prisma` files, then run `npx prisma generate`.
 
-Specialized agent for project-management tasks. See detailed instructions in `.github/project-management/project-shipper.md`
+Examples (concrete patterns)
+- Convert a provider to client-only: add `"use client"` at the top of `src/components/content/ContentProvider.tsx` and import it from `PageClient` or `ClientProviders`, not from server components.
+- Global-error safety: keep `src/app/_global-error/page.tsx` minimal and avoid importing `useToast`/`useContent` directly.
 
-### studio-producer (project-management)
-
-Specialized agent for project-management tasks. See detailed instructions in `.github/project-management/studio-producer.md`
-
-### api-tester (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/api-tester.md`
-
-### performance-benchmarker (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/performance-benchmarker.md`
-
-### test-results-analyzer (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/test-results-analyzer.md`
-
-### tool-evaluator (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/tool-evaluator.md`
-
-### workflow-optimizer (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/workflow-optimizer.md`
-
-
-## General Development Guidelines
-
-When working on this project, follow these principles:
-
-### Code Quality
-- Write clean, maintainable code
-- Follow existing patterns in the codebase
-- Add appropriate comments for complex logic
-- Ensure code is self-documenting where possible
-
-### Testing
-- Write tests for new features
-- Maintain high test coverage
-- Include edge cases in tests
-- Follow testing patterns established in the project
-
-### Documentation
-- Update documentation when adding features
-- Keep README files current
-- Document API changes
-- Add inline documentation for public APIs
-
-
-
-## Architecture Patterns
-
-Follow the established architecture patterns in this project. Refer to specific agent files in `.github/` for detailed guidance on:
-
-- Backend architecture and API design
-- Frontend component structure
-- Testing strategies
-- Deployment and DevOps practices
-
-## Getting Agent Details
-
-For specific guidance on any aspect of development, refer to the detailed agent files:
-
-```
-.github/
-  engineering/ai-engineer.md
-  engineering/backend-architect.md
-  engineering/devops-automator.md
-  engineering/frontend-developer.md
-  engineering/mobile-app-builder.md
-  engineering/rapid-prototyper.md
-  engineering/test-writer-fixer.md
-  design/brand-guardian.md
-  design/ui-designer.md
-  design/ux-researcher.md
-  design/visual-storyteller.md
-  design/whimsy-injector.md
-  marketing/app-store-optimizer.md
-  marketing/content-creator.md
-  marketing/growth-hacker.md
-  marketing/instagram-curator.md
-  marketing/reddit-community-builder.md
-  marketing/tiktok-strategist.md
-  marketing/twitter-engager.md
-  product/feedback-synthesizer.md
-  product/sprint-prioritizer.md
-  product/trend-researcher.md
-  studio-operations/analytics-reporter.md
-  studio-operations/finance-tracker.md
-  studio-operations/infrastructure-maintainer.md
-  studio-operations/legal-compliance-checker.md
-  studio-operations/support-responder.md
-  project-management/experiment-tracker.md
-  project-management/project-shipper.md
-  project-management/studio-producer.md
-  testing/api-tester.md
-  testing/performance-benchmarker.md
-  testing/test-results-analyzer.md
-  testing/tool-evaluator.md
-  testing/workflow-optimizer.md
-```
-
----
-
-*Generated by AgentKit - https://github.com/patricio0312rev/agentkit*
+If anything here is unclear or you want me to expand a short checklist into a runnable codemod (e.g., wrap client imports automatically), tell me which area to expand.

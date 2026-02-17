@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { DayPicker, DateRange, DayClickEventHandler } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { useToast } from '../ui/toast-context';
+import { useToast } from '../ui/use-toast';
 import { X, Lock, Loader2, Info, Calendar as CalendarIcon, User, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 
