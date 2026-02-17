@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 
 type HeroImage = {
@@ -51,13 +50,15 @@ export const HeroImageSlider = ({ images }: { images: HeroImage[] }) => {
                         transition={{ duration: 2 }}
                         className="absolute inset-0"
                     >
-                        <Image
+                        <img
                             src={currentImage.src}
                             alt={currentImage.alt}
-                            fill
-                            className="object-cover"
-                            priority={currentIndex === 0} // Only prioritize the first image
+                            className="object-cover w-full h-full"
+                            // Not using next/image here so the build/prerender won't fail on files without extensions
                             style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
                                 objectPosition: 'center',
                                 transform: 'scale(1.1)', // Ken Burns effect: initial zoom
                                 animation: 'kenburns 10s forwards infinite' // Apply animation

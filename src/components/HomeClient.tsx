@@ -243,7 +243,7 @@ export default function HomeClient({ content }: { content: ContentMap }) {
                             <FadeIn>
                                 <div className="relative h-96 rounded-2xl overflow-hidden shadow-2xl">
                                     <Image
-                                        src={t('adventure_ski_image', "/1689.jpg")}
+                                        src={t('adventure_ski_image', "/fhjgfkyj.jpg")}
                                         alt="Skiing in the Sierra Nevada"
                                         fill
                                         className="object-cover"
@@ -291,7 +291,7 @@ export default function HomeClient({ content }: { content: ContentMap }) {
                             <FadeIn delay={0.2} className="order-1 md:order-2">
                                 <div className="relative h-96 rounded-2xl overflow-hidden shadow-2xl">
                                     <Image
-                                        src={t('adventure_fish_image', "/1691.jpg")}
+                                        src={t('adventure_fish_image', "/fishing.jpg")}
                                         alt="Fly Fishing on American River"
                                         fill
                                         className="object-cover"
