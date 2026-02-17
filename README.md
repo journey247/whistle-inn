@@ -47,3 +47,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - [Next.js](https://nextjs.org/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Lucide React](https://lucide.dev/) (Icons)
+
+## Documentation
+
+📖 **[GitHub Copilot Setup Guide](.github/copilot-instructions.md)** - Learn how to grant GitHub Copilot access to this repository

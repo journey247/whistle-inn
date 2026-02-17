@@ -1,226 +1,180 @@
-# GitHub Copilot - AI Agent Instructions
+# GitHub Copilot Access Setup for journey247/whistle-inn
 
-This project uses specialized AI agents for different aspects of development.
+## Purpose
 
-## Agent Roles
+This document provides step-by-step instructions for granting GitHub Copilot access to the `journey247/whistle-inn` repository. Whether you're setting up Copilot for personal use or configuring it for an organization, this guide will help you enable AI-powered code assistance for this project.
 
-### ai-engineer (engineering)
+## Prerequisites
 
-Specialized agent for engineering tasks. See detailed instructions in `.github/engineering/ai-engineer.md`
+Before setting up GitHub Copilot, ensure you have:
 
-### backend-architect (engineering)
+- **Repository Permissions**: Owner or admin access to the `journey247/whistle-inn` repository
+- **GitHub Copilot License**: One of the following:
+  - GitHub Copilot Individual subscription ($10/month or $100/year)
+  - GitHub Copilot Business license (assigned by your organization)
+  - GitHub Copilot Enterprise license (for organizations with Enterprise Cloud)
+- **SAML SSO**: If your organization uses SAML single sign-on, you'll need to authorize the GitHub Copilot app after installation
 
-Specialized agent for engineering tasks. See detailed instructions in `.github/engineering/backend-architect.md`
+## Instructions for Personal Repositories
 
-### devops-automator (engineering)
+If `journey247/whistle-inn` is a personal repository (owned by an individual user):
 
-Specialized agent for engineering tasks. See detailed instructions in `.github/engineering/devops-automator.md`
+### Step 1: Enable GitHub Copilot for Your Account
 
-### frontend-developer (engineering)
+1. Go to [GitHub Copilot Settings](https://github.com/settings/copilot)
+2. Subscribe to GitHub Copilot Individual if you haven't already
+3. Configure which repositories Copilot can access:
+   - Select **"Allow for all repositories"** (recommended for personal accounts), OR
+   - Select **"Allow for select repositories"** and add `journey247/whistle-inn`
 
-Specialized agent for engineering tasks. See detailed instructions in `.github/engineering/frontend-developer.md`
+### Step 2: Install the VS Code Extension
 
-### mobile-app-builder (engineering)
+1. Open Visual Studio Code
+2. Go to Extensions (Ctrl+Shift+X or Cmd+Shift+X)
+3. Search for "GitHub Copilot"
+4. Click **Install** on the "GitHub Copilot" extension
+5. Sign in to GitHub when prompted
+6. Authorize the extension to access your account
 
-Specialized agent for engineering tasks. See detailed instructions in `.github/engineering/mobile-app-builder.md`
+### Step 3: Verify Copilot is Working
 
-### rapid-prototyper (engineering)
+1. Open any code file in the `whistle-inn` repository
+2. Start typing a comment or function
+3. You should see gray suggestion text from Copilot
+4. Press **Tab** to accept a suggestion
 
-Specialized agent for engineering tasks. See detailed instructions in `.github/engineering/rapid-prototyper.md`
+## Instructions for Organization Repositories
 
-### test-writer-fixer (engineering)
+If `journey247/whistle-inn` is owned by an organization:
 
-Specialized agent for engineering tasks. See detailed instructions in `.github/engineering/test-writer-fixer.md`
+### Step 1: Install GitHub Copilot GitHub App
 
-### brand-guardian (design)
+1. Navigate to the [GitHub Copilot Marketplace page](https://github.com/marketplace/github-copilot)
+2. Click **"Set up a plan"** or **"Install it for free"** (if using Copilot Business/Enterprise)
+3. Select the organization that owns `journey247/whistle-inn`
+4. Choose repository access:
+   - Select **"Only select repositories"**
+   - In the dropdown, find and select **`journey247/whistle-inn`**
+5. Click **"Install"** or **"Install & Authorize"**
 
-Specialized agent for design tasks. See detailed instructions in `.github/design/brand-guardian.md`
+### Step 2: Authorize for SAML SSO (If Applicable)
 
-### ui-designer (design)
+If your organization uses SAML SSO:
 
-Specialized agent for design tasks. See detailed instructions in `.github/design/ui-designer.md`
+1. Go to [GitHub Apps](https://github.com/settings/apps/authorizations)
+2. Find **"GitHub Copilot"** in the list
+3. Click **"Authorize"** next to your organization name
+4. Complete the SAML SSO authentication flow
 
-### ux-researcher (design)
+### Step 3: Assign Copilot Seats (Copilot Business/Enterprise)
 
-Specialized agent for design tasks. See detailed instructions in `.github/design/ux-researcher.md`
+Organization owners need to assign Copilot seats to team members:
 
-### visual-storyteller (design)
+1. Go to your organization settings: `https://github.com/organizations/journey247/settings/copilot`
+2. Click **"Access management"** or **"Manage access"**
+3. Select the users or teams who should have Copilot access
+4. Click **"Add"** to grant them access
 
-Specialized agent for design tasks. See detailed instructions in `.github/design/visual-storyteller.md`
+### Step 4: Install the VS Code Extension
 
-### whimsy-injector (design)
+Each team member should:
 
-Specialized agent for design tasks. See detailed instructions in `.github/design/whimsy-injector.md`
+1. Open Visual Studio Code
+2. Go to Extensions (Ctrl+Shift+X or Cmd+Shift+X)
+3. Search for "GitHub Copilot"
+4. Click **Install** on the "GitHub Copilot" extension
+5. Sign in to GitHub when prompted
+6. Authorize the extension to access your organization
 
-### app-store-optimizer (marketing)
+## How to Verify Copilot Can Access the Repository
 
-Specialized agent for marketing tasks. See detailed instructions in `.github/marketing/app-store-optimizer.md`
+Use this checklist to confirm Copilot is properly configured:
 
-### content-creator (marketing)
+### Test Suggestions
 
-Specialized agent for marketing tasks. See detailed instructions in `.github/marketing/content-creator.md`
+1. Open the `journey247/whistle-inn` repository in VS Code
+2. Create or open a code file (e.g., `.ts`, `.tsx`, `.js`)
+3. Start typing a comment like `// Function to calculate`
+4. Wait 1-2 seconds for Copilot suggestions (shown in gray)
+5. If suggestions appear, press **Tab** to accept
 
-### growth-hacker (marketing)
+### Confirm App Installation (Organization Repos)
 
-Specialized agent for marketing tasks. See detailed instructions in `.github/marketing/growth-hacker.md`
+1. Go to the repository: `https://github.com/journey247/whistle-inn`
+2. Click **"Settings"** (requires admin access)
+3. Click **"Integrations"** in the left sidebar
+4. Under **"Applications"**, verify **"GitHub Copilot"** is listed
 
-### instagram-curator (marketing)
+### Confirm License Assigned
 
-Specialized agent for marketing tasks. See detailed instructions in `.github/marketing/instagram-curator.md`
+1. Check the Copilot icon in VS Code status bar (bottom right)
+2. Click the icon and verify:
+   - Status shows **"Ready"** or **"Active"**
+   - Your organization/account name is displayed
+3. Or go to VS Code → Settings → search for "copilot" to see configuration
 
-### reddit-community-builder (marketing)
+## Troubleshooting
 
-Specialized agent for marketing tasks. See detailed instructions in `.github/marketing/reddit-community-builder.md`
+If Copilot isn't working, check these common issues:
 
-### tiktok-strategist (marketing)
+### No Suggestions Appearing
 
-Specialized agent for marketing tasks. See detailed instructions in `.github/marketing/tiktok-strategist.md`
+- **Check License**: Verify your Copilot subscription is active at [GitHub Copilot Settings](https://github.com/settings/copilot)
+- **Check Extension**: Ensure the GitHub Copilot extension is installed and enabled in VS Code
+- **Sign In**: Click the Copilot icon in VS Code status bar and sign in to GitHub
+- **Restart VS Code**: Sometimes a restart is needed after installation
 
-### twitter-engager (marketing)
+### "Copilot Not Available for This Repository"
 
-Specialized agent for marketing tasks. See detailed instructions in `.github/marketing/twitter-engager.md`
+- **Organization Settings**: Verify the repository is included in the Copilot app installation
+  - Go to `https://github.com/organizations/journey247/settings/installations`
+  - Click **"Configure"** next to GitHub Copilot
+  - Ensure `journey247/whistle-inn` is selected under repository access
+- **Personal Settings**: For personal repos, verify repository access at [GitHub Copilot Settings](https://github.com/settings/copilot)
 
-### feedback-synthesizer (product)
+### SAML SSO Authorization Issues
 
-Specialized agent for product tasks. See detailed instructions in `.github/product/feedback-synthesizer.md`
+- **Authorize App**: Go to [GitHub Apps Authorizations](https://github.com/settings/apps/authorizations)
+- **Find Copilot**: Locate "GitHub Copilot" and click **"Authorize"** for your organization
+- **Complete SSO**: Follow your organization's SAML authentication process
 
-### sprint-prioritizer (product)
+### Not Assigned a Seat (Organization)
 
-Specialized agent for product tasks. See detailed instructions in `.github/product/sprint-prioritizer.md`
+- **Contact Org Owner**: Ask your organization owner to assign you a Copilot seat
+- **Check Assignment**: Organization owners can verify at `https://github.com/organizations/journey247/settings/copilot`
+- **Wait for Sync**: It may take a few minutes for seat assignments to propagate
 
-### trend-researcher (product)
+### Extension Not Signed In
 
-Specialized agent for product tasks. See detailed instructions in `.github/product/trend-researcher.md`
+- **Manual Sign In**: Click the Copilot icon in VS Code status bar → **"Sign in to GitHub"**
+- **Authorize Extension**: Complete the GitHub authorization flow in your browser
+- **Check Notifications**: Look for authorization prompts in VS Code notifications
 
-### analytics-reporter (studio-operations)
+### Network/Proxy Issues
 
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/analytics-reporter.md`
+- **Corporate Firewall**: Ensure your network allows connections to `*.github.com` and `*.githubcopilot.com`
+- **Proxy Settings**: Configure VS Code proxy settings if behind a corporate proxy
+- **VPN**: Try disconnecting from VPN if it's blocking GitHub services
 
-### finance-tracker (studio-operations)
+## Official GitHub Documentation
 
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/finance-tracker.md`
+For more detailed information, refer to these official GitHub resources:
 
-### infrastructure-maintainer (studio-operations)
+### Personal Accounts
+- [About GitHub Copilot Individual](https://docs.github.com/en/copilot/overview-of-github-copilot/about-github-copilot-individual)
+- [Getting started with GitHub Copilot](https://docs.github.com/en/copilot/getting-started-with-github-copilot)
+- [Configuring GitHub Copilot in your environment](https://docs.github.com/en/copilot/configuring-github-copilot/configuring-github-copilot-in-your-environment)
 
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/infrastructure-maintainer.md`
+### Organizations
+- [About GitHub Copilot Business](https://docs.github.com/en/copilot/overview-of-github-copilot/about-github-copilot-business)
+- [Setting up GitHub Copilot for your organization](https://docs.github.com/en/copilot/setting-up-github-copilot/setting-up-github-copilot-for-your-organization)
+- [Managing access for GitHub Copilot in your organization](https://docs.github.com/en/copilot/managing-copilot/managing-access-for-copilot-business-in-your-organization)
+- [Installing the GitHub Copilot extension in Visual Studio Code](https://docs.github.com/en/copilot/getting-started-with-github-copilot?tool=vscode)
 
-### legal-compliance-checker (studio-operations)
-
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/legal-compliance-checker.md`
-
-### support-responder (studio-operations)
-
-Specialized agent for studio-operations tasks. See detailed instructions in `.github/studio-operations/support-responder.md`
-
-### experiment-tracker (project-management)
-
-Specialized agent for project-management tasks. See detailed instructions in `.github/project-management/experiment-tracker.md`
-
-### project-shipper (project-management)
-
-Specialized agent for project-management tasks. See detailed instructions in `.github/project-management/project-shipper.md`
-
-### studio-producer (project-management)
-
-Specialized agent for project-management tasks. See detailed instructions in `.github/project-management/studio-producer.md`
-
-### api-tester (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/api-tester.md`
-
-### performance-benchmarker (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/performance-benchmarker.md`
-
-### test-results-analyzer (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/test-results-analyzer.md`
-
-### tool-evaluator (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/tool-evaluator.md`
-
-### workflow-optimizer (testing)
-
-Specialized agent for testing tasks. See detailed instructions in `.github/testing/workflow-optimizer.md`
-
-
-## General Development Guidelines
-
-When working on this project, follow these principles:
-
-### Code Quality
-- Write clean, maintainable code
-- Follow existing patterns in the codebase
-- Add appropriate comments for complex logic
-- Ensure code is self-documenting where possible
-
-### Testing
-- Write tests for new features
-- Maintain high test coverage
-- Include edge cases in tests
-- Follow testing patterns established in the project
-
-### Documentation
-- Update documentation when adding features
-- Keep README files current
-- Document API changes
-- Add inline documentation for public APIs
-
-
-
-## Architecture Patterns
-
-Follow the established architecture patterns in this project. Refer to specific agent files in `.github/` for detailed guidance on:
-
-- Backend architecture and API design
-- Frontend component structure
-- Testing strategies
-- Deployment and DevOps practices
-
-## Getting Agent Details
-
-For specific guidance on any aspect of development, refer to the detailed agent files:
-
-```
-.github/
-  engineering/ai-engineer.md
-  engineering/backend-architect.md
-  engineering/devops-automator.md
-  engineering/frontend-developer.md
-  engineering/mobile-app-builder.md
-  engineering/rapid-prototyper.md
-  engineering/test-writer-fixer.md
-  design/brand-guardian.md
-  design/ui-designer.md
-  design/ux-researcher.md
-  design/visual-storyteller.md
-  design/whimsy-injector.md
-  marketing/app-store-optimizer.md
-  marketing/content-creator.md
-  marketing/growth-hacker.md
-  marketing/instagram-curator.md
-  marketing/reddit-community-builder.md
-  marketing/tiktok-strategist.md
-  marketing/twitter-engager.md
-  product/feedback-synthesizer.md
-  product/sprint-prioritizer.md
-  product/trend-researcher.md
-  studio-operations/analytics-reporter.md
-  studio-operations/finance-tracker.md
-  studio-operations/infrastructure-maintainer.md
-  studio-operations/legal-compliance-checker.md
-  studio-operations/support-responder.md
-  project-management/experiment-tracker.md
-  project-management/project-shipper.md
-  project-management/studio-producer.md
-  testing/api-tester.md
-  testing/performance-benchmarker.md
-  testing/test-results-analyzer.md
-  testing/tool-evaluator.md
-  testing/workflow-optimizer.md
-```
+### Enterprise
+- [About GitHub Copilot Enterprise](https://docs.github.com/en/copilot/github-copilot-enterprise/overview/about-github-copilot-enterprise)
+- [Enabling GitHub Copilot for organizations in your enterprise](https://docs.github.com/en/copilot/managing-copilot/managing-github-copilot-in-your-organization/managing-access-for-copilot-business-in-your-organization)
 
 ---
 
-*Generated by AgentKit - https://github.com/patricio0312rev/agentkit*
+**Need additional help?** Contact your organization administrator or visit [GitHub Support](https://support.github.com/).
