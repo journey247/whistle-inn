@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import Twilio from 'twilio';
 import { verifyAdmin } from '@/lib/adminAuth';
+import { sendSMS } from '@/lib/sms';
 
+// Twilio removed: this endpoint will record the outgoing SMS in the DB and
+// return success but will not send via any external provider.
 export async function POST(request: Request) {
     try {
         verifyAdmin(request);
@@ -13,20 +15,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'to and message required' }, { status: 400 });
         }
 
-        const sid = process.env.TWILIO_ACCOUNT_SID;
-        const token = process.env.TWILIO_AUTH_TOKEN;
-        const from = process.env.TWILIO_FROM_NUMBER;
-
-        if (!sid || !token || !from) {
-            return NextResponse.json({ error: 'Twilio not configured' }, { status: 500 });
-        }
-
-        const client = Twilio(sid, token);
-        const msg = await client.messages.create({ from, to, body: message });
-
+        // Log the SMS in the database
         await prisma.smsLog.create({ data: { to, body: message, type: 'outgoing', bookingId } });
 
-        return NextResponse.json({ success: true, sid: msg.sid });
+        // No-op send (kept for API contract) — logs a message but does not call Twilio
+        await sendSMS({ to, message });
+
+        return NextResponse.json({ success: true });
     } catch (err: any) {
         console.error('SMS send error:', err);
         return NextResponse.json({ error: err.message || 'Failed to send SMS' }, { status: 500 });
