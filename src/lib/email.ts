@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 import { prisma } from '@/lib/prisma';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+    return new Resend(process.env.RESEND_API_KEY || 're_placeholder');
+}
 
 export async function sendEmail({
     to,
@@ -46,7 +48,7 @@ export async function sendEmail({
 
     const from = process.env.NEXT_PUBLIC_RESEND_FROM_EMAIL || 'noreply@thewhistleinn.com';
 
-    const response = await resend.emails.send({
+    const response = await getResend().emails.send({
         from,
         to,
         subject: finalSubject,

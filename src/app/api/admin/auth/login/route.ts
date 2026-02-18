@@ -27,11 +27,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    // Ensure JWT secret is configured
-    const jwtSecret = process.env.NEXTAUTH_SECRET;
-    if (!jwtSecret || jwtSecret === 'dev-secret') {
-        console.error('CRITICAL: JWT secret not configured properly');
-        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    // Ensure JWT secret is configured. Allow a development fallback when not in production.
+    let jwtSecret = process.env.NEXTAUTH_SECRET;
+    if (!jwtSecret) {
+        if (process.env.NODE_ENV === 'production') {
+            console.error('CRITICAL: JWT secret not configured properly');
+            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+        }
+        console.warn('Using development fallback JWT secret (dev-secret) for login');
+        jwtSecret = 'dev-secret';
     }
 
     try {

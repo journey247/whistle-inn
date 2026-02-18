@@ -4,6 +4,8 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
     try {
         verifyAdmin(request);

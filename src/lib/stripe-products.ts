@@ -59,20 +59,28 @@ export async function createOrUpdateStripeProduct(
 
         let price: Stripe.Price;
 
+        // Stripe expects amounts in cents (integer)
+        const amountInCents = Math.round(unitAmount * 100);
+
         if (priceId) {
-            // Update existing price (actually create new and deactivate old)
-            const oldPrice = await stripe.prices.update(priceId, { active: false });
+            // Deactivate old price then create new price
+            try {
+                await stripe.prices.update(priceId, { active: false });
+            } catch (e) {
+                // Ignore - price may already be inactive or removed
+                console.warn(`Failed to deactivate old price ${priceId}:`, e);
+            }
 
             price = await stripe.prices.create({
                 product: product.id,
-                unit_amount: unitAmount,
+                unit_amount: amountInCents,
                 currency: 'usd',
             });
         } else {
             // Create new price
             price = await stripe.prices.create({
                 product: product.id,
-                unit_amount: unitAmount,
+                unit_amount: amountInCents,
                 currency: 'usd',
             });
         }
@@ -173,6 +181,88 @@ export async function updatePricingAndStripe(
                 category: 'Prices'
             }
         });
+
+        // Update weekday and weekend accommodation products/prices
+        const weekdayProductBlock = await prisma.contentBlock.findUnique({ where: { key: 'stripe_weekday_product_id' } });
+        const weekdayPriceBlock = await prisma.contentBlock.findUnique({ where: { key: 'stripe_weekday_price_id' } });
+
+        const weekendProductBlock = await prisma.contentBlock.findUnique({ where: { key: 'stripe_weekend_product_id' } });
+        const weekendPriceBlock = await prisma.contentBlock.findUnique({ where: { key: 'stripe_weekend_price_id' } });
+
+        let weekdayInfo = null;
+        let weekendInfo = null;
+
+        if (weekdayPrice && weekdayPrice > 0) {
+            weekdayInfo = await createOrUpdateStripeProduct(
+                weekdayProductBlock?.value || null,
+                weekdayPriceBlock?.value || null,
+                'Whistle Inn Weekday Night',
+                weekdayPrice,
+                'Nightly rate for weekday nights'
+            );
+
+            await prisma.contentBlock.upsert({
+                where: { key: 'stripe_weekday_product_id' },
+                update: { value: weekdayInfo.productId },
+                create: {
+                    key: 'stripe_weekday_product_id',
+                    value: weekdayInfo.productId,
+                    label: 'Stripe Weekday Product ID',
+                    type: 'text',
+                    section: 'Stripe',
+                    category: 'Products'
+                }
+            });
+
+            await prisma.contentBlock.upsert({
+                where: { key: 'stripe_weekday_price_id' },
+                update: { value: weekdayInfo.priceId },
+                create: {
+                    key: 'stripe_weekday_price_id',
+                    value: weekdayInfo.priceId,
+                    label: 'Stripe Weekday Price ID',
+                    type: 'text',
+                    section: 'Stripe',
+                    category: 'Prices'
+                }
+            });
+        }
+
+        if (weekendPrice && weekendPrice > 0) {
+            weekendInfo = await createOrUpdateStripeProduct(
+                weekendProductBlock?.value || null,
+                weekendPriceBlock?.value || null,
+                'Whistle Inn Weekend Night',
+                weekendPrice,
+                'Nightly rate for weekend nights'
+            );
+
+            await prisma.contentBlock.upsert({
+                where: { key: 'stripe_weekend_product_id' },
+                update: { value: weekendInfo.productId },
+                create: {
+                    key: 'stripe_weekend_product_id',
+                    value: weekendInfo.productId,
+                    label: 'Stripe Weekend Product ID',
+                    type: 'text',
+                    section: 'Stripe',
+                    category: 'Products'
+                }
+            });
+
+            await prisma.contentBlock.upsert({
+                where: { key: 'stripe_weekend_price_id' },
+                update: { value: weekendInfo.priceId },
+                create: {
+                    key: 'stripe_weekend_price_id',
+                    value: weekendInfo.priceId,
+                    label: 'Stripe Weekend Price ID',
+                    type: 'text',
+                    section: 'Stripe',
+                    category: 'Prices'
+                }
+            });
+        }
 
         console.log('Successfully updated Stripe cleaning fee product');
         return { cleaningInfo };

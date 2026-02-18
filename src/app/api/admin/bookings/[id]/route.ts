@@ -34,7 +34,9 @@ export async function GET(request: Request) {
 
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export const dynamic = 'force-dynamic';
+
+const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
 
 function renderTemplate(template: string, vars: Record<string, string | number | undefined>) {
     let result = template;

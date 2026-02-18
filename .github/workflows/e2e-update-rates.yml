@@ -1,0 +1,54 @@
+name: E2E - Update Rates & Stripe
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install system Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium
+
+      - name: Install dependencies (skip build scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Start dev server
+        run: |
+          pnpm dev &
+          # wait for localhost:3000 to respond
+          for i in {1..60}; do
+            if curl -sSf http://localhost:3000 >/dev/null; then
+              echo "server ready"; break
+            fi
+            echo "waiting for server... ($i)";
+            sleep 1
+          done
+        env:
+          NODE_ENV: development
+
+      - name: Run E2E update-rates test
+        env:
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+        run: |
+          node tests/e2e/update-rates-and-stripe.test.js
+
+      - name: Upload screenshots (if any)
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: tests/e2e/*.png

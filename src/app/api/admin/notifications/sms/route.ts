@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { verifyAdmin } from '@/lib/adminAuth';
 import { sendSMS } from '@/lib/sms';
 
+export const dynamic = 'force-dynamic';
+
 // Twilio removed: this endpoint will record the outgoing SMS in the DB and
 // return success but will not send via any external provider.
 export async function POST(request: Request) {

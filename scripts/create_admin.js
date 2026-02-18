@@ -3,7 +3,14 @@
 
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+// Load environment variables. Prefer .env.local (used by Next.js) when present.
+const dotenv = require('dotenv');
+const fs = require('fs');
+if (fs.existsSync('.env.local')) {
+    dotenv.config({ path: '.env.local' });
+} else {
+    dotenv.config();
+}
 
 const prisma = new PrismaClient();
 

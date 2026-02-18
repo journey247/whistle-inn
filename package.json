@@ -9,6 +9,8 @@
     "lint": "next lint",
     "create-admin": "node scripts/create_admin.js",
     "test:e2e": "node tests/e2e/admin-login.test.js",
+    "test:e2e:update-rates": "node tests/e2e/update-rates-and-stripe.test.js",
+    "test:e2e:all": "pnpm -w test:e2e && pnpm -w test:e2e:update-rates",
     "security:audit": "node scripts/security-setup.js --audit",
     "security:generate": "node scripts/security-setup.js --generate"
   },

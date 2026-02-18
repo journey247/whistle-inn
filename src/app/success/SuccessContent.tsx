@@ -180,32 +180,71 @@ export default function SuccessContent() {
                     )}
                 </motion.div>
 
+                {/* Email confirmation banner */}
+                {isPaid && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.35 }}
+                        className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-5 flex items-start gap-4"
+                    >
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Mail className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-blue-900 mb-1">Confirmation email sent!</h3>
+                            <p className="text-blue-700 text-sm">
+                                We just sent a detailed confirmation to <strong>{booking.email}</strong> with your booking details, check-in instructions, and everything you need for your stay.
+                            </p>
+                            <p className="text-blue-500 text-xs mt-2">
+                                Don't see it? Check your spam folder or contact us and we'll resend it.
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* Next Steps */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
+                    transition={{ delay: 0.4 }}
                     className="mt-8 bg-white rounded-lg shadow-sm p-6 sm:p-8"
                 >
                     <h2 className="text-2xl font-semibold text-slate-800 mb-6">What's Next?</h2>
 
                     <div className="space-y-4">
                         <div className="flex items-start">
-                            <Mail className="w-6 h-6 text-brand-gold mr-3 mt-0.5 flex-shrink-0" />
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                <span className="text-green-700 font-bold text-sm">1</span>
+                            </div>
                             <div>
-                                <h3 className="font-medium text-slate-800">Confirmation Email</h3>
-                                <p className="text-slate-600">
-                                    You'll receive a detailed confirmation email at {booking.email} with all the information you need for your stay.
+                                <h3 className="font-medium text-slate-800">Check your inbox</h3>
+                                <p className="text-slate-600 text-sm">
+                                    A confirmation email has been sent to <strong>{booking.email}</strong> with your full booking details.
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex items-start">
-                            <Calendar className="w-6 h-6 text-brand-gold mr-3 mt-0.5 flex-shrink-0" />
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                <span className="text-blue-700 font-bold text-sm">2</span>
+                            </div>
                             <div>
                                 <h3 className="font-medium text-slate-800">Check-in Instructions</h3>
-                                <p className="text-slate-600">
-                                    Detailed check-in instructions and property information will be included in your confirmation email.
+                                <p className="text-slate-600 text-sm">
+                                    Your confirmation email includes detailed check-in instructions, property access info, and everything you need for your stay.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start">
+                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                <span className="text-yellow-700 font-bold text-sm">3</span>
+                            </div>
+                            <div>
+                                <h3 className="font-medium text-slate-800">Prepare for Your Stay</h3>
+                                <p className="text-slate-600 text-sm">
+                                    Check-in is at 4 PM · Check-out is at 11 AM · {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
                                 </p>
                             </div>
                         </div>
