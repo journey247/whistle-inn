@@ -17,7 +17,12 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+        console.error('[iCal Cron] CRON_SECRET env var not configured — endpoint is locked');
+        return NextResponse.json({ error: 'Cron secret not configured' }, { status: 500 });
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
         console.warn('[iCal Cron] Unauthorized cron request');
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
