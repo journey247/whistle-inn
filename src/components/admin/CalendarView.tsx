@@ -4,7 +4,25 @@ import React, { useEffect, useState } from 'react';
 import { DayPicker, DateRange, DayClickEventHandler } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { useToast } from '../ui/use-toast';
-import { X, Lock, Loader2, Info, Calendar as CalendarIcon, User, Globe } from 'lucide-react';
+import { X, Lock, Loader2, Info, Calendar as CalendarIcon, User, Globe, Tag } from 'lucide-react';
+
+// Platform source → badge color
+const SOURCE_STYLES: Record<string, string> = {
+    'Airbnb':       'bg-rose-100 text-rose-700 border-rose-200',
+    'VRBO':         'bg-blue-100 text-blue-700 border-blue-200',
+    'Booking.com':  'bg-indigo-100 text-indigo-700 border-indigo-200',
+    'Hipcamp':      'bg-green-100 text-green-700 border-green-200',
+    'Whistle Inn':  'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'Blocked':      'bg-slate-100 text-slate-500 border-slate-200',
+};
+function SourceBadge({ source }: { source: string }) {
+    const cls = SOURCE_STYLES[source] ?? 'bg-gray-100 text-gray-600 border-gray-200';
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
+            <Tag className="w-2.5 h-2.5" />{source}
+        </span>
+    );
+}
 import { format } from 'date-fns';
 
 type CalendarEvent = {
@@ -39,7 +57,7 @@ export function CalendarView() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const res = await fetch('/api/admin/calendar/events', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -58,7 +76,7 @@ export function CalendarView() {
         if (!range?.from || !range?.to) return;
         setIsBlocking(true);
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const res = await fetch("/api/admin/external-bookings", {
                 method: "POST",
                 headers: {
@@ -207,10 +225,10 @@ export function CalendarView() {
                                             <div>{format(new Date(evt.end), 'MMM d, yyyy')}</div>
                                         </div>
 
-                                        <div className="pt-3 border-t border-slate-200 mt-3 flex justify-between items-center text-xs">
-                                            <span className="text-slate-500">Source: {evt.source}</span>
+                                        <div className="pt-3 border-t border-slate-200 mt-3 flex justify-between items-center">
+                                            <SourceBadge source={evt.source} />
                                             {evt.status && (
-                                                <span className={`px-2 py-0.5 rounded-full ${evt.status === 'confirmed' || evt.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${evt.status === 'confirmed' || evt.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-600'
                                                     }`}>
                                                     {evt.status}
                                                 </span>

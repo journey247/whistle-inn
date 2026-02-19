@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock } from "lucide-react";
 import { WebsiteEditor } from "./WebsiteEditor";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
-type SettingsTab = "pricing" | "coupons" | "content";
+type SettingsTab = "pricing" | "coupons" | "content" | "channels";
 
 type SpecialRate = {
     id: string;
@@ -39,7 +39,7 @@ function PricingTab({ addToast }: { addToast: AddToast }) {
     const [adding, setAdding]   = useState(false);
     const [showForm, setShowForm] = useState(false);
 
-    const token = () => localStorage.getItem("admin_token") ?? "";
+    const token = () => localStorage.getItem("adminToken") ?? "";
     const h = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` }), []);
 
     useEffect(() => {
@@ -218,7 +218,7 @@ function CouponsTab({ addToast }: { addToast: AddToast }) {
     const [form, setForm] = useState({ code: "", type: "PERCENT" as "PERCENT" | "FIXED", value: "", maxUses: "", expiry: "" });
     const [adding, setAdding] = useState(false);
 
-    const token = () => localStorage.getItem("admin_token") ?? "";
+    const token = () => localStorage.getItem("adminToken") ?? "";
     const h = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` }), []);
 
     useEffect(() => {
@@ -360,7 +360,7 @@ function ContentTab({ addToast }: { addToast: AddToast }) {
     const [saving, setSaving]   = useState<string | null>(null);
     const [edits, setEdits]     = useState<Record<string, string>>({});
 
-    const token = () => localStorage.getItem("admin_token") ?? "";
+    const token = () => localStorage.getItem("adminToken") ?? "";
     const h = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` }), []);
 
     useEffect(() => {
@@ -442,14 +442,290 @@ function ContentTab({ addToast }: { addToast: AddToast }) {
     );
 }
 
+// ── Channels (iCal Feeds) sub-tab ────────────────────────────────────────────
+type ICalFeed = {
+    id: string;
+    name: string;
+    url: string;
+    source: string;
+    lastSync?: string | null;
+    createdAt: string;
+};
+
+const SOURCE_COLORS: Record<string, string> = {
+    "Airbnb":       "bg-rose-100 text-rose-700",
+    "VRBO":         "bg-blue-100 text-blue-700",
+    "Booking.com":  "bg-indigo-100 text-indigo-700",
+    "Hipcamp":      "bg-green-100 text-green-700",
+};
+
+function sourceBadge(source: string) {
+    const cls = SOURCE_COLORS[source] ?? "bg-gray-100 text-gray-600";
+    return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{source}</span>;
+}
+
+function timeAgo(dateStr: string | null | undefined): string {
+    if (!dateStr) return "Never synced";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function ChannelsTab({ addToast }: { addToast: AddToast }) {
+    const [feeds, setFeeds]     = useState<ICalFeed[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [syncing, setSyncing] = useState(false);
+    const [showForm, setShowForm] = useState(false);
+    const [adding, setAdding]   = useState(false);
+    const [form, setForm]       = useState({ name: "", source: "Airbnb", url: "" });
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const token = () => localStorage.getItem("adminToken") ?? "";
+    const h = useCallback(() => ({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token()}`,
+    }), []);
+
+    const loadFeeds = useCallback(() => {
+        setLoading(true);
+        fetch("/api/admin/ical-feeds", { headers: h() })
+            .then(r => r.json())
+            .then(d => { if (Array.isArray(d)) setFeeds(d); })
+            .catch(() => addToast("Failed to load channels", "error"))
+            .finally(() => setLoading(false));
+    }, [h, addToast]);
+
+    useEffect(() => { loadFeeds(); }, [loadFeeds]);
+
+    const syncAll = async () => {
+        setSyncing(true);
+        try {
+            const res = await fetch("/api/admin/ical-feeds/sync", { method: "POST", headers: h() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            const total = (data.results as { synced: number }[]).reduce((s, r) => s + r.synced, 0);
+            const failed = (data.results as { error?: string }[]).filter(r => r.error).length;
+            addToast(
+                failed > 0
+                    ? `Synced ${total} bookings (${failed} feed${failed > 1 ? "s" : ""} failed)`
+                    : `✓ Synced ${total} booking${total !== 1 ? "s" : ""} across ${feeds.length} channel${feeds.length !== 1 ? "s" : ""}`,
+                failed > 0 ? "error" : "success"
+            );
+            loadFeeds(); // refresh lastSync times
+        } catch {
+            addToast("Sync failed", "error");
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const addFeed = async () => {
+        if (!form.name.trim() || !form.url.trim() || !form.source) return;
+        // Basic URL validation
+        try { new URL(form.url); } catch {
+            addToast("Please enter a valid URL (starting with https://)", "error");
+            return;
+        }
+        setAdding(true);
+        try {
+            const res = await fetch("/api/admin/ical-feeds", {
+                method: "POST",
+                headers: h(),
+                body: JSON.stringify({ name: form.name.trim(), url: form.url.trim(), source: form.source }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setFeeds(prev => [data, ...prev]);
+            setForm({ name: "", source: "Airbnb", url: "" });
+            setShowForm(false);
+            addToast(`✓ ${form.source} channel added — click Sync to import bookings`, "success");
+        } catch (err: unknown) {
+            addToast(err instanceof Error ? err.message : "Failed to add channel", "error");
+        } finally {
+            setAdding(false);
+        }
+    };
+
+    const deleteFeed = async (feed: ICalFeed) => {
+        if (!window.confirm(`Remove "${feed.name}"? This will also delete its synced bookings from the calendar.`)) return;
+        setDeletingId(feed.id);
+        try {
+            await fetch(`/api/admin/ical-feeds?id=${feed.id}`, { method: "DELETE", headers: h() });
+            setFeeds(prev => prev.filter(f => f.id !== feed.id));
+            addToast("Channel removed", "success");
+        } catch {
+            addToast("Failed to remove channel", "error");
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    if (loading) return (
+        <div className="flex justify-center py-8">
+            <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
+        </div>
+    );
+
+    return (
+        <div className="space-y-4">
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs text-gray-500">{feeds.length} channel{feeds.length !== 1 ? "s" : ""} connected</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    {feeds.length > 0 && (
+                        <button
+                            onClick={syncAll}
+                            disabled={syncing}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 transition px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 disabled:opacity-50"
+                        >
+                            {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                            {syncing ? "Syncing…" : "Sync All"}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setShowForm(v => !v)}
+                        className="flex items-center gap-1 text-xs text-brand-gold font-semibold hover:text-yellow-600"
+                    >
+                        <Plus className="w-3.5 h-3.5" /> Add Channel
+                    </button>
+                </div>
+            </div>
+
+            {/* Add form */}
+            {showForm && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                    <h3 className="font-semibold text-sm text-gray-900">Connect iCal Channel</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <label className="block text-xs text-gray-500 mb-1">Name</label>
+                            <input
+                                value={form.name}
+                                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                                placeholder="e.g. Airbnb Listing"
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-brand-gold/30 focus:border-brand-gold"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-500 mb-1">Platform</label>
+                            <select
+                                value={form.source}
+                                onChange={e => setForm(p => ({ ...p, source: e.target.value }))}
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none bg-white focus:ring-2 focus:ring-brand-gold/30 focus:border-brand-gold"
+                            >
+                                <option value="Airbnb">Airbnb</option>
+                                <option value="VRBO">VRBO</option>
+                                <option value="Booking.com">Booking.com</option>
+                                <option value="Hipcamp">Hipcamp</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">iCal URL</label>
+                        <input
+                            value={form.url}
+                            onChange={e => setForm(p => ({ ...p, url: e.target.value }))}
+                            placeholder="https://www.airbnb.com/calendar/ical/..."
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-mono outline-none focus:ring-2 focus:ring-brand-gold/30 focus:border-brand-gold"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Find this in your Airbnb calendar settings → Export Calendar</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={addFeed}
+                            disabled={adding || !form.name.trim() || !form.url.trim()}
+                            className="flex-1 bg-brand-gold text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-yellow-500 disabled:opacity-50 transition"
+                        >
+                            {adding ? "Adding…" : "Add Channel"}
+                        </button>
+                        <button
+                            onClick={() => setShowForm(false)}
+                            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Feed list */}
+            {feeds.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center space-y-3">
+                    <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto">
+                        <Link2 className="w-6 h-6 text-gray-300" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-700">No channels connected</p>
+                        <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+                            Add your Airbnb or VRBO iCal URL to automatically sync bookings to the calendar.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setShowForm(true)}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-gold hover:text-yellow-600 transition"
+                    >
+                        <Plus className="w-4 h-4" /> Connect Airbnb or VRBO
+                    </button>
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {feeds.map(feed => (
+                        <div
+                            key={feed.id}
+                            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3"
+                        >
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {sourceBadge(feed.source)}
+                                    <span className="font-medium text-sm text-gray-900 truncate">{feed.name}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
+                                    <Clock className="w-3 h-3 shrink-0" />
+                                    <span>{timeAgo(feed.lastSync)}</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => deleteFeed(feed)}
+                                disabled={deletingId === feed.id}
+                                className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition shrink-0 disabled:opacity-50"
+                                title="Remove channel"
+                            >
+                                {deletingId === feed.id
+                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    : <Trash2 className="w-3.5 h-3.5" />
+                                }
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Help callout */}
+            {feeds.length > 0 && (
+                <div className="bg-sky-50 border border-sky-100 rounded-xl px-4 py-3 text-xs text-sky-700 space-y-1">
+                    <p className="font-semibold">Bookings sync automatically every day at 2 AM UTC.</p>
+                    <p className="text-sky-600">Use <span className="font-medium">Sync All</span> to pull in the latest reservations right now. They'll appear as sky-blue blocks on the Calendar tab.</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── Main SettingsView ────────────────────────────────────────────────────────
 export function SettingsView({ addToast }: { addToast: AddToast }) {
     const [tab, setTab] = useState<SettingsTab>("pricing");
 
     const TABS: { id: SettingsTab; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-        { id: "pricing", label: "Pricing",  Icon: DollarSign },
-        { id: "coupons", label: "Coupons",  Icon: Tag },
-        { id: "content", label: "Website",  Icon: Globe },
+        { id: "pricing",  label: "Pricing",   Icon: DollarSign },
+        { id: "coupons",  label: "Coupons",   Icon: Tag },
+        { id: "channels", label: "Channels",  Icon: Link2 },
+        { id: "content",  label: "Website",   Icon: Globe },
     ];
 
     return (
@@ -457,7 +733,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
             <h1 className="text-xl font-bold text-gray-900">Settings</h1>
 
             {/* Sub-tabs */}
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
                 {TABS.map(({ id, label, Icon }) => (
                     <button key={id} onClick={() => setTab(id)}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
@@ -468,9 +744,10 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
                 ))}
             </div>
 
-            {tab === "pricing" && <PricingTab addToast={addToast} />}
-            {tab === "coupons" && <CouponsTab addToast={addToast} />}
-            {tab === "content" && <WebsiteEditor addToast={addToast} />}
+            {tab === "pricing"  && <PricingTab  addToast={addToast} />}
+            {tab === "coupons"  && <CouponsTab  addToast={addToast} />}
+            {tab === "channels" && <ChannelsTab addToast={addToast} />}
+            {tab === "content"  && <WebsiteEditor addToast={addToast} />}
         </div>
     );
 }
