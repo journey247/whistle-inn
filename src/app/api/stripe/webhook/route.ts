@@ -96,10 +96,12 @@ export async function POST(request: Request) {
                     }
 
                     // Update booking as paid, capturing all guest details from Stripe
+                    // Clear expiresAt — paid bookings hold dates permanently
                     const updatedBooking = await prisma.booking.update({
                         where: { id: bookingId },
                         data: {
                             status: 'paid',
+                            expiresAt: null,
                             guestName: session.customer_details?.name || existingBooking.guestName,
                             email: session.customer_details?.email || existingBooking.email,
                             stripePaymentIntentId: typeof session.payment_intent === 'string'

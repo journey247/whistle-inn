@@ -5,12 +5,19 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const now = new Date();
         const [siteBookings, externalBookings] = await Promise.all([
             prisma.booking.findMany({
                 select: { startDate: true, endDate: true },
-                // Include both paid AND pending — pending blocks the calendar so
-                // two guests cannot select the same dates simultaneously.
-                where: { status: { in: ['paid', 'pending'] } },
+                // Paid bookings always block. Pending bookings only block while
+                // they haven't expired — expired pending means the guest abandoned
+                // checkout and those dates are free again.
+                where: {
+                    OR: [
+                        { status: 'paid' },
+                        { status: 'pending', expiresAt: { gt: now } },
+                    ]
+                },
             }),
             prisma.externalBooking.findMany({
                 select: { startDate: true, endDate: true },

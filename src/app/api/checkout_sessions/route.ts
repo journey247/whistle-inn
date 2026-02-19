@@ -77,13 +77,21 @@ export async function POST(request: Request) {
         // Use a serializable transaction so the read + write cannot be interleaved
         // with another concurrent checkout request for the same dates.
         const booking = await prisma.$transaction(async (tx) => {
-            // Check for conflicting internal bookings
+            // Check for conflicting internal bookings.
+            // Exclude expired pending bookings — they no longer hold the dates.
+            const now = new Date();
             const conflictingBookings = await tx.booking.findMany({
                 where: {
                     AND: [
                         { startDate: { lt: end } },
                         { endDate: { gt: start } },
-                        { status: { in: ['paid', 'pending'] } }
+                        {
+                            OR: [
+                                { status: 'paid' },
+                                // pending only blocks if it hasn't expired yet
+                                { status: 'pending', expiresAt: { gt: now } },
+                            ]
+                        }
                     ]
                 }
             });
@@ -102,7 +110,9 @@ export async function POST(request: Request) {
                 throw Object.assign(new Error('These dates are already booked'), { code: 'CONFLICT' });
             }
 
-            // Create the pending booking atomically with the conflict check
+            // Create the pending booking atomically with the conflict check.
+            // expiresAt: 30 minutes — enough time to complete Stripe checkout.
+            // After this window, the booking no longer blocks availability.
             const newBooking = await tx.booking.create({
                 data: {
                     startDate: start,
@@ -114,6 +124,7 @@ export async function POST(request: Request) {
                     discount: discountAmount,
                     couponId: couponId || undefined,
                     status: 'pending',
+                    expiresAt: new Date(now.getTime() + 30 * 60 * 1000),
                 }
             });
 

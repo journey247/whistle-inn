@@ -77,6 +77,18 @@ export async function GET(request: NextRequest) {
         const totalSynced = results.reduce((sum, r) => sum + r.synced, 0);
         console.log(`[iCal Cron] Complete — ${totalSynced} total bookings synced across ${feeds.length} feeds`);
 
+        // Cleanup: cancel expired pending bookings so abandoned checkouts stop blocking dates
+        const expired = await prisma.booking.updateMany({
+            where: {
+                status: 'pending',
+                expiresAt: { lt: new Date() },
+            },
+            data: { status: 'cancelled' },
+        });
+        if (expired.count > 0) {
+            console.log(`[iCal Cron] Cancelled ${expired.count} expired pending booking(s)`);
+        }
+
         return NextResponse.json({
             success: true,
             message: 'iCal sync complete',
