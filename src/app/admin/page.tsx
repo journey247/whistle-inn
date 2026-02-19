@@ -67,6 +67,16 @@ type SchedulerStatus = {
     nextRun: string | null;
 };
 
+export type { Booking, Analytics };
+
+export type SharedProps = {
+    bookings: Booking[];
+    analytics: Analytics | null;
+    refreshData: () => Promise<void>;
+    dataLoading: boolean;
+    addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+};
+
 export default function AdminPanel() {
     return (
         <ToastProvider>
