@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { RefreshCw, Check, ChevronRight, Image as ImageIcon, Type, AlignLeft, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { RefreshCw, Check, ChevronRight, Image as ImageIcon, Type, AlignLeft, Eye, EyeOff, Loader2, Globe } from "lucide-react";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
 
@@ -165,6 +165,7 @@ function SectionPreview({ sectionKey, blocks, edits }: {
 export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
     const [blocks, setBlocks]     = useState<Block[]>([]);
     const [loading, setLoading]   = useState(true);
+    const [seeding, setSeeding]   = useState(false);
     const [saving, setSaving]     = useState<string | null>(null);
     const [edits, setEdits]       = useState<Record<string, string>>({});
     const [activeSection, setActive] = useState<string>("Hero Section");
@@ -176,7 +177,7 @@ export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
         Authorization: `Bearer ${token()}`,
     }), [token]);
 
-    useEffect(() => {
+    const loadBlocks = useCallback(() => {
         setLoading(true);
         fetch("/api/admin/content", { headers: headers() })
             .then(r => r.json())
@@ -184,6 +185,25 @@ export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
             .catch(() => addToast("Failed to load content", "error"))
             .finally(() => setLoading(false));
     }, [headers, addToast]);
+
+    useEffect(() => { loadBlocks(); }, [loadBlocks]);
+
+    const seedContent = async () => {
+        setSeeding(true);
+        try {
+            const res = await fetch("/api/admin/content/seed", {
+                method: "POST",
+                headers: headers(),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            addToast(`✓ ${data.message}`, "success");
+            loadBlocks();
+        } catch {
+            addToast("Failed to seed content", "error");
+        }
+        setSeeding(false);
+    };
 
     const save = async (block: Block) => {
         const value = edits[block.key] ?? block.value;
@@ -225,6 +245,29 @@ export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
         </div>
     );
 
+    // Global empty state — no blocks at all in DB
+    if (blocks.length === 0) return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-brand-gold/10 flex items-center justify-center mx-auto">
+                <Globe className="w-7 h-7 text-brand-gold" />
+            </div>
+            <div>
+                <h3 className="font-bold text-gray-900 text-base">No content blocks yet</h3>
+                <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">
+                    Click below to load your site's default text and images into the editor.
+                </p>
+            </div>
+            <button
+                onClick={seedContent}
+                disabled={seeding}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-gold text-white font-semibold hover:bg-yellow-600 transition disabled:opacity-50"
+            >
+                {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                {seeding ? "Loading defaults…" : "Load default content"}
+            </button>
+        </div>
+    );
+
     return (
         <div className="space-y-4">
             {/* Header */}
@@ -233,13 +276,24 @@ export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
                     <h2 className="text-base font-bold text-gray-900">Website Content</h2>
                     <p className="text-xs text-gray-400 mt-0.5">Edit your site text and images section by section</p>
                 </div>
-                <button
-                    onClick={() => setShowPreview(p => !p)}
-                    className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300"
-                >
-                    {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    {showPreview ? "Hide preview" : "Show preview"}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={seedContent}
+                        disabled={seeding}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 disabled:opacity-50"
+                        title="Load default content blocks into the database"
+                    >
+                        {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                        {seeding ? "Loading…" : "Load defaults"}
+                    </button>
+                    <button
+                        onClick={() => setShowPreview(p => !p)}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300"
+                    >
+                        {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {showPreview ? "Hide preview" : "Show preview"}
+                    </button>
+                </div>
             </div>
 
             <div className="flex gap-4 min-h-0">
@@ -324,8 +378,17 @@ export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
                             )}
 
                             {sectionBlocks.length === 0 && (
-                                <div className="py-8 text-center">
-                                    <p className="text-sm text-gray-300">No content fields in this section yet.</p>
+                                <div className="py-10 text-center space-y-3">
+                                    <p className="text-sm text-gray-400">No content fields yet.</p>
+                                    <button
+                                        onClick={seedContent}
+                                        disabled={seeding}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-gold text-white text-sm font-semibold hover:bg-yellow-600 transition disabled:opacity-50"
+                                    >
+                                        {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                        {seeding ? "Loading defaults…" : "Load default content"}
+                                    </button>
+                                    <p className="text-xs text-gray-300">Populates all sections with your site's default text</p>
                                 </div>
                             )}
                         </div>
