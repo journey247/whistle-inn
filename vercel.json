@@ -1,11 +1,13 @@
 {
   "version": 2,
   "framework": "nextjs",
-  "regions": ["iad1"],
-  "buildCommand": "npm run build",
+  "regions": [
+    "iad1"
+  ],
+  "buildCommand": "pnpm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "devCommand": "npm run dev",
+  "installCommand": "pnpm install",
+  "devCommand": "pnpm run dev",
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
@@ -55,6 +57,12 @@
       ],
       "destination": "https://thewhistleinn.com/admin/$1",
       "permanent": true
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/ical-sync",
+      "schedule": "0 2 * * *"
     }
   ]
 }

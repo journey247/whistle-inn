@@ -24,6 +24,20 @@ try {
     console.error('Stripe initialization failed:', err);
 }
 
+/**
+ * Check if a booking_confirmation email has already been sent for this booking.
+ * Uses the EmailLog table as a deduplication record.
+ */
+async function hasConfirmationBeenSent(bookingId: string): Promise<boolean> {
+    const existing = await prisma.emailLog.findFirst({
+        where: {
+            bookingId,
+            template: 'booking_confirmation',
+        },
+    });
+    return !!existing;
+}
+
 export async function POST(request: Request) {
     if (!stripe) {
         console.error('Stripe not initialized - check STRIPE_SECRET_KEY');
@@ -81,7 +95,7 @@ export async function POST(request: Request) {
                         break;
                     }
 
-                    // Update booking as paid
+                    // Update booking as paid, capturing all guest details from Stripe
                     const updatedBooking = await prisma.booking.update({
                         where: { id: bookingId },
                         data: {
@@ -103,25 +117,35 @@ export async function POST(request: Request) {
                         // Continue - don't fail webhook because notification failed
                     }
 
-                    // Send confirmation email
+                    // Send confirmation email — deduplicated via EmailLog
                     const recipientEmail = session.customer_details?.email || existingBooking.email;
-                    try {
-                        await sendEmail({
-                            to: recipientEmail,
-                            templateName: 'booking_confirmation',
-                            variables: {
-                                guestName: session.customer_details?.name || existingBooking.guestName,
-                                bookingId: bookingId,
-                                startDate: new Date(existingBooking.startDate).toLocaleDateString(),
-                                endDate: new Date(existingBooking.endDate).toLocaleDateString(),
-                                amount: (session.amount_total ? session.amount_total / 100 : existingBooking.totalPrice).toFixed(2),
-                            },
-                            bookingId: bookingId
-                        });
-                        console.log(`Confirmation email sent to ${recipientEmail} for booking ${bookingId}`);
-                    } catch (emailError) {
-                        console.error(`Failed to send confirmation email for booking ${bookingId}:`, emailError);
-                        // Continue - do not fail the webhook because email failed
+                    const alreadySent = await hasConfirmationBeenSent(bookingId);
+
+                    if (alreadySent) {
+                        console.log(`Confirmation email already sent for booking ${bookingId} — skipping duplicate`);
+                    } else {
+                        try {
+                            await sendEmail({
+                                to: recipientEmail,
+                                templateName: 'booking_confirmation',
+                                variables: {
+                                    guestName: session.customer_details?.name || existingBooking.guestName,
+                                    bookingId: bookingId,
+                                    startDate: new Date(existingBooking.startDate).toLocaleDateString('en-US', {
+                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                                    }),
+                                    endDate: new Date(existingBooking.endDate).toLocaleDateString('en-US', {
+                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                                    }),
+                                    amount: (session.amount_total ? session.amount_total / 100 : existingBooking.totalPrice).toFixed(2),
+                                },
+                                bookingId: bookingId
+                            });
+                            console.log(`Confirmation email sent to ${recipientEmail} for booking ${bookingId}`);
+                        } catch (emailError) {
+                            console.error(`Failed to send confirmation email for booking ${bookingId}:`, emailError);
+                            // Continue - do not fail the webhook because email failed
+                        }
                     }
 
                     console.log(`Booking ${bookingId} successfully confirmed via webhook`);

@@ -7,8 +7,11 @@ import { invalidatePricingCache } from '@/lib/pricing-server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-    const auth = await verifyAdmin(request);
-    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        verifyAdmin(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     try {
         const rates = await prisma.specialRate.findMany({
@@ -21,8 +24,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-    const auth = await verifyAdmin(request);
-    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        verifyAdmin(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     try {
         const body = await request.json();
@@ -59,8 +65,11 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-    const auth = await verifyAdmin(request);
-    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        verifyAdmin(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

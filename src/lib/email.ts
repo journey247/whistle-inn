@@ -46,7 +46,8 @@ export async function sendEmail({
         throw new Error("Email must have content (body or template) and subject");
     }
 
-    const from = process.env.NEXT_PUBLIC_RESEND_FROM_EMAIL || 'noreply@thewhistleinn.com';
+    // Use verified domain in production, Resend's test address in development
+    const from = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
     const response = await getResend().emails.send({
         from,
