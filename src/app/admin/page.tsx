@@ -35,6 +35,7 @@ type Booking = {
     guestCount?: number;
     discount?: number;
     stripeSessionId?: string;
+    stripePaymentIntentId?: string;
 };
 
 type Subscriber = {
