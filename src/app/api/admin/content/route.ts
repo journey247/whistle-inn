@@ -58,41 +58,57 @@ export async function PUT(request: Request) {
         if (['base_weekday_price', 'base_weekend_price', 'cleaning_fee', 'minimum_nights'].includes(key)) {
             invalidatePricingCache();
 
-            // Update Stripe products if cleaning fee changed
-            if (key === 'cleaning_fee') {
+            // Update Stripe products if cleaning fee or base rates changed
+            if (key === 'cleaning_fee' || key === 'base_weekday_price' || key === 'base_weekend_price') {
                 try {
-                    // Get old value for notification
-                    const oldBlock = await prisma.contentBlock.findUnique({
-                        where: { key: 'cleaning_fee' }
-                    });
-                    const oldValue = oldBlock ? oldBlock.value : '0';
+                    // Determine old and new values for notification
+                    let oldValue = '0';
+                    let newValue = '0';
 
-                    // Get current cleaning fee value
-                    const cleaningBlock = await prisma.contentBlock.findUnique({
-                        where: { key: 'cleaning_fee' }
-                    });
-
-                    const cleaningFee = cleaningBlock ? parseFloat(cleaningBlock.value) : 150;
-
-                    // Send notification for pricing change
-                    try {
-                        await notifyAdminOfChange(NotificationType.ADMIN_PRICE_CHANGE, oldValue, cleaningBlock?.value || '150', 'Admin');
-                    } catch (notificationError) {
-                        console.error(`Failed to send pricing change notification:`, notificationError);
-                        // Continue - don't fail the update because notification failed
+                    if (key === 'cleaning_fee') {
+                        const oldBlock = await prisma.contentBlock.findUnique({ where: { key: 'cleaning_fee' } });
+                        oldValue = oldBlock ? oldBlock.value : '0';
+                        const cleaningBlock = await prisma.contentBlock.findUnique({ where: { key: 'cleaning_fee' } });
+                        newValue = cleaningBlock ? cleaningBlock.value : '0';
+                    } else if (key === 'base_weekday_price') {
+                        const oldBlock = await prisma.contentBlock.findUnique({ where: { key: 'base_weekday_price' } });
+                        oldValue = oldBlock ? oldBlock.value : '0';
+                        const newBlock = await prisma.contentBlock.findUnique({ where: { key: 'base_weekday_price' } });
+                        newValue = newBlock ? newBlock.value : '0';
+                    } else if (key === 'base_weekend_price') {
+                        const oldBlock = await prisma.contentBlock.findUnique({ where: { key: 'base_weekend_price' } });
+                        oldValue = oldBlock ? oldBlock.value : '0';
+                        const newBlock = await prisma.contentBlock.findUnique({ where: { key: 'base_weekend_price' } });
+                        newValue = newBlock ? newBlock.value : '0';
                     }
 
-                    // Update Stripe cleaning fee product asynchronously (don't block the response)
-                    updatePricingAndStripe(0, 0, cleaningFee) // Only cleaning fee matters for Stripe
+                    // Send notification for pricing change (best-effort)
+                    try {
+                        await notifyAdminOfChange(NotificationType.ADMIN_PRICE_CHANGE, oldValue, newValue, 'Admin');
+                    } catch (notificationError) {
+                        console.error(`Failed to send pricing change notification:`, notificationError);
+                    }
+
+                    // Fetch current values for weekday/weekend/cleaning to update Stripe
+                    const weekdayBlock = await prisma.contentBlock.findUnique({ where: { key: 'base_weekday_price' } });
+                    const weekendBlock = await prisma.contentBlock.findUnique({ where: { key: 'base_weekend_price' } });
+                    const cleaningBlock = await prisma.contentBlock.findUnique({ where: { key: 'cleaning_fee' } });
+
+                    const weekdayPrice = weekdayBlock ? parseFloat(weekdayBlock.value) : 0;
+                    const weekendPrice = weekendBlock ? parseFloat(weekendBlock.value) : 0;
+                    const cleaningFee = cleaningBlock ? parseFloat(cleaningBlock.value) : 0;
+
+                    // Update Stripe products asynchronously (don't block the response)
+                    updatePricingAndStripe(weekdayPrice, weekendPrice, cleaningFee)
                         .then(result => {
                             if (result) {
-                                console.log('Stripe cleaning fee product updated successfully');
+                                console.log('Stripe pricing products updated successfully');
                             } else {
                                 console.warn('Stripe update failed, but pricing cache was invalidated');
                             }
                         })
                         .catch(error => {
-                            console.error('Failed to update Stripe cleaning fee product:', error);
+                            console.error('Failed to update Stripe pricing products:', error);
                         });
 
                 } catch (error) {

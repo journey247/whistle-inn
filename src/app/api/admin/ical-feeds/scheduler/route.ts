@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { startIcalSyncScheduler, getSchedulerStatus } from '@/lib/ical-sync-scheduler';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
     try {
         startIcalSyncScheduler();

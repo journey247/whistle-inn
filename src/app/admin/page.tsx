@@ -8,7 +8,7 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
     LayoutDashboard, Calendar, Users, Mail, TrendingUp, ExternalLink,
     Settings, LogOut, Search, Filter, Download, Plus, RefreshCw,
-    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon, Tag, Bot
+    DollarSign, Home, Clock, CheckCircle, XCircle, AlertCircle, Menu, X as CloseIcon, Tag, Bot, Inbox
 } from "lucide-react";
 
 // Client components loaded dynamically
@@ -20,6 +20,7 @@ const PricingPanel = dynamic(() => import('@/components/admin/PricingPanel').the
 const ContentEditor = dynamic(() => import('@/components/admin/ContentEditor').then(m => m.ContentEditor), { ssr: false });
 const AIHelper = dynamic(() => import('@/components/admin/AIHelper').then(m => m.AIHelper), { ssr: false });
 const NotificationsPanel = dynamic(() => import('@/components/admin/NotificationsPanel').then(m => m.NotificationsPanel), { ssr: false });
+const EmailLogsPanel = dynamic(() => import('@/components/admin/EmailLogsPanel').then(m => m.EmailLogsPanel), { ssr: false });
 
 type Booking = {
     id: string;
@@ -41,6 +42,7 @@ type Analytics = {
     totalBookings: number;
     totalRevenue: number;
     occupancyRate: number;
+    monthlyRevenue?: { month: string; revenue: number }[];
 };
 
 type ExternalBooking = {
@@ -160,11 +162,11 @@ function AdminPanelContent() {
                 setAuthenticated(true);
                 fetchData();
             } else {
-                alert(data.error || 'Login failed');
+                addToast(data.error || 'Login failed. Please check your credentials.', 'error');
             }
         } catch (err) {
             console.error(err);
-            alert('Login failed');
+            addToast('Login failed. Please try again.', 'error');
         }
     };
 
@@ -222,7 +224,10 @@ function AdminPanelContent() {
                         </button>
                     </div>
                     <p className="text-xs text-slate-500 text-center mt-4 sm:mt-6">
-                        Need help signing in? Call (555) 123-4567 or email help@whistleinn.com
+                        Forgot your password?{" "}
+                        <a href="/admin/reset-password" className="text-brand-gold underline hover:text-yellow-600">
+                            Reset it here
+                        </a>
                     </p>
                 </div>
             </div>
@@ -234,10 +239,12 @@ function AdminPanelContent() {
         { id: "bookings", label: "Reservations", icon: Calendar, description: "Manage guest bookings" },
         { id: "calendar", label: "Availability", icon: Calendar, description: "Check & block dates" },
         { id: "pricing", label: "Rates", icon: DollarSign, description: "Set prices & discounts" },
+        { id: "coupons", label: "Coupons", icon: Tag, description: "Manage discount codes" },
         { id: "content", label: "Website", icon: Settings, description: "Update photos & text" },
         { id: "ai-helper", label: "AI Assistant", icon: Bot, description: "Get AI help with tasks" },
         { id: "sync", label: "Airbnb/VRBO", icon: ExternalLink, description: "Connect booking sites" },
         { id: "customers", label: "Guests", icon: Users, description: "Contact information" },
+        { id: "emails", label: "Email Logs", icon: Inbox, description: "View sent emails" },
         { id: "help", label: "Help", icon: Mail, description: "Get support" },
     ];
 
@@ -604,12 +611,12 @@ function AdminPanelContent() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-white p-4 rounded-lg border border-blue-100">
                                         <h4 className="font-semibold text-slate-900 mb-2">📞 Quick Support</h4>
-                                        <p className="text-sm text-slate-600 mb-2">Call or text: (555) 123-4567</p>
-                                        <p className="text-xs text-slate-500">Available 9 AM - 6 PM Pacific Time</p>
+                                        <p className="text-sm text-slate-600 mb-2">Contact your developer or site admin for phone support.</p>
+                                        <p className="text-xs text-slate-500">Available during business hours</p>
                                     </div>
                                     <div className="bg-white p-4 rounded-lg border border-blue-100">
                                         <h4 className="font-semibold text-slate-900 mb-2">📧 Email Support</h4>
-                                        <p className="text-sm text-slate-600 mb-2">help@whistleinn.com</p>
+                                        <p className="text-sm text-slate-600 mb-2">Contact your site administrator for email support.</p>
                                         <p className="text-xs text-slate-500">We respond within 24 hours</p>
                                     </div>
                                 </div>
@@ -1035,11 +1042,9 @@ function AdminPanelContent() {
                         </div>
                     )}
 
-                    {/* Emails Tab */}
+                    {/* Email Logs Tab */}
                     {activeTab === "emails" && (
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                            <EmailPanel />
-                        </div>
+                        <EmailLogsPanel />
                     )}
 
                     {/* Analytics Tab */}
@@ -1090,7 +1095,7 @@ function AdminPanelContent() {
                             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                                 <h3 className="text-lg font-bold text-slate-900 mb-4">Revenue Trends</h3>
                                 <div className="h-64 w-full">
-                                    <RevenueChart data={[]} />
+                                    <RevenueChart data={analytics?.monthlyRevenue || []} />
                                 </div>
                             </div>
 

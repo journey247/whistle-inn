@@ -223,6 +223,16 @@ export default function Home() {
                             </motion.div>
                         ))}
                     </div>
+
+                    {/* Gallery CTA */}
+                    <div className="text-center mt-10">
+                        <a
+                            href="/gallery"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white border border-white/30 hover:border-white/60 rounded-full font-semibold transition-all backdrop-blur-sm"
+                        >
+                            View Full Photo Gallery →
+                        </a>
+                    </div>
                 </div>
             </section>
 

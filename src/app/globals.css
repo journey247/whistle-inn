@@ -279,3 +279,17 @@ textarea::placeholder {
 .admin-calendar .rdp-button[data-selected="true"] {
   color: inherit !important;
 }
+
+/* Make white text readable on light admin backgrounds only */
+.admin-root [class*="bg-white"] [class*="text-white"],
+.admin-root [class*="bg-slate-50"] [class*="text-white"],
+.admin-root [class*="bg-white"][class*="text-white"],
+.admin-root [class*="bg-slate-50"][class*="text-white"] {
+  color: #0f172a !important;
+}
+
+/* Also handle cases where utility uses opacity variations like text-white/90 */
+.admin-root [class*="bg-white"] [class*="text-white/"],
+.admin-root [class*="bg-slate-50"] [class*="text-white/"] {
+  color: #0f172a !important;
+}

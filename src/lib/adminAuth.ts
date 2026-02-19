@@ -11,13 +11,20 @@ export function verifyAdmin(request: Request) {
     const token = auth.replace('Bearer ', '');
 
     // Ensure JWT secret is configured
-    const jwtSecret = process.env.NEXTAUTH_SECRET;
+    // Allow a developer-friendly fallback when running locally.
+    // In production a proper NEXTAUTH_SECRET MUST be set and must not be the placeholder 'dev-secret'.
+    let jwtSecret = process.env.NEXTAUTH_SECRET;
     if (!jwtSecret) {
-        console.error('CRITICAL: JWT secret not configured');
-        throw new Error('Server configuration error');
+        if (process.env.NODE_ENV === 'production') {
+            console.error('CRITICAL: JWT secret not configured');
+            throw new Error('Server configuration error');
+        }
+        // Dev fallback
+        console.warn('Using development fallback JWT secret (dev-secret)');
+        jwtSecret = 'dev-secret';
     }
 
-    if (jwtSecret === 'dev-secret') {
+    if (process.env.NODE_ENV === 'production' && jwtSecret === 'dev-secret') {
         console.error('CRITICAL: Using insecure dev-secret in production');
         throw new Error('Server configuration error');
     }

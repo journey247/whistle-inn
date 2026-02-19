@@ -1,4 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
+// Load .env.local if present (Next.js uses .env.local). Fall back to .env.
+const dotenv = require('dotenv');
+const fs = require('fs');
+if (fs.existsSync('.env.local')) {
+  dotenv.config({ path: '.env.local' });
+} else {
+  dotenv.config();
+}
 const prisma = new PrismaClient();
 
 const blocks = [

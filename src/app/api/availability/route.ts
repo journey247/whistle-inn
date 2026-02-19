@@ -8,7 +8,9 @@ export async function GET() {
         const [siteBookings, externalBookings] = await Promise.all([
             prisma.booking.findMany({
                 select: { startDate: true, endDate: true },
-                where: { status: 'paid' },
+                // Include both paid AND pending — pending blocks the calendar so
+                // two guests cannot select the same dates simultaneously.
+                where: { status: { in: ['paid', 'pending'] } },
             }),
             prisma.externalBooking.findMany({
                 select: { startDate: true, endDate: true },
