@@ -30,6 +30,11 @@ type Booking = {
     email: string;
     totalPrice: number;
     status: string;
+    createdAt?: string;
+    notes?: string;
+    guestCount?: number;
+    discount?: number;
+    stripeSessionId?: string;
 };
 
 type Subscriber = {
