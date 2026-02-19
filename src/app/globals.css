@@ -8,13 +8,7 @@
   --background-end-rgb: 255, 255, 255;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
+/* Site does not support dark mode — keep foreground always dark */
 
 body {
   color: rgb(var(--foreground-rgb));
@@ -61,18 +55,17 @@ select {
   }
 }
 
-/* Ensure form controls are readable in both light and dark modes */
+/* Force form controls to always use dark text — site does not support dark mode */
 input,
 textarea,
 select {
-  color: rgb(var(--foreground-rgb));
-  caret-color: rgb(var(--foreground-rgb));
+  color: #0f172a;
+  caret-color: #0f172a;
 }
 
-/* Placeholder text should also be visible */
 input::placeholder,
 textarea::placeholder {
-  color: rgba(var(--foreground-rgb), 0.6);
+  color: #94a3b8;
 }
 
 /* Mobile-optimized modals and overlays */
