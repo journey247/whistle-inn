@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { DollarSign, Tag, FileText, Plus, Trash2, Save, RefreshCw, Check } from "lucide-react";
+import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText } from "lucide-react";
+import { WebsiteEditor } from "./WebsiteEditor";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
 type SettingsTab = "pricing" | "coupons" | "content";
@@ -448,7 +449,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
     const TABS: { id: SettingsTab; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
         { id: "pricing", label: "Pricing",  Icon: DollarSign },
         { id: "coupons", label: "Coupons",  Icon: Tag },
-        { id: "content", label: "Website",  Icon: FileText },
+        { id: "content", label: "Website",  Icon: Globe },
     ];
 
     return (
@@ -469,7 +470,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
 
             {tab === "pricing" && <PricingTab addToast={addToast} />}
             {tab === "coupons" && <CouponsTab addToast={addToast} />}
-            {tab === "content" && <ContentTab addToast={addToast} />}
+            {tab === "content" && <WebsiteEditor addToast={addToast} />}
         </div>
     );
 }
