@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { loadStripe } from "@stripe/stripe-js";
-import { X, Calendar, Loader2, Users, Info, Tag } from "lucide-react";
+import { X, Calendar, Loader2, Users, Info, Tag, User } from "lucide-react";
 import { format } from "date-fns";
 
 // Initialize Stripe (replace with your publishable key)
@@ -33,6 +33,9 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     const [bookedDates, setBookedDates] = useState<Date[]>([]);
     const [loadingAvailability, setLoadingAvailability] = useState(true);
     const [guestCount, setGuestCount] = useState(2);
+    const [guestName, setGuestName] = useState("");
+    const [guestEmail, setGuestEmail] = useState("");
+    const [guestInfoError, setGuestInfoError] = useState("");
     const MAX_GUESTS = 10;
     const [minimumNights, setMinimumNights] = useState(3); // Dynamic minimum nights
 
@@ -163,6 +166,20 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
             return;
         }
 
+        // Validate guest info
+        const trimmedName = guestName.trim();
+        const trimmedEmail = guestEmail.trim().toLowerCase();
+
+        if (!trimmedName) {
+            setGuestInfoError("Please enter your full name.");
+            return;
+        }
+        if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+            setGuestInfoError("Please enter a valid email address.");
+            return;
+        }
+
+        setGuestInfoError("");
         setLoading(true);
 
         try {
@@ -173,6 +190,8 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                     startDate: range.from,
                     endDate: range.to,
                     guestCount,
+                    guestName: trimmedName,
+                    guestEmail: trimmedEmail,
                     couponCode: appliedCoupon || undefined,
                 }),
             });
@@ -352,6 +371,43 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                         >+</button>
                                                     </div>
                                                 </div>
+                                                {/* Guest Info Inputs */}
+                                                <div className="mt-4">
+                                                    <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+                                                        <User className="w-4 h-4" /> Guest Information
+                                                    </h4>
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label htmlFor="guestName" className="block text-sm font-semibold text-slate-700 mb-2">Full Name <span className="text-red-500">*</span></label>
+                                                            <div className="relative">
+                                                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                                <input
+                                                                    id="guestName"
+                                                                    type="text"
+                                                                    value={guestName}
+                                                                    onChange={(e) => setGuestName(e.target.value)}
+                                                                    placeholder="Jane Smith"
+                                                                    autoComplete="name"
+                                                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <label htmlFor="guestEmail" className="block text-sm font-semibold text-slate-700 mb-2">Email <span className="text-red-500">*</span></label>
+                                                            <input
+                                                                id="guestEmail"
+                                                                type="email"
+                                                                value={guestEmail}
+                                                                onChange={(e) => setGuestEmail(e.target.value)}
+                                                                placeholder="you@email.com"
+                                                                autoComplete="email"
+                                                                className="w-full pr-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
+                                                            />
+                                                        </div>
+                                                        {guestInfoError && <p className="text-red-500 text-xs">{guestInfoError}</p>}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -460,7 +516,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
 
                                                 <button
                                                     onClick={handleCheckout}
-                                                    disabled={loading || !range?.from || !range?.to || !meetsMinimum || hasDateConflict || !!quote?.error}
+                                                    disabled={loading || !range?.from || !range?.to || !meetsMinimum || hasDateConflict || !!quote?.error || !guestName.trim() || !guestEmail.trim()}
                                                     className="w-full bg-brand-gold hover:bg-yellow-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-4 px-6 rounded-xl font-bold text-base transition-all transform active:scale-95 shadow-lg shadow-brand-gold/30 hover:shadow-xl hover:shadow-brand-gold/40 flex items-center justify-center gap-2"
                                                 >
                                                     {loading ? (
@@ -475,6 +531,11 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                     )}
                                                 </button>
 
+                                                {range?.from && range?.to && meetsMinimum && (!guestName.trim() || !guestEmail.trim()) && (
+                                                    <p className="text-center text-xs text-amber-600 font-medium">
+                                                        ↑ Please fill in your name and email to continue
+                                                    </p>
+                                                )}
                                                 {!range?.from && (
                                                     <p className="text-center text-xs text-slate-500 font-medium">
                                                         Cards won't be charged until booking is confirmed
