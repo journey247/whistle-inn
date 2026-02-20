@@ -36,8 +36,22 @@ export const useHeroSlider = (images: HeroImage[]) => {
     return { currentIndex, currentImage: images[currentIndex] };
 };
 
+// Subtle Ken Burns variants — alternate direction each slide so motion feels
+// organic rather than always drifting the same way.
+// Rules: max translate is ±1.5% (barely perceptible on large screens),
+// scale range is 1.00 → 1.05 (5% zoom max, was 10%).
+const KB_VARIANTS = [
+    'kenburns-tl', // top-left drift
+    'kenburns-tr', // top-right drift
+    'kenburns-bl', // bottom-left drift
+    'kenburns-br', // bottom-right drift
+] as const;
+
 export const HeroImageSlider = ({ images }: { images: HeroImage[] }) => {
     const { currentIndex, currentImage } = useHeroSlider(images);
+
+    // Pick a different Ken Burns direction for each slide index
+    const kbClass = KB_VARIANTS[currentIndex % KB_VARIANTS.length];
 
     return (
         <>
@@ -47,43 +61,49 @@ export const HeroImageSlider = ({ images }: { images: HeroImage[] }) => {
                         key={currentImage.src}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 2 }}
+                        transition={{ duration: 1.5 }}
                         className="absolute inset-0"
                     >
                         <img
                             src={currentImage.src}
                             alt={currentImage.alt}
-                            className="object-cover w-full h-full"
-                            // Not using next/image here so the build/prerender won't fail on files without extensions
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                objectPosition: 'center',
-                                transform: 'scale(1.1)', // Ken Burns effect: initial zoom
-                                animation: 'kenburns 10s forwards infinite' // Apply animation
-                            }}
+                            className={`object-cover w-full h-full hero-kb ${kbClass}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
                         />
                     </motion.div>
                 </AnimatePresence>
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-50/10" />
 
-                {/* Ken Burns effect CSS in a style tag for simplicity.
-                    In a real app, this might be in a global CSS file or a styled-component. */}
                 <style jsx global>{`
-                    @keyframes kenburns {
-                        0% {
-                            transform: scale(1.1) translateX(0%);
-                            object-position: center;
-                        }
-                        50% {
-                            transform: scale(1) translateX(5%);
-                            object-position: top right;
-                        }
-                        100% {
-                            transform: scale(1.1) translateX(0%);
-                            object-position: center;
-                        }
+                    /* Shared: subtle 5% zoom over 12 s, no pan by default */
+                    .hero-kb {
+                        animation-duration: 12s;
+                        animation-timing-function: ease-in-out;
+                        animation-fill-mode: forwards;
+                        will-change: transform;
+                    }
+
+                    /* Each variant pans ≤1.5% in its own corner direction */
+                    .kenburns-tl { animation-name: kb-tl; }
+                    .kenburns-tr { animation-name: kb-tr; }
+                    .kenburns-bl { animation-name: kb-bl; }
+                    .kenburns-br { animation-name: kb-br; }
+
+                    @keyframes kb-tl {
+                        from { transform: scale(1.05) translate( 1.0%,  1.0%); }
+                        to   { transform: scale(1.00) translate( 0.0%,  0.0%); }
+                    }
+                    @keyframes kb-tr {
+                        from { transform: scale(1.05) translate(-1.0%,  1.0%); }
+                        to   { transform: scale(1.00) translate( 0.0%,  0.0%); }
+                    }
+                    @keyframes kb-bl {
+                        from { transform: scale(1.05) translate( 1.0%, -1.0%); }
+                        to   { transform: scale(1.00) translate( 0.0%,  0.0%); }
+                    }
+                    @keyframes kb-br {
+                        from { transform: scale(1.05) translate(-1.0%, -1.0%); }
+                        to   { transform: scale(1.00) translate( 0.0%,  0.0%); }
                     }
                 `}</style>
             </div>
