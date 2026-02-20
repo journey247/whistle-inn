@@ -58,12 +58,14 @@ export async function sendEmail({
         throw new Error("Email must have content (body or template) and subject");
     }
 
-    // Use verified domain in production, Resend's test address in development
+    // Send from verified domain; replies go to owner's personal inbox
     const from = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const replyTo = process.env.RESEND_REPLY_TO || undefined;
 
     const response = await getResend().emails.send({
         from,
         to,
+        reply_to: replyTo,
         subject: finalSubject,
         html,
     });
