@@ -22,8 +22,9 @@ export async function GET(request: Request) {
         const url = new URL(request.url);
         const token = url.searchParams.get('token');
 
-        if (!token) {
-            return NextResponse.json({ error: 'Cancellation token required' }, { status: 400 });
+        // Validate token is exactly 64 lowercase hex chars — any other value is invalid
+        if (!token || !/^[a-f0-9]{64}$/.test(token)) {
+            return NextResponse.json({ error: 'Invalid cancellation link.' }, { status: 400 });
         }
 
         const booking = await prisma.booking.findUnique({
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
             refund,
         });
     } catch (err: any) {
-        console.error('[Cancel GET]', err);
+        console.error('[Cancel GET] Failed to retrieve booking details');
         return NextResponse.json({ error: 'Failed to retrieve booking details.' }, { status: 500 });
     }
 }
@@ -72,8 +73,9 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { token } = body;
 
-        if (!token || typeof token !== 'string') {
-            return NextResponse.json({ error: 'Cancellation token required' }, { status: 400 });
+        // Validate token format — must be exactly 64 lowercase hex chars
+        if (!token || typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) {
+            return NextResponse.json({ error: 'Invalid cancellation link.' }, { status: 400 });
         }
 
         const booking = await prisma.booking.findUnique({

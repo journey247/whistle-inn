@@ -36,7 +36,7 @@ export default function SuccessContent() {
         // Fetch booking details
         const fetchBooking = async () => {
             try {
-                const response = await fetch(`/api/bookings/${bookingId}`);
+                const response = await fetch(`/api/bookings/${bookingId}?session_id=${encodeURIComponent(sessionId)}`);
 
                 if (!response.ok) {
                     throw new Error("Failed to fetch booking details");
