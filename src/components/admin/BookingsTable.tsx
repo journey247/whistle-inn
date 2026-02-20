@@ -166,7 +166,7 @@ export function BookingsTable() {
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
     useEffect(() => {
-        const t = localStorage.getItem('admin_token');
+        const t = localStorage.getItem('adminToken');
         setToken(t);
         fetchBookings(t);
     }, []);
@@ -187,6 +187,17 @@ export function BookingsTable() {
     };
 
     const updateStatus = async (id: string, status: string) => {
+        // Find the booking to check if it was paid (refund warning)
+        const booking = bookings.find(b => b.id === id);
+
+        if (status === 'cancelled') {
+            const wasPaid = booking?.status === 'paid';
+            const msg = wasPaid
+                ? `Cancel this booking and issue a full Stripe refund to ${booking?.guestName}? This cannot be undone.`
+                : `Cancel this booking for ${booking?.guestName}? This cannot be undone.`;
+            if (!window.confirm(msg)) return;
+        }
+
         setLoading(true);
         try {
             const res = await fetch(`/api/admin/bookings/${id}`, {
@@ -194,14 +205,20 @@ export function BookingsTable() {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ status }),
             });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to update');
+            }
             const updated = await res.json();
             setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updated } : b));
-            // Update the open modal if it matches
             setSelectedBooking(prev => prev?.id === id ? { ...prev, status } : prev);
-            addToast(`Booking marked as ${status}`, 'success');
-        } catch (err) {
+            const msg = status === 'cancelled' && booking?.status === 'paid'
+                ? 'Booking cancelled and refund issued'
+                : `Booking marked as ${status}`;
+            addToast(msg, 'success');
+        } catch (err: any) {
             console.error(err);
-            addToast('Failed to update status', 'error');
+            addToast(err.message || 'Failed to update status', 'error');
         } finally {
             setLoading(false);
         }

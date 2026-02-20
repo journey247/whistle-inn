@@ -6,22 +6,21 @@ import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
-function initializeStripe() {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey || secretKey.includes('placeholder')) {
-        throw new Error('Stripe secret key not configured');
-    }
-    return new Stripe(secretKey, {
-        apiVersion: '2026-01-28.clover',
-    });
+function getStripeKey(): string | null {
+    const raw = process.env.STRIPE_SECRET_KEY;
+    if (!raw) return null;
+    const key = raw.trim(); // strip \r\n or trailing whitespace from Vercel env vars
+    if (!key || key.toLowerCase().includes('placeholder') || key.toLowerCase().includes('waiting')) return null;
+    return key;
 }
 
-let stripe: Stripe;
-try {
-    stripe = initializeStripe();
-} catch (err) {
-    console.error('Stripe initialization failed:', err);
+function initializeStripe(): Stripe | null {
+    const key = getStripeKey();
+    if (!key) return null;
+    return new Stripe(key, { apiVersion: '2026-01-28.clover' });
 }
+
+const stripe = initializeStripe();
 
 
 const MINIMUM_NIGHTS = 3;
@@ -152,7 +151,7 @@ export async function POST(request: Request) {
 
         // Create Stripe Checkout Session
         let session: any;
-        const isMock = (process.env.STRIPE_SECRET_KEY || 'placeholder').includes('placeholder');
+        const isMock = !stripe; // stripe is null when key is missing/placeholder/corrupted
 
         // Determine base URL safely
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';

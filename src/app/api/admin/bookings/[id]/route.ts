@@ -1,24 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
+import { verifyAdmin } from '@/lib/adminAuth';
+import { sendEmail } from '@/lib/email';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-    apiVersion: '2023-10-16' as any,
-});
+export const dynamic = 'force-dynamic';
 
-function verifyAuth(request: Request) {
-    const auth = request.headers.get('authorization');
-    if (!auth) throw new Error('Unauthorized');
-    const token = auth.replace('Bearer ', '');
-    const decoded: any = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'dev-secret');
-    return decoded;
+function initStripe(): Stripe | null {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key || key.includes('placeholder')) return null;
+    return new Stripe(key, { apiVersion: '2026-01-28.clover' as any });
 }
 
+// ── GET /api/admin/bookings/[id] ──────────────────────────────────────────────
 export async function GET(request: Request) {
     try {
-        verifyAuth(request);
+        verifyAdmin(request);
         const url = new URL(request.url);
         const id = url.pathname.split('/').pop();
         if (!id) return NextResponse.json({ error: 'Booking id required' }, { status: 400 });
@@ -32,24 +30,10 @@ export async function GET(request: Request) {
     }
 }
 
-import { Resend } from 'resend';
-
-export const dynamic = 'force-dynamic';
-
-const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
-
-function renderTemplate(template: string, vars: Record<string, string | number | undefined>) {
-    let result = template;
-    for (const key of Object.keys(vars || {})) {
-        const re = new RegExp(`{{\s*${key}\s*}}`, 'g');
-        result = result.replace(re, String(vars[key] ?? ''));
-    }
-    return result;
-}
-
+// ── PATCH /api/admin/bookings/[id] ────────────────────────────────────────────
 export async function PATCH(request: Request) {
     try {
-        verifyAuth(request);
+        verifyAdmin(request);
         const url = new URL(request.url);
         const id = url.pathname.split('/').pop();
         if (!id) return NextResponse.json({ error: 'Booking id required' }, { status: 400 });
@@ -57,80 +41,113 @@ export async function PATCH(request: Request) {
         const body = await request.json();
         const { status, notes } = body;
 
-        // Handle refunds for cancellations
-        if (status === 'cancelled') {
-            const existing = await prisma.booking.findUnique({ where: { id } });
-            if (existing?.status === 'paid' && existing.stripePaymentIntentId) {
-                try {
-                    const isMock = (process.env.STRIPE_SECRET_KEY || 'placeholder').includes('placeholder');
-                    if (isMock) {
-                        console.log('Skipping Stripe refund (mock/placeholder key active)');
-                    } else {
-                        await stripe.refunds.create({ payment_intent: existing.stripePaymentIntentId });
-                    }
+        const existing = await prisma.booking.findUnique({ where: { id } });
+        if (!existing) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
-                    // Log email notification (sending handled below or here?)
-                    // The existing code sends 'booking_confirmation' template for 'paid'.
-                    // We might want to send a cancellation email too.
+        // ── Cancellation handling ────────────────────────────────────────────
+        if (status === 'cancelled' && existing.status !== 'cancelled') {
+            // Issue Stripe refund if the booking was paid
+            if (existing.status === 'paid' && existing.stripePaymentIntentId) {
+                const stripe = initStripe();
+                if (stripe) {
                     try {
-                        await resend.emails.send({
-                            from: process.env.NEXT_PUBLIC_RESEND_FROM_EMAIL || 'noreply@thewhistleinn.com',
-                            to: existing.email,
-                            subject: 'Your booking has been cancelled',
-                            html: `<p>Your booking for ${new Date(existing.startDate).toLocaleDateString()} has been cancelled and refunded.</p>`
-                        });
-                    } catch (emailErr) {
-                        console.error('Failed to send cancellation email', emailErr);
+                        await stripe.refunds.create({ payment_intent: existing.stripePaymentIntentId });
+                        console.log(`[Cancel] Refunded payment intent ${existing.stripePaymentIntentId} for booking ${id}`);
+                    } catch (refundErr: any) {
+                        // Log but don't block — admin may cancel even if Stripe refund fails (e.g. already refunded)
+                        console.error(`[Cancel] Stripe refund failed for booking ${id}:`, refundErr.message);
                     }
-
-                } catch (e: any) {
-                    console.error('Refund failed:', e);
+                } else {
+                    console.log('[Cancel] Skipping Stripe refund (mock/placeholder key active)');
                 }
+            }
+
+            // Send cancellation email to guest using DB template if available,
+            // falling back to a sensible plain-text email.
+            try {
+                const checkIn = new Date(existing.startDate).toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                });
+                const checkOut = new Date(existing.endDate).toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                });
+
+                await sendEmail({
+                    to: existing.email,
+                    templateName: 'booking_cancellation',   // use DB template if seeded
+                    variables: {
+                        guestName: existing.guestName,
+                        startDate: checkIn,
+                        endDate: checkOut,
+                        bookingId: existing.id,
+                        refunded: existing.status === 'paid' ? 'yes' : 'no',
+                    },
+                    bookingId: existing.id,
+                    // Fallback subject + body used when the DB template doesn't exist
+                    fallbackSubject: 'Your Whistle Inn booking has been cancelled',
+                    fallbackHtml: `
+                        <p>Hi ${existing.guestName},</p>
+                        <p>Your booking at <strong>Whistle Inn</strong> has been cancelled.</p>
+                        <ul>
+                          <li>Check-in: ${checkIn}</li>
+                          <li>Check-out: ${checkOut}</li>
+                          <li>Booking ID: ${existing.id}</li>
+                        </ul>
+                        ${existing.status === 'paid'
+                            ? '<p>A full refund has been initiated and should appear within 5–10 business days.</p>'
+                            : ''}
+                        <p>If you have questions, please reply to this email or contact us directly.</p>
+                    `,
+                });
+            } catch (emailErr) {
+                console.error(`[Cancel] Failed to send cancellation email for booking ${id}:`, emailErr);
+                // Non-blocking — cancellation still proceeds
             }
         }
 
-        const update = await prisma.booking.update({
-            where: { id },
-            data: { status, notes },
-        });
+        // ── Persist the update ───────────────────────────────────────────────
+        const updateData: any = { status };
+        if (notes !== undefined) updateData.notes = notes;
 
-        // Send notification for status changes
+        // Clear expiresAt when transitioning out of pending in either direction:
+        // - cancelled → no longer holds dates, expiry is irrelevant
+        // - paid (manual mark-as-paid) → permanent hold, no TTL needed
+        if (status === 'cancelled' || status === 'paid') {
+            updateData.expiresAt = null;
+        }
+
+        const updated = await prisma.booking.update({ where: { id }, data: updateData });
+
+        // ── Post-update side effects ─────────────────────────────────────────
         if (status === 'cancelled') {
             try {
-                await notifyAdminOfBooking(NotificationType.BOOKING_CANCELLED, update);
-            } catch (notificationError) {
-                console.error(`Failed to send cancellation notification for booking ${id}:`, notificationError);
-                // Continue - don't fail the update because notification failed
+                await notifyAdminOfBooking(NotificationType.BOOKING_CANCELLED, updated);
+            } catch (notifyErr) {
+                console.error(`[Cancel] Admin notification failed for booking ${id}:`, notifyErr);
             }
         }
 
-        // If booking marked as paid, send confirmation email using template
-        if (status === 'paid') {
+        // If manually marked paid (rare — normally handled by webhook), send confirmation
+        if (status === 'paid' && existing.status !== 'paid') {
             try {
-                const booking = await prisma.booking.findUnique({ where: { id } });
-                if (booking) {
-                    const template = await prisma.emailTemplate.findUnique({ where: { name: 'booking_confirmation' } });
-                    if (template) {
-                        const vars = {
-                            guestName: booking.guestName,
-                            startDate: new Date(booking.startDate).toLocaleDateString(),
-                            endDate: new Date(booking.endDate).toLocaleDateString(),
-                            bookingId: booking.id,
-                        };
-
-                        const html = renderTemplate(template.body, vars);
-                        const subject = renderTemplate(template.subject, vars);
-                        const from = process.env.NEXT_PUBLIC_RESEND_FROM_EMAIL || 'noreply@thewhistleinn.com';
-                        await resend.emails.send({ from, to: booking.email, subject, html });
-                        await prisma.emailLog.create({ data: { to: booking.email, subject, body: html, template: 'booking_confirmation', bookingId: booking.id } });
-                    }
-                }
+                await sendEmail({
+                    to: updated.email,
+                    templateName: 'booking_confirmation',
+                    variables: {
+                        guestName: updated.guestName,
+                        startDate: new Date(updated.startDate).toLocaleDateString(),
+                        endDate: new Date(updated.endDate).toLocaleDateString(),
+                        bookingId: updated.id,
+                        amount: String(updated.totalPrice),
+                    },
+                    bookingId: updated.id,
+                });
             } catch (e) {
-                console.error('Failed sending confirmation email after marking paid', e);
+                console.error('[Paid] Failed sending confirmation email after manual mark-paid:', e);
             }
         }
 
-        return NextResponse.json(update);
+        return NextResponse.json(updated);
     } catch (err: any) {
         console.error(err);
         return NextResponse.json({ error: err.message || 'Failed to update booking' }, { status: 401 });

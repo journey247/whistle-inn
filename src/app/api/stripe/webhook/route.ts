@@ -6,23 +6,18 @@ import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize Stripe with proper validation
-function initializeStripe() {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey || secretKey.includes('placeholder')) {
-        throw new Error('Stripe secret key not configured');
+// Initialize Stripe with proper validation — trim() handles \r\n from Vercel env vars
+function initializeStripe(): Stripe | null {
+    const raw = process.env.STRIPE_SECRET_KEY;
+    if (!raw) return null;
+    const secretKey = raw.trim();
+    if (!secretKey || secretKey.toLowerCase().includes('placeholder') || secretKey.toLowerCase().includes('waiting')) {
+        return null;
     }
-    return new Stripe(secretKey, {
-        apiVersion: '2026-01-28.clover',
-    });
+    return new Stripe(secretKey, { apiVersion: '2026-01-28.clover' });
 }
 
-let stripe: Stripe;
-try {
-    stripe = initializeStripe();
-} catch (err) {
-    console.error('Stripe initialization failed:', err);
-}
+const stripe = initializeStripe();
 
 /**
  * Check if a booking_confirmation email has already been sent for this booking.
@@ -48,21 +43,21 @@ export async function POST(request: Request) {
         // Read raw body for signature verification
         const buf = Buffer.from(await request.arrayBuffer());
         const sig = request.headers.get('stripe-signature');
-        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
 
         if (!sig) {
             console.error('Missing Stripe signature');
             return new Response('Missing signature', { status: 400 });
         }
 
-        if (!webhookSecret || webhookSecret.includes('placeholder')) {
+        if (!webhookSecret || webhookSecret.toLowerCase().includes('placeholder') || webhookSecret.toLowerCase().includes('waiting')) {
             console.error('Webhook secret not configured');
             return new Response('Webhook secret not configured', { status: 500 });
         }
 
         let event: Stripe.Event;
         try {
-            event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+            event = stripe!.webhooks.constructEvent(buf, sig, webhookSecret);
         } catch (err: any) {
             console.error('⚠️  Webhook signature verification failed:', err.message);
             return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
