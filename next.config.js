@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    turbopack: {
-        root: process.cwd(),
-    },
-
     images: {
         remotePatterns: [
             {
@@ -65,26 +61,7 @@ const nextConfig = {
         ];
     },
 
-    // Enhanced security configuration
-    poweredByHeader: false, // Hide X-Powered-By header
-
-    // Turbopack configuration (Next.js 16+)
-    turbopack: {},
-
-
-    // Webpack configuration for security
-    webpack: (config, { dev }) => {
-        if (!dev) {
-            // Production optimizations
-            config.optimization.minimize = true;
-        }
-        return config;
-    },
-
-    // Environment variable validation
-    env: {
-        CUSTOM_KEY: process.env.NODE_ENV,
-    },
+    poweredByHeader: false,
 };
 
 module.exports = nextConfig;

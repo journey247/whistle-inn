@@ -21,6 +21,7 @@
     "@prisma/client": "^5.22.0",
     "@stripe/stripe-js": "^8.7.0",
     "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.0.1",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -30,6 +31,7 @@
     "lucide-react": "^0.330.0",
     "next": "^16.1.6",
     "node-cron": "^4.2.1",
+    "postcss": "^8",
     "react": "^18",
     "react-day-picker": "^9.13.0",
     "react-dom": "^18",
@@ -37,6 +39,7 @@
     "resend": "^6.9.1",
     "stripe": "^20.3.0",
     "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.2",
     "uuid": "^13.0.0",
     "ws": "^8.19.0"
@@ -48,16 +51,12 @@
     "@types/node-cron": "^3.0.11",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
+    "cross-env": "^7.0.3",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.1.6",
-    "postcss": "^8",
     "prisma": "^5.22.0",
     "puppeteer": "^24.37.3",
-    "tailwindcss": "^3.3.0",
     "typescript": "^5"
-    ,
-    "cross-env": "^7.0.3"
   },
   "engines": {
     "node": ">=20.0.0"
