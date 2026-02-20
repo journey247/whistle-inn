@@ -65,7 +65,7 @@ export async function sendEmail({
     const response = await getResend().emails.send({
         from,
         to,
-        reply_to: replyTo,
+        replyTo: replyTo,
         subject: finalSubject,
         html,
     });
