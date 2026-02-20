@@ -11,7 +11,9 @@ export async function sendEmail({
     body,
     templateName,
     variables,
-    bookingId
+    bookingId,
+    fallbackSubject,
+    fallbackHtml,
 }: {
     to: string;
     subject?: string;
@@ -19,6 +21,10 @@ export async function sendEmail({
     templateName?: string;
     variables?: Record<string, string | number | undefined>;
     bookingId?: string;
+    /** Used when templateName is provided but not found in DB */
+    fallbackSubject?: string;
+    /** Used when templateName is provided but not found in DB */
+    fallbackHtml?: string;
 }) {
     let html = body || '';
     let finalSubject = subject || '';
@@ -35,11 +41,17 @@ export async function sendEmail({
 
     if (templateName) {
         const template = await prisma.emailTemplate.findUnique({ where: { name: templateName } });
-        if (!template) {
-            throw new Error(`Email template '${templateName}' not found`);
+        if (template) {
+            html = renderTemplate(template.body, variables || {});
+            finalSubject = renderTemplate(template.subject, variables || {});
+        } else if (fallbackSubject && fallbackHtml) {
+            // DB template not seeded yet — use inline fallback
+            console.warn(`[email] Template '${templateName}' not found — using fallback`);
+            html = fallbackHtml;
+            finalSubject = fallbackSubject;
+        } else {
+            throw new Error(`Email template '${templateName}' not found and no fallback provided`);
         }
-        html = renderTemplate(template.body, variables || {});
-        finalSubject = renderTemplate(template.subject, variables || {});
     }
 
     if (!html || !finalSubject) {
