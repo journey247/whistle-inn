@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
+
+/** Generate a cryptographically secure, URL-safe cancellation token */
+function generateCancellationToken(): string {
+    return randomBytes(32).toString('hex'); // 64 hex chars — effectively unguessable
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -90,6 +96,9 @@ export async function POST(request: Request) {
                         break;
                     }
 
+                    // Generate a secure cancellation token (one-time, stored on booking)
+                    const cancellationToken = generateCancellationToken();
+
                     // Update booking as paid, capturing all guest details from Stripe
                     // Clear expiresAt — paid bookings hold dates permanently
                     const updatedBooking = await prisma.booking.update({
@@ -97,6 +106,7 @@ export async function POST(request: Request) {
                         data: {
                             status: 'paid',
                             expiresAt: null,
+                            cancellationToken,
                             guestName: session.customer_details?.name || existingBooking.guestName,
                             email: session.customer_details?.email || existingBooking.email,
                             stripePaymentIntentId: typeof session.payment_intent === 'string'
@@ -122,21 +132,44 @@ export async function POST(request: Request) {
                         console.log(`Confirmation email already sent for booking ${bookingId} — skipping duplicate`);
                     } else {
                         try {
+                            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
+                            const cancelUrl = `${baseUrl}/cancel/${cancellationToken}`;
+                            const guestName = session.customer_details?.name || existingBooking.guestName;
+                            const checkIn = new Date(existingBooking.startDate).toLocaleDateString('en-US', {
+                                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                            });
+                            const checkOut = new Date(existingBooking.endDate).toLocaleDateString('en-US', {
+                                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                            });
+                            const amount = (session.amount_total ? session.amount_total / 100 : existingBooking.totalPrice).toFixed(2);
+
                             await sendEmail({
                                 to: recipientEmail,
                                 templateName: 'booking_confirmation',
                                 variables: {
-                                    guestName: session.customer_details?.name || existingBooking.guestName,
-                                    bookingId: bookingId,
-                                    startDate: new Date(existingBooking.startDate).toLocaleDateString('en-US', {
-                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                                    }),
-                                    endDate: new Date(existingBooking.endDate).toLocaleDateString('en-US', {
-                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                                    }),
-                                    amount: (session.amount_total ? session.amount_total / 100 : existingBooking.totalPrice).toFixed(2),
+                                    guestName,
+                                    bookingId,
+                                    startDate: checkIn,
+                                    endDate: checkOut,
+                                    amount,
+                                    cancelUrl,
                                 },
-                                bookingId: bookingId
+                                bookingId,
+                                fallbackSubject: 'Your Whistle Inn booking is confirmed! 🎉',
+                                fallbackHtml: `
+                                    <p>Hi ${guestName},</p>
+                                    <p>Your stay at <strong>Whistle Inn</strong> is confirmed!</p>
+                                    <ul>
+                                      <li><strong>Check-in:</strong> ${checkIn}</li>
+                                      <li><strong>Check-out:</strong> ${checkOut}</li>
+                                      <li><strong>Total paid:</strong> $${amount}</li>
+                                      <li><strong>Booking ID:</strong> ${bookingId}</li>
+                                    </ul>
+                                    <p>We look forward to hosting you. If you need to cancel, you can do so here:<br>
+                                    <a href="${cancelUrl}">${cancelUrl}</a></p>
+                                    <p><em>Cancellation policy: Full refund if cancelled 5+ days before check-in. 50% refund if cancelled 1–4 days before. No refund within 24 hours of check-in.</em></p>
+                                    <p>See you soon!<br>Nora &amp; the Whistle Inn team</p>
+                                `,
                             });
                             console.log(`Confirmation email sent to ${recipientEmail} for booking ${bookingId}`);
                         } catch (emailError) {

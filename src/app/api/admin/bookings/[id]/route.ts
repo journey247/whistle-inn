@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
@@ -129,20 +130,52 @@ export async function PATCH(request: Request) {
             }
         }
 
-        // If manually marked paid (rare — normally handled by webhook), send confirmation
+        // If manually marked paid (rare — normally handled by webhook), generate token + send confirmation
         if (status === 'paid' && existing.status !== 'paid') {
             try {
+                // Generate cancellation token if not already set
+                const cancellationToken = updated.cancellationToken || randomBytes(32).toString('hex');
+                if (!updated.cancellationToken) {
+                    await prisma.booking.update({
+                        where: { id: updated.id },
+                        data: { cancellationToken },
+                    });
+                }
+
+                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
+                const cancelUrl = `${baseUrl}/cancel/${cancellationToken}`;
+                const checkIn = new Date(updated.startDate).toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                });
+                const checkOut = new Date(updated.endDate).toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                });
+
                 await sendEmail({
                     to: updated.email,
                     templateName: 'booking_confirmation',
                     variables: {
                         guestName: updated.guestName,
-                        startDate: new Date(updated.startDate).toLocaleDateString(),
-                        endDate: new Date(updated.endDate).toLocaleDateString(),
+                        startDate: checkIn,
+                        endDate: checkOut,
                         bookingId: updated.id,
                         amount: String(updated.totalPrice),
+                        cancelUrl,
                     },
                     bookingId: updated.id,
+                    fallbackSubject: 'Your Whistle Inn booking is confirmed! 🎉',
+                    fallbackHtml: `
+                        <p>Hi ${updated.guestName},</p>
+                        <p>Your stay at <strong>Whistle Inn</strong> is confirmed!</p>
+                        <ul>
+                          <li><strong>Check-in:</strong> ${checkIn}</li>
+                          <li><strong>Check-out:</strong> ${checkOut}</li>
+                          <li><strong>Total paid:</strong> $${updated.totalPrice}</li>
+                          <li><strong>Booking ID:</strong> ${updated.id}</li>
+                        </ul>
+                        <p>Need to cancel? <a href="${cancelUrl}">Click here</a></p>
+                        <p><em>Policy: Full refund 5+ days before check-in. 50% refund 1–4 days before. No refund within 24 h of check-in.</em></p>
+                    `,
                 });
             } catch (e) {
                 console.error('[Paid] Failed sending confirmation email after manual mark-paid:', e);
