@@ -150,16 +150,32 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 function AdminPanelContent() {
     const { addToast } = useToast();
-    const [token, setToken]           = useState<string | null>(null);
-    const [activeTab, setActiveTab]   = useState<TabId>("today");
-    const [bookings, setBookings]     = useState<Booking[]>([]);
-    const [analytics, setAnalytics]   = useState<Analytics | null>(null);
-    const [dataLoading, setDataLoading] = useState(false);
+    const [token, setToken]               = useState<string | null>(null);
+    const [authChecked, setAuthChecked]   = useState(false);
+    const [activeTab, setActiveTab]       = useState<TabId>("today");
+    const [bookings, setBookings]         = useState<Booking[]>([]);
+    const [analytics, setAnalytics]       = useState<Analytics | null>(null);
+    const [dataLoading, setDataLoading]   = useState(false);
 
-    // Restore token from localStorage on mount
+    // Restore token from localStorage on mount — validate with server before showing dashboard
     useEffect(() => {
         const stored = localStorage.getItem("adminToken");
-        if (stored) setToken(stored);
+        if (!stored) {
+            setAuthChecked(true);
+            return;
+        }
+        fetch("/api/admin/auth/me", {
+            headers: { Authorization: `Bearer ${stored}` },
+        })
+            .then(res => {
+                if (res.ok) {
+                    setToken(stored);
+                } else {
+                    localStorage.removeItem("adminToken");
+                }
+            })
+            .catch(() => localStorage.removeItem("adminToken"))
+            .finally(() => setAuthChecked(true));
     }, []);
 
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -198,6 +214,8 @@ function AdminPanelContent() {
         setAnalytics(null);
     }
 
+    // Show nothing while verifying token to prevent login screen flash
+    if (!authChecked) return null;
     if (!token) return <LoginScreen onLogin={setToken} />;
 
     const sharedProps: SharedProps = { bookings, analytics, refreshData, dataLoading, addToast };
