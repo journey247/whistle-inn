@@ -8,8 +8,10 @@ import { sendEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 function initStripe(): Stripe | null {
-    const key = process.env.STRIPE_SECRET_KEY;
-    if (!key || key.includes('placeholder')) return null;
+    const raw = process.env.STRIPE_SECRET_KEY;
+    if (!raw) return null;
+    const key = raw.trim();
+    if (!key || key.toLowerCase().includes('placeholder') || key.toLowerCase().includes('waiting')) return null;
     return new Stripe(key, { apiVersion: '2026-01-28.clover' as any });
 }
 
@@ -151,5 +153,37 @@ export async function PATCH(request: Request) {
     } catch (err: any) {
         console.error(err);
         return NextResponse.json({ error: err.message || 'Failed to update booking' }, { status: 401 });
+    }
+}
+
+// ── DELETE /api/admin/bookings/[id] ───────────────────────────────────────────
+// Permanently removes a booking record. Only allowed on cancelled bookings
+// to prevent accidental deletion of active/paid stays.
+export async function DELETE(request: Request) {
+    try {
+        verifyAdmin(request);
+        const url = new URL(request.url);
+        const id = url.pathname.split('/').pop();
+        if (!id) return NextResponse.json({ error: 'Booking id required' }, { status: 400 });
+
+        const existing = await prisma.booking.findUnique({ where: { id } });
+        if (!existing) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+
+        if (existing.status !== 'cancelled') {
+            return NextResponse.json(
+                { error: 'Only cancelled bookings can be deleted. Cancel the booking first.' },
+                { status: 400 }
+            );
+        }
+
+        // Delete associated email logs first (FK constraint)
+        await prisma.emailLog.deleteMany({ where: { bookingId: id } });
+        await prisma.booking.delete({ where: { id } });
+
+        console.log(`[Delete] Booking ${id} permanently deleted by admin`);
+        return NextResponse.json({ success: true, id });
+    } catch (err: any) {
+        console.error(err);
+        return NextResponse.json({ error: err.message || 'Failed to delete booking' }, { status: 401 });
     }
 }

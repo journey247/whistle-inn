@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/toast-context";
-import { X, Mail, CreditCard, Calendar, User, DollarSign, FileText } from "lucide-react";
+import { X, Mail, Calendar, User, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 type Booking = {
@@ -20,10 +20,11 @@ type Booking = {
     createdAt?: string;
 };
 
-function BookingDetailModal({ booking, onClose, onStatusChange }: {
+function BookingDetailModal({ booking, onClose, onStatusChange, onDelete }: {
     booking: Booking;
     onClose: () => void;
     onStatusChange: (id: string, status: string) => void;
+    onDelete: (id: string) => void;
 }) {
     const nights = Math.round(
         (new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / (1000 * 60 * 60 * 24)
@@ -152,6 +153,17 @@ function BookingDetailModal({ booking, onClose, onStatusChange }: {
                             Email Guest
                         </a>
                     </div>
+                    {booking.status === 'cancelled' && (
+                        <div className="pt-2">
+                            <button
+                                onClick={() => onDelete(booking.id)}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-medium transition"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Booking Record
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -224,6 +236,45 @@ export function BookingsTable() {
         }
     };
 
+    const deleteBooking = async (id: string) => {
+        if (!window.confirm('Permanently delete this cancelled booking? This cannot be undone.')) return;
+        try {
+            const res = await fetch(`/api/admin/bookings/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Failed to delete');
+            }
+            setBookings(prev => prev.filter(b => b.id !== id));
+            setSelectedBooking(null);
+            addToast('Booking deleted', 'success');
+        } catch (err: any) {
+            console.error(err);
+            addToast(err.message || 'Failed to delete booking', 'error');
+        }
+    };
+
+    const clearCancelledBookings = async () => {
+        const cancelled = bookings.filter(b => b.status === 'cancelled');
+        if (cancelled.length === 0) { addToast('No cancelled bookings to clear', 'info'); return; }
+        if (!window.confirm(`Permanently delete all ${cancelled.length} cancelled booking(s)? This cannot be undone.`)) return;
+        let deleted = 0;
+        for (const b of cancelled) {
+            try {
+                const res = await fetch(`/api/admin/bookings/${b.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                if (res.ok) deleted++;
+            } catch { /* continue */ }
+        }
+        setBookings(prev => prev.filter(b => b.status !== 'cancelled'));
+        setSelectedBooking(null);
+        addToast(`Deleted ${deleted} cancelled booking(s)`, 'success');
+    };
+
     const resendConfirmation = async (booking: Booking) => {
         try {
             await fetch('/api/send-email', {
@@ -255,12 +306,24 @@ export function BookingsTable() {
                     booking={selectedBooking}
                     onClose={() => setSelectedBooking(null)}
                     onStatusChange={updateStatus}
+                    onDelete={deleteBooking}
                 />
             )}
 
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Guest Reservations</h2>
-                <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${bookings.length} reservations`}</div>
+                <div className="flex items-center gap-3">
+                    {bookings.some(b => b.status === 'cancelled') && (
+                        <button
+                            onClick={clearCancelledBookings}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Clear Cancelled
+                        </button>
+                    )}
+                    <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${bookings.length} reservations`}</div>
+                </div>
             </div>
 
             {/* Mobile cards */}
