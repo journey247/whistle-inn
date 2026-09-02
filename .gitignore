@@ -48,3 +48,10 @@ private/
 
 .vercel
 /backups
+
+# AI tool configs (local only)
+/.agents
+/.claude
+/.cursor
+/.continue
+/.windsurf
