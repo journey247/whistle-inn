@@ -33,6 +33,7 @@ model Booking {
   coupon     Coupon?       @relation(fields: [couponId], references: [id])
   expiresAt         DateTime?   // set on pending creation; cleared on paid; null = no expiry
   cancellationToken String?     @unique  // secure token for guest self-service cancellation
+  amenityRequests AmenityRequest[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
@@ -175,5 +176,28 @@ model NotificationLog {
   successCount     Int      @default(0)
   failureCount     Int      @default(0)
   sentAt           DateTime @default(now())
+}
+
+// Amenities system
+model Amenity {
+  id          String           @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  available   Boolean          @default(true)
+  requests    AmenityRequest[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model AmenityRequest {
+  id        String   @id @default(cuid())
+  bookingId String
+  amenityId String
+  status    String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  amenity   Amenity  @relation(fields: [amenityId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
