@@ -54,3 +54,10 @@ private/
 
 # Local AI agent folder
 /ai-agent
+
+# AI tool configs (local only)
+/.agents
+/.claude
+/.cursor
+/.continue
+/.windsurf
