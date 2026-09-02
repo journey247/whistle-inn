@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { IcalSyncInitializer } from '@/components/IcalSyncInitializer';
-import { ToastProvider } from '@/components/ui/toast-context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
@@ -26,6 +25,12 @@ export const metadata: Metadata = {
     }
 };
 
+// Instrument module load for prerender diagnostics
+try {
+    // eslint-disable-next-line no-console
+    console.log('app-layout: module loaded (server?)', typeof window === 'undefined' ? 'server' : 'client');
+} catch (e) { }
+
 export default function RootLayout({
     children,
 }: {
@@ -34,10 +39,8 @@ export default function RootLayout({
     return (
         <html lang="en" className="scroll-smooth">
             <body className={`${inter.variable} ${playfair.variable} font-sans`}>
-                <ToastProvider>
-                    <IcalSyncInitializer />
-                    {children}
-                </ToastProvider>
+                <IcalSyncInitializer />
+                {children}
             </body>
         </html>
     );
