@@ -2,6 +2,8 @@
 
 This is the official website for the Whistle Inn Private Getaway in Alta, California.
 
+**[Copilot access instructions](.github/copilot-instructions.md)**
+
 ## Features
 
 ### iCal Calendar Synchronization
