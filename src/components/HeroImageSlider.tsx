@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
 
 type HeroImage = {
     src: string;
@@ -64,11 +65,22 @@ export const HeroImageSlider = ({ images }: { images: HeroImage[] }) => {
                         transition={{ duration: 1.5 }}
                         className="absolute inset-0"
                     >
-                        <img
+                        {/*
+                          * next/image rather than a raw <img>: this is the LCP
+                          * element on the homepage, so it needs responsive
+                          * srcset sizing and eager loading of the first slide.
+                          * `priority` is limited to slide 0 — later slides load
+                          * as the carousel reaches them.
+                          */}
+                        <Image
                             src={currentImage.src}
                             alt={currentImage.alt}
-                            className={`object-cover w-full h-full hero-kb ${kbClass}`}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+                            fill
+                            sizes="100vw"
+                            priority={currentIndex === 0}
+                            quality={82}
+                            className={`object-cover hero-kb ${kbClass}`}
+                            style={{ objectFit: 'cover', objectPosition: 'center' }}
                         />
                     </motion.div>
                 </AnimatePresence>

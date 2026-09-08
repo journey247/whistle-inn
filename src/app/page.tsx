@@ -2,8 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import PageClient from "@/components/PageClient";
 
-export const revalidate = 60; // Revalidate every 60 seconds
-export const dynamic = 'force-dynamic';
+// ISR: rebuild the page at most once a minute so admin content edits appear
+// without making every visit a server render. Previously this was overridden
+// by a force-dynamic on the same file (and another in the root layout), which
+// opted the whole site out of static generation and CDN caching.
+export const revalidate = 60;
 
 async function getContent() {
     try {

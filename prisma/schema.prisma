@@ -56,6 +56,9 @@ model ExternalBooking {
   endDate     DateTime
   notes       String?
   createdAt   DateTime @default(now())
+
+  @@index([startDate, endDate])          // conflict-range queries, same as Booking
+  @@index([source])                      // the iCal sync deletes by source each run
 }
 
 model ICalFeed {

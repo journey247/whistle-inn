@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 type GalleryImage = {
     src: string;
@@ -134,11 +135,16 @@ export default function GalleryPage() {
                                 onClick={() => openLightbox(index)}
                                 className="group relative aspect-square rounded-xl overflow-hidden bg-slate-200 shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-gold"
                             >
-                                <img
+                                <Image
                                     src={img.src}
                                     alt={img.alt}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                    loading="lazy"
+                                    fill
+                                    // Thumbnails render in a 2/3/4-column grid, so
+                                    // never ship more than ~1/2 viewport width.
+                                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                    quality={75}
+                                    priority={index < 4}
+                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                                 {/* Hover overlay */}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-end p-3">
@@ -204,11 +210,15 @@ export default function GalleryPage() {
                             className="max-w-5xl max-h-[85vh] w-full px-16 sm:px-24"
                             onClick={e => e.stopPropagation()}
                         >
-                            <img
+                            <Image
                                 src={currentImage.src}
                                 alt={currentImage.alt}
+                                width={1600}
+                                height={1200}
+                                sizes="100vw"
+                                quality={85}
                                 className="w-full h-full object-contain rounded-lg"
-                                style={{ maxHeight: "85vh" }}
+                                style={{ maxHeight: "85vh", width: "100%", height: "auto" }}
                             />
                             <p className="text-white/60 text-sm text-center mt-4">{currentImage.alt}</p>
                         </motion.div>
