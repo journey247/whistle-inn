@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { getAdminToken } from "@/lib/adminToken";
 import { Inbox, Loader2, RefreshCw, CheckCircle, Mail } from "lucide-react";
 import { format } from "date-fns";
 
@@ -21,7 +22,7 @@ export function EmailLogsPanel() {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem("adminToken");
+            const token = getAdminToken();
             const res = await fetch("/api/admin/email-logs", {
                 headers: { Authorization: `Bearer ${token}` },
             });

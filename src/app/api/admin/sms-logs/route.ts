@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const logs = await prisma.smsLog.findMany({ orderBy: { createdAt: 'desc' }, take: 200 });
         return NextResponse.json(logs);
     } catch (err: any) {

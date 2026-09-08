@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +75,7 @@ const SEED_BLOCKS = [
 
 export async function POST(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
     } catch {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

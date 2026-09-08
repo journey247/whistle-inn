@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,7 @@ function initStripe(): Stripe | null {
 // ── GET /api/admin/bookings/[id] ──────────────────────────────────────────────
 export async function GET(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const url = new URL(request.url);
         const id = url.pathname.split('/').pop();
         if (!id) return NextResponse.json({ error: 'Booking id required' }, { status: 400 });
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 // ── PATCH /api/admin/bookings/[id] ────────────────────────────────────────────
 export async function PATCH(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const url = new URL(request.url);
         const id = url.pathname.split('/').pop();
         if (!id) return NextResponse.json({ error: 'Booking id required' }, { status: 400 });
@@ -194,7 +194,7 @@ export async function PATCH(request: Request) {
 // to prevent accidental deletion of active/paid stays.
 export async function DELETE(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const url = new URL(request.url);
         const id = url.pathname.split('/').pop();
         if (!id) return NextResponse.json({ error: 'Booking id required' }, { status: 400 });

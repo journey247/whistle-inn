@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getClientIp } from '@/lib/adminAuth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,7 @@ function isRateLimited(ip: string): boolean {
 }
 
 export async function POST(req: Request) {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    const ip = getClientIp(req);
     if (isRateLimited(ip)) {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }

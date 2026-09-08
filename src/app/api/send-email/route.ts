@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
-import { verifyAdmin } from "@/lib/adminAuth";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export const dynamic = 'force-dynamic';
 
 // Admin-only endpoint — requires valid JWT. Do NOT expose publicly.
 export async function POST(req: NextRequest) {
     try {
-        verifyAdmin(req);
+        await requireAdmin(req);
     } catch {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

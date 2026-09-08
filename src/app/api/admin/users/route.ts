@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const users = await prisma.adminUser.findMany({
             select: { id: true, email: true, role: true, createdAt: true },
             orderBy: { createdAt: 'desc' }
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const { email, password, role } = await request.json();
 
         if (!email || !password) {

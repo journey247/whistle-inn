@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
+import { getAdminToken } from "@/lib/adminToken";
 import { SharedProps, Booking } from "@/app/admin/page";
 import { Search, X, ChevronDown, Mail, Phone, Calendar, DollarSign, FileText, RefreshCw, Check } from "lucide-react";
 
@@ -32,7 +33,7 @@ function BookingDrawer({ booking, onClose, onStatusChange, addToast }: {
     const updateStatus = async (newStatus: string) => {
         setUpdating(true);
         try {
-            const token = localStorage.getItem("adminToken") ?? "";
+            const token = getAdminToken() ?? "";
             const res = await fetch(`/api/admin/bookings/${booking.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

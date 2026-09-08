@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
 
         const formData = await request.formData();
         const file = formData.get('file') as File;

@@ -1,24 +1,25 @@
 // src/hooks/useAdminAuth.ts
 import { useState, useEffect } from 'react';
-import { getAdminToken } from '@/lib/adminToken';
+import { checkAdminSession } from '@/lib/adminToken';
 
-// Use a simple token check for client-side visibility. The real security is on the server.
+/**
+ * Whether the current browser has a valid admin session.
+ *
+ * Asks the server, because the session cookie is httpOnly and unreadable from
+ * page scripts. A previous version tested for a token in localStorage; once the
+ * session moved to a cookie that check would have been true for every visitor,
+ * showing admin UI to guests.
+ */
 export function useAdminAuth() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [isChecking, setIsChecking] = useState(true);
 
     useEffect(() => {
-        // Check local storage for the admin token
-        const token = getAdminToken();
-        if (token) {
-            // In a production app, you might want to validate the token here
-            // via a lightweight API call or by decoding its expiry.
-            // For now, existence is enough for UI toggling.
-            setIsAdmin(true);
-        } else {
-            setIsAdmin(false);
-        }
-        setIsChecking(false);
+        let active = true;
+        checkAdminSession()
+            .then(ok => { if (active) setIsAdmin(ok); })
+            .finally(() => { if (active) setIsChecking(false); });
+        return () => { active = false; };
     }, []);
 
     return { isAdmin, isChecking };

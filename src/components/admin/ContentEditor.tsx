@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { getAdminToken } from "@/lib/adminToken";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Save, Image as ImageIcon, FileText, Type, Edit2, X, UploadCloud } from "lucide-react";
 import { ImagePicker } from "./ImagePicker";
@@ -29,7 +30,7 @@ export const ContentEditor = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const fetchContent = useCallback(async () => {
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const res = await fetch('/api/admin/content', {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -71,7 +72,7 @@ export const ContentEditor = () => {
     const handleSave = async (key: string, value: string, label?: string, section?: string) => {
         setSaving(key);
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const res = await fetch('/api/admin/content', {
                 method: 'PUT',
                 headers: {

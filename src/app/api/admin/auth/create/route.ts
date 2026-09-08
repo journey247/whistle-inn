@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { checkRateLimit, sanitizeInput, validateEmail } from '@/lib/adminAuth';
+import { checkRateLimit, sanitizeInput, validateEmail, getClientIp } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 // One-time admin creation with enhanced security
 export async function POST(request: Request) {
-    const clientIP = request.headers.get('x-forwarded-for') || 'unknown';
+    const clientIP = getClientIp(request);
 
     // Rate limiting for admin creation attempts
     if (!checkRateLimit(`admin-create-${clientIP}`, 3, 300000)) { // 3 attempts per 5 minutes

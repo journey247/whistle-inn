@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import { sendSMS } from '@/lib/sms';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // return success but will not send via any external provider.
 export async function POST(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const body = await request.json();
         const { to, message, bookingId } = body;
 

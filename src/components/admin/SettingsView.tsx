@@ -1,12 +1,16 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles, MessageSquare } from "lucide-react";
+import { getAdminToken } from "@/lib/adminToken";
+import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles, MessageSquare, Mail, Inbox, Shield } from "lucide-react";
 import { WebsiteEditor } from "./WebsiteEditor";
 import { AmenityRequestsPanel } from "./AmenityRequestsPanel";
 import { SmsPanel } from "./SmsPanel";
+import { UserManagement } from "./UserManagement";
+import { EmailPanel } from "./EmailPanel";
+import { EmailLogsPanel } from "./EmailLogsPanel";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
-type SettingsTab = "pricing" | "coupons" | "content" | "channels" | "amenities" | "sms";
+type SettingsTab = "pricing" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users";
 
 type SpecialRate = {
     id: string;
@@ -41,7 +45,7 @@ function PricingTab({ addToast }: { addToast: AddToast }) {
     const [adding, setAdding]   = useState(false);
     const [showForm, setShowForm] = useState(false);
 
-    const token = () => localStorage.getItem("adminToken") ?? "";
+    const token = () => getAdminToken() ?? "";
     const h = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` }), []);
 
     useEffect(() => {
@@ -220,7 +224,7 @@ function CouponsTab({ addToast }: { addToast: AddToast }) {
     const [form, setForm] = useState({ code: "", type: "PERCENT" as "PERCENT" | "FIXED", value: "", maxUses: "", expiry: "" });
     const [adding, setAdding] = useState(false);
 
-    const token = () => localStorage.getItem("adminToken") ?? "";
+    const token = () => getAdminToken() ?? "";
     const h = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` }), []);
 
     useEffect(() => {
@@ -362,7 +366,7 @@ function ContentTab({ addToast }: { addToast: AddToast }) {
     const [saving, setSaving]   = useState<string | null>(null);
     const [edits, setEdits]     = useState<Record<string, string>>({});
 
-    const token = () => localStorage.getItem("adminToken") ?? "";
+    const token = () => getAdminToken() ?? "";
     const h = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` }), []);
 
     useEffect(() => {
@@ -486,7 +490,7 @@ function ChannelsTab({ addToast }: { addToast: AddToast }) {
     const [form, setForm]       = useState({ name: "", source: "Airbnb", url: "" });
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const token = () => localStorage.getItem("adminToken") ?? "";
+    const token = () => getAdminToken() ?? "";
     const h = useCallback(() => ({
         "Content-Type": "application/json",
         Authorization: `Bearer ${token()}`,
@@ -730,6 +734,9 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
         { id: "content",  label: "Website",   Icon: Globe },
         { id: "amenities", label: "Amenities", Icon: Sparkles },
         { id: "sms",      label: "SMS",       Icon: MessageSquare },
+        { id: "email",    label: "Email",     Icon: Mail },
+        { id: "emaillog", label: "Email log", Icon: Inbox },
+        { id: "users",    label: "Users",     Icon: Shield },
     ];
 
     return (
@@ -754,6 +761,9 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
             {tab === "content"  && <WebsiteEditor addToast={addToast} />}
             {tab === "amenities" && <AmenityRequestsPanel />}
             {tab === "sms"      && <SmsPanel addToast={addToast} />}
+            {tab === "email"    && <EmailPanel />}
+            {tab === "emaillog" && <EmailLogsPanel />}
+            {tab === "users"    && <UserManagement />}
         </div>
     );
 }

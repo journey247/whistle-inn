@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { checkRateLimit, sanitizeInput, validateEmail } from '@/lib/adminAuth';
+import { checkRateLimit, sanitizeInput, validateEmail, getClientIp, ADMIN_SESSION_COOKIE } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-    const clientIP = request.headers.get('x-forwarded-for') || 'unknown';
+    const clientIP = getClientIp(request);
 
     // Rate limiting for login attempts
     if (!checkRateLimit(`login-${clientIP}`, 5, 300000)) { // 5 attempts per 5 minutes
@@ -78,7 +78,22 @@ export async function POST(request: Request) {
 
         console.log(`Successful login for ${sanitizedEmail} from ${clientIP}`);
 
-        return NextResponse.json({ token, expiresIn: `${sessionTimeout}h` });
+        // The session travels in an httpOnly cookie so page scripts cannot read
+        // it — a stored token was readable by any XSS on the admin origin.
+        // SameSite=Strict is the CSRF defence now that a cookie is sent
+        // automatically; combined with the middleware's JSON content-type
+        // requirement, a cross-site form post cannot reach a mutating endpoint.
+        const response = NextResponse.json({ expiresIn: `${sessionTimeout}h` });
+        response.cookies.set({
+            name: ADMIN_SESSION_COOKIE,
+            value: token,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+            maxAge: sessionTimeout * 60 * 60,
+        });
+        return response;
     } catch (err) {
         console.error('Authentication error:', err);
         return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });

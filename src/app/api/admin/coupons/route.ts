@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import { invalidatePricingCache } from '@/lib/pricing-server';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // GET all coupons
 export async function GET(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const coupons = await prisma.coupon.findMany({
             orderBy: { createdAt: 'desc' }
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 // CREATE new coupon
 export async function POST(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const body = await request.json();
         const { code, discountType, discountValue, active, expiresAt, maxUses } = body;
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 // DELETE coupon
 export async function DELETE(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');

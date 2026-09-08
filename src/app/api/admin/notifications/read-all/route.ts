@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 // Mark all notifications as read
 export async function POST(request: Request) {
   try {
-    const admin = verifyAdmin(request);
+    const admin = await requireAdmin(request);
 
     const result = await prisma.notification.updateMany({
       where: { read: false },
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Mark all read error:', error.message);
 
-    if (error.message.includes('token') || error.message.includes('auth')) {
+    if (error instanceof AdminAuthError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

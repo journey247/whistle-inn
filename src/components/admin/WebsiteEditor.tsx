@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { getAdminToken } from "@/lib/adminToken";
 import { RefreshCw, Check, ChevronRight, Image as ImageIcon, Type, AlignLeft, Eye, EyeOff, Loader2, Globe } from "lucide-react";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
@@ -171,7 +172,7 @@ export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
     const [activeSection, setActive] = useState<string>("Hero Section");
     const [showPreview, setShowPreview] = useState(true);
 
-    const token = useCallback(() => localStorage.getItem("adminToken") ?? "", []);
+    const token = useCallback(() => getAdminToken() ?? "", []);
     const headers = useCallback(() => ({
         "Content-Type": "application/json",
         Authorization: `Bearer ${token()}`,

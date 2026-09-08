@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { checkRateLimit, sanitizeInput } from '@/lib/adminAuth';
+import { checkRateLimit, sanitizeInput, getClientIp } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-    const clientIP = request.headers.get('x-forwarded-for') || 'unknown';
+    const clientIP = getClientIp(request);
 
     // Rate limit: 5 attempts per 15 minutes per IP
     if (!checkRateLimit(`reset-confirm-${clientIP}`, 5, 900000)) {

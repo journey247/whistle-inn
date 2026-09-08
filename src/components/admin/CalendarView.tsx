@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { getAdminToken } from "@/lib/adminToken";
 import { DayPicker, DateRange, DayClickEventHandler } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { useToast } from '../ui/use-toast';
@@ -57,7 +58,7 @@ export function CalendarView() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const res = await fetch('/api/admin/calendar/events', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -76,7 +77,7 @@ export function CalendarView() {
         if (!range?.from || !range?.to) return;
         setIsBlocking(true);
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const res = await fetch("/api/admin/external-bookings", {
                 method: "POST",
                 headers: {

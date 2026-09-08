@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 
 // Prevent caching for admin data
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
 
         const [bookings, externalBookings] = await Promise.all([
             prisma.booking.findMany({

@@ -1,14 +1,14 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import { invalidatePricingCache } from '@/lib/pricing-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
     } catch {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
     } catch {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
     } catch {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

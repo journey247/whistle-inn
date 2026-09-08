@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import { invalidatePricingCache } from '@/lib/pricing-server';
 import { updatePricingAndStripe } from '@/lib/stripe-products';
 import { notifyAdminOfChange, NotificationType } from '@/lib/notifications';
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
     try {
         // Verify admin token
-        verifyAdmin(request);
+        await requireAdmin(request);
 
         const blocks = await prisma.contentBlock.findMany({
             orderBy: { key: 'asc' }
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 // PUT (Upsert) content block
 export async function PUT(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
 
         const body = await request.json();
 

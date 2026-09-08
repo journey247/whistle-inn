@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const bookings = await prisma.booking.findMany({
             orderBy: { createdAt: "desc" },
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     } catch (error: any) {
         console.error('Bookings fetch error:', error.message);
 
-        if (error.message.includes('token') || error.message.includes('auth')) {
+        if (error instanceof AdminAuthError) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const { id, ...updateData } = await request.json();
 
@@ -72,7 +72,7 @@ export async function PUT(request: Request) {
     } catch (error: any) {
         console.error('Booking update error:', error.message);
 
-        if (error.message.includes('token') || error.message.includes('auth')) {
+        if (error instanceof AdminAuthError) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

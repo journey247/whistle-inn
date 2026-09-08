@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { getAdminToken } from "@/lib/adminToken";
 import { CheckCircle, Clock } from 'lucide-react';
 
 interface AmenityRequest {
@@ -23,7 +24,7 @@ export function AmenityRequestsPanel() {
     const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
-        const t = localStorage.getItem('adminToken');
+        const t = getAdminToken();
         setToken(t);
         fetchRequests(t);
     }, []);

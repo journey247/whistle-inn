@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: Request) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const url = new URL(request.url);
         const id = url.pathname.split('/').pop();
         if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });

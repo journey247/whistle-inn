@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { getAdminToken } from "@/lib/adminToken";
+import { useToast } from '../ui/use-toast';
 
 type Template = { id: string; name: string; subject: string; body: string };
 type EmailLog = { id: string; to: string; subject: string; body: string; template?: string; createdAt: string };
 
 export function EmailPanel() {
+    const { addToast } = useToast();
     const [templates, setTemplates] = useState<Template[]>([]);
     const [logs, setLogs] = useState<EmailLog[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -24,7 +27,7 @@ export function EmailPanel() {
     }, []);
 
     const fetchTemplates = async () => {
-        const token = localStorage.getItem('adminToken');
+        const token = getAdminToken();
         const headers: any = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch('/api/admin/email-templates', { headers });
@@ -32,7 +35,7 @@ export function EmailPanel() {
     };
 
     const fetchLogs = async () => {
-        const token = localStorage.getItem('adminToken');
+        const token = getAdminToken();
         const headers: any = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch('/api/admin/email-logs', { headers });
@@ -51,7 +54,7 @@ export function EmailPanel() {
     const handleCreateTemplate = async () => {
         setCreating(true);
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const headers: any = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
             await fetch('/api/admin/email-templates', {
@@ -65,7 +68,7 @@ export function EmailPanel() {
             fetchTemplates();
         } catch (err) {
             console.error(err);
-            alert('Failed to create template');
+            addToast('Failed to create template', 'error');
         } finally {
             setCreating(false);
         }
@@ -73,11 +76,11 @@ export function EmailPanel() {
 
     const handleSend = async () => {
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const headers: any = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
             let vars = {};
-            try { vars = JSON.parse(variables); } catch (e) { alert('Variables must be valid JSON'); return; }
+            try { vars = JSON.parse(variables); } catch (e) { addToast('Variables must be valid JSON', 'error'); return; }
 
             const res = await fetch('/api/send-email', {
                 method: 'POST',
@@ -86,17 +89,17 @@ export function EmailPanel() {
             });
             const data = await res.json();
             if (data.success) {
-                alert('Email sent');
+                addToast('Email sent', 'success');
                 setTo('');
                 setSubject('');
                 setBody('');
                 fetchLogs();
             } else {
-                alert(data.error || 'Failed to send');
+                addToast(data.error || 'Failed to send', 'error');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to send');
+            addToast('Failed to send', 'error');
         }
     };
 

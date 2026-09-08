@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 // GET all notifications for admin
 export async function GET(request: Request) {
   try {
-    const admin = verifyAdmin(request);
+    const admin = await requireAdmin(request);
 
     const notifications = await prisma.notification.findMany({
       orderBy: { createdAt: 'desc' },
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error('Notifications fetch error:', error.message);
 
-    if (error.message.includes('token') || error.message.includes('auth')) {
+    if (error instanceof AdminAuthError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 // Mark all notifications as read
 export async function POST(request: Request) {
   try {
-    const admin = verifyAdmin(request);
+    const admin = await requireAdmin(request);
     const { action } = await request.json();
 
     if (action === 'mark-all-read') {
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Notifications update error:', error.message);
 
-    if (error.message.includes('token') || error.message.includes('auth')) {
+    if (error instanceof AdminAuthError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

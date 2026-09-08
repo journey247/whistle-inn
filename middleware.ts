@@ -29,7 +29,10 @@ export function middleware(request: NextRequest) {
     // Enhanced Content Security Policy
     const csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com",
+        // 'unsafe-eval' removed — nothing in the app needs runtime eval.
+        // 'unsafe-inline' is still required: Next inlines hydration and
+        // styled-jsx bootstrap scripts. Moving to nonces is the next step.
+        "script-src 'self' 'unsafe-inline' https://js.stripe.com",
         "connect-src 'self' https://api.stripe.com https://*.stripe.com",
         "img-src 'self' data: https: blob:",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",

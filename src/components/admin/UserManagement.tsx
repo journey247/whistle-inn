@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { getAdminToken } from "@/lib/adminToken";
 import { useToast } from '../ui/use-toast';
 import { Trash2, UserPlus, Shield } from 'lucide-react';
 
@@ -27,7 +28,7 @@ export function UserManagement() {
 
     const fetchUsers = async () => {
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const res = await fetch('/api/admin/users', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -43,7 +44,7 @@ export function UserManagement() {
 
     const handleCreate = async () => {
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const res = await fetch('/api/admin/users', {
                 method: 'POST',
                 headers: {
@@ -70,7 +71,7 @@ export function UserManagement() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to remove this admin?')) return;
         try {
-            const token = localStorage.getItem('adminToken');
+            const token = getAdminToken();
             const res = await fetch(`/api/admin/users/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }

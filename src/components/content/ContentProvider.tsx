@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getAdminToken, checkAdminSession } from "@/lib/adminToken";
 import { useToast } from "@/components/ui/toast-context";
 
 type ContentMap = Record<string, string>;
@@ -22,11 +23,15 @@ interface ContentProviderProps {
 }
 
 // Simple Admin Auth Hook if not existing
+// Asks the server: the session cookie is httpOnly, so a client-side token
+// check would be true for every visitor and would expose the inline editing
+// affordances to guests.
 const useAdminAuthInternal = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     useEffect(() => {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
-        if (token) setIsAdmin(true); // Basic check, real verify happens on server
+        let active = true;
+        checkAdminSession().then(ok => { if (active) setIsAdmin(ok); });
+        return () => { active = false; };
     }, []);
     return { isAdmin };
 };
@@ -49,7 +54,7 @@ export function ContentProvider({ initialContent, children }: ContentProviderPro
     const updateContent = async (key: string, value: string) => {
         setSaving(true);
         try {
-            const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+            const token = typeof window !== 'undefined' ? getAdminToken() : null;
             if (!token) throw new Error("Not authenticated");
 
             const res = await fetch('/api/admin/content', {

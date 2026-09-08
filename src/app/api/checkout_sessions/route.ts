@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getClientIp } from '@/lib/adminAuth';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { calculateQuote } from '@/lib/pricing-server';
@@ -74,7 +75,7 @@ function isCheckoutRateLimited(ip: string): boolean {
 
 export async function POST(request: Request) {
     try {
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        const ip = getClientIp(request);
         if (isCheckoutRateLimited(ip)) {
             return NextResponse.json(
                 { error: 'Too many booking attempts. Please wait a few minutes and try again.' },

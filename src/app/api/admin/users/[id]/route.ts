@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
         const { id } = await params;
 
         // Prevent deleting self (using 'sub' claim from JWT)
@@ -24,7 +24,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        verifyAdmin(request);
+        await requireAdmin(request);
         const { id } = await params;
         const { password, role } = await request.json();
 

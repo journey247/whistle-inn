@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 import { invalidatePricingCache } from '@/lib/pricing-server';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // GET all special rates
 export async function GET(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const rates = await prisma.specialRate.findMany({
             orderBy: { startDate: 'asc' }
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 // CREATE new special rate
 export async function POST(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const body = await request.json();
         const { startDate, endDate, price, minStay, note } = body;
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 // DELETE special rate
 export async function DELETE(request: Request) {
     try {
-        const admin = verifyAdmin(request);
+        const admin = await requireAdmin(request);
 
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');

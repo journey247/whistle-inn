@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { ToastProvider, useToast } from "@/components/ui/toast-context";
-import { getAdminToken, setAdminToken, clearAdminToken, authHeaders } from "@/lib/adminToken";
+import { logout as endSession, clearLegacyTokens } from "@/lib/adminToken";
 import {
     LayoutDashboard, CalendarDays, DollarSign, Settings, List,
     LogOut, RefreshCw, Home
@@ -70,7 +70,7 @@ export default function AdminPanel() {
 }
 
 // ─── Login screen ─────────────────────────────────────────────────────────────
-function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const { addToast } = useToast();
     const [email, setEmail]       = useState("");
     const [password, setPassword] = useState("");
@@ -87,8 +87,9 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Login failed");
-            setAdminToken(data.token);
-            onLogin(data.token);
+            // The session is an httpOnly cookie set by the response — there is
+            // no token for this page to hold on to.
+            onLogin();
         } catch (err: unknown) {
             addToast(err instanceof Error ? err.message : "Login failed", "error");
         } finally {
@@ -152,47 +153,33 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 function AdminPanelContent() {
     const { addToast } = useToast();
-    const [token, setToken]               = useState<string | null>(null);
+    const [signedIn, setSignedIn]         = useState(false);
     const [authChecked, setAuthChecked]   = useState(false);
     const [activeTab, setActiveTab]       = useState<TabId>("today");
     const [bookings, setBookings]         = useState<Booking[]>([]);
     const [analytics, setAnalytics]       = useState<Analytics | null>(null);
     const [dataLoading, setDataLoading]   = useState(false);
 
-    // Restore token from localStorage on mount — validate with server before showing dashboard
+    // The session cookie is httpOnly, so only the server can say whether it is
+    // valid. Ask it on mount rather than trusting anything held client-side.
     useEffect(() => {
-        const stored = getAdminToken();
-        if (!stored) {
-            setAuthChecked(true);
-            return;
-        }
-        fetch("/api/admin/auth/me", {
-            headers: { Authorization: `Bearer ${stored}` },
-        })
-            .then(res => {
-                if (res.ok) {
-                    setToken(stored);
-                } else {
-                    clearAdminToken();
-                }
-            })
-            .catch(() => localStorage.removeItem("adminToken"))
+        clearLegacyTokens(); // drop tokens left behind by the old localStorage scheme
+        fetch("/api/admin/auth/me")
+            .then(res => setSignedIn(res.ok))
+            .catch(() => setSignedIn(false))
             .finally(() => setAuthChecked(true));
     }, []);
 
-    const headers: Record<string, string> = authHeaders();
-
     const refreshData = useCallback(async () => {
-        if (!token) return;
+        if (!signedIn) return;
         setDataLoading(true);
         try {
             const [bookingsRes, analyticsRes] = await Promise.all([
-                fetch("/api/admin/bookings", { headers }),
-                fetch("/api/admin/analytics", { headers }),
+                fetch("/api/admin/bookings"),
+                fetch("/api/admin/analytics"),
             ]);
             if (bookingsRes.status === 401 || analyticsRes.status === 401) {
-                clearAdminToken();
-                setToken(null);
+                setSignedIn(false);
                 return;
             }
             setBookings(await bookingsRes.json());
@@ -203,22 +190,23 @@ function AdminPanelContent() {
             setDataLoading(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token]);
+    }, [signedIn]);
 
     useEffect(() => {
-        if (token) refreshData();
-    }, [token, refreshData]);
+        if (signedIn) refreshData();
+    }, [signedIn, refreshData]);
 
-    function handleLogout() {
-        clearAdminToken();
-        setToken(null);
+    async function handleLogout() {
+        // The cookie is httpOnly, so only the server can clear it.
+        await endSession();
+        setSignedIn(false);
         setBookings([]);
         setAnalytics(null);
     }
 
     // Show nothing while verifying token to prevent login screen flash
     if (!authChecked) return null;
-    if (!token) return <LoginScreen onLogin={setToken} />;
+    if (!signedIn) return <LoginScreen onLogin={() => setSignedIn(true)} />;
 
     const sharedProps: SharedProps = { bookings, analytics, refreshData, dataLoading, addToast };
 

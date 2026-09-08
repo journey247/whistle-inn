@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAdmin } from '@/lib/adminAuth';
+import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = verifyAdmin(request);
+    const admin = await requireAdmin(request);
     const { id } = await params;
 
     if (!id) {
@@ -26,7 +26,7 @@ export async function POST(
   } catch (error: any) {
     console.error('Notification update error:', error.message);
 
-    if (error.message.includes('token') || error.message.includes('auth')) {
+    if (error instanceof AdminAuthError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -44,7 +44,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = verifyAdmin(request);
+    const admin = await requireAdmin(request);
     const { id } = await params;
 
     if (!id) {
@@ -59,7 +59,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error('Notification delete error:', error.message);
 
-    if (error.message.includes('token') || error.message.includes('auth')) {
+    if (error instanceof AdminAuthError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
