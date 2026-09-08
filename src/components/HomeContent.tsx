@@ -10,6 +10,7 @@ import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { BookingModal } from "@/components/BookingModal";
 import { HeroImageSlider, useHeroSlider, images } from "@/components/HeroImageSlider";
 import { useContent } from "@/components/content/ContentProvider";
+import { ROOMS } from "@/lib/rooms";
 
 // Helper to render editable content
 const EditableText = ({ id, fallback, className = "" }: { id: string, fallback: string, className?: string }) => {
@@ -402,37 +403,36 @@ export default function Home() {
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[
-                            { title: "Primary Suite", beds: "1 King, 1 Single", img: "/Bedroom1.webp", id_title: "room_1_title", id_beds: "room_1_beds" },
-                            { title: "Guest Room 1", beds: "1 Queen Bed", img: "/Bedroom2.avif", id_title: "room_2_title", id_beds: "room_2_beds" },
-                            { title: "Family Room", beds: "1 Queen, 1 Double", img: "/Bedroom3.avif", id_title: "room_3_title", id_beds: "room_3_beds" },
-                            { title: "Guest Room 2", beds: "1 Queen Bed", img: "/Bedroom4.webp", id_title: "room_4_title", id_beds: "room_4_beds" },
-                            { title: "Guest Room 3", beds: "1 Queen Bed", img: "/Bedroom5.webp", id_title: "room_5_title", id_beds: "room_5_beds" },
-                            { title: "Living Space", beds: "Sofa Bed Available", img: "/LivingRoom.webp", id_title: "room_6_title", id_beds: "room_6_beds" },
-                        ].map((room, idx) => (
-                            <FadeIn key={idx} delay={idx * 0.1}>
-                                <div className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-stone-100">
-                                    <div className="relative h-64 overflow-hidden">
-                                        <Image
-                                            src={content[`room_img_${idx}`] || room.img}
-                                            alt={room.title}
-                                            fill
-                                            className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                        />
-                                        <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                                    </div>
-                                    <div className="p-6">
-                                        <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-brand-gold transition-colors">
-                                            <EditableText id={room.id_title} fallback={room.title} />
-                                        </h3>
-                                        <div className="flex items-center mt-2 text-slate-500">
-                                            <Bed className="w-4 h-4 mr-2" />
-                                            <span className="text-sm font-medium">
-                                                <EditableText id={room.id_beds} fallback={room.beds} />
+                        {ROOMS.map((room, idx) => (
+                            <FadeIn key={room.slug} delay={idx * 0.1}>
+                                {/* Links to the room's own page, where the long description lives */}
+                                <Link href={`/rooms/${room.slug}`} className="block h-full">
+                                    <div className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-stone-100 h-full">
+                                        <div className="relative h-64 overflow-hidden">
+                                            <Image
+                                                src={content[room.imageKey] || room.defaultImage}
+                                                alt={content[room.titleKey] || room.defaultTitle}
+                                                fill
+                                                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                            />
+                                            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                                        </div>
+                                        <div className="p-6">
+                                            <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-brand-gold transition-colors">
+                                                <EditableText id={room.titleKey} fallback={room.defaultTitle} />
+                                            </h3>
+                                            <div className="flex items-center mt-2 text-slate-500">
+                                                <Bed className="w-4 h-4 mr-2" />
+                                                <span className="text-sm font-medium">
+                                                    <EditableText id={room.bedsKey} fallback={room.defaultBeds} />
+                                                </span>
+                                            </div>
+                                            <span className="inline-block mt-3 text-sm font-semibold text-brand-gold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Read more &rarr;
                                             </span>
                                         </div>
                                     </div>
-                                </div>
+                                </Link>
                             </FadeIn>
                         ))}
                     </div>

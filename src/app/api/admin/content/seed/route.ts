@@ -63,6 +63,18 @@ const SEED_BLOCKS = [
     { key: 'room_img_3',    label: 'Room 4 Image',       type: 'image_url',section: 'Rooms', value: '/room4.webp' },
     { key: 'room_img_4',    label: 'Room 5 Image',       type: 'image_url',section: 'Rooms', value: '/room5.webp' },
 
+    // ── Room descriptions ────────────────────────────────────────────────────
+    // Long-form copy for each room's own page at /rooms/<slug>. Kept in the
+    // same 'Accommodations' section as room_N_title / room_N_beds so they group
+    // together in the website editor. type 'textarea' gives a multi-line box.
+    // Blank lines in the value render as separate paragraphs on the page.
+    { key: 'room_1_desc', label: 'Conductors Suite — Description',   type: 'textarea', section: 'Accommodations', value: 'The largest of the bedrooms, with a king bed and a single — comfortable for a couple, a family, or a pair of friends.' },
+    { key: 'room_2_desc', label: 'Tree House Room — Description',    type: 'textarea', section: 'Accommodations', value: 'A quiet queen room set among the pines, with the feel of a tree house and the light to match.' },
+    { key: 'room_3_desc', label: 'Train Room — Description',         type: 'textarea', section: 'Accommodations', value: 'A queen and a full bed in a room that leans into the railroad history the inn is named for — a favourite with families.' },
+    { key: 'room_4_desc', label: 'Starlit Sky Room — Description',   type: 'textarea', section: 'Accommodations', value: 'A restful queen room named for the Sierra night sky, far enough from town that the stars actually show.' },
+    { key: 'room_5_desc', label: 'Breakmans Suite — Description',    type: 'textarea', section: 'Accommodations', value: 'A comfortable queen room with a warm, understated feel — an easy place to land at the end of a long day outdoors.' },
+    { key: 'room_6_desc', label: 'Living Space — Description',       type: 'textarea', section: 'Accommodations', value: 'The shared living room, with a sofa bed for extra guests and room for the whole group to gather.' },
+
     // ── Concierge ────────────────────────────────────────────────────────────
     { key: 'concierge_title', label: 'Concierge Headline',   type: 'text',     section: 'Concierge', value: "Whatever You Need, We've Got You Covered" },
     { key: 'concierge_desc',  label: 'Concierge Description',type: 'textarea', section: 'Concierge', value: "We don't just host; we curate. From fresh local bakery deliveries to private event planning, our concierge team is here to make your wildest dreams a reality." },
