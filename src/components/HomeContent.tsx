@@ -499,7 +499,31 @@ export default function Home() {
                         >
                             <EditableText id="footer_button" fallback="Reserve Your Dates" />
                         </button>
-                        <p className="mt-12 text-slate-500 text-sm">Hosted by Nora • &copy; 2026 Whistle Inn Private Getaway</p>
+                        {/*
+                          * Visible contact details. These mirror the
+                          * LodgingBusiness JSON-LD in app/page.tsx — Google
+                          * cross-checks structured data against what is
+                          * actually on the page, so keep the two in step.
+                          * Guests also simply expect to find a phone number.
+                          */}
+                        <address className="mt-12 not-italic text-slate-400 text-sm space-y-1">
+                            <p>
+                                <a
+                                    href="https://maps.google.com/?q=33800+Alta+Bonny+Nook+Rd,+Alta,+CA+95701"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-brand-gold transition-colors"
+                                >
+                                    33800 Alta Bonny Nook Rd, Alta, CA 95701
+                                </a>
+                            </p>
+                            <p>
+                                <a href="tel:+15304486242" className="hover:text-brand-gold transition-colors">
+                                    (530) 448-6242
+                                </a>
+                            </p>
+                        </address>
+                        <p className="mt-4 text-slate-500 text-sm">Hosted by Nora • &copy; 2026 Whistle Inn Private Getaway</p>
                     </FadeIn>
                 </div>
             </section>

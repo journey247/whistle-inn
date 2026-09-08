@@ -27,10 +27,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com'
 /**
  * Structured data so Google can surface the property as a lodging result.
  *
- * Only verifiable facts are included. `streetAddress`, `postalCode`,
- * `telephone` and `geo` are intentionally omitted rather than guessed —
- * fill them in from the real listing details, as Google weights a complete
- * address heavily for local/lodging results.
+ * Google weights a complete address heavily for local/lodging results, and
+ * cross-checks it against what is visible on the page — so keep this in step
+ * with the contact details shown in the footer.
+ *
+ * `geo` is still omitted rather than guessed; add the real lat/long when known.
  */
 const lodgingJsonLd = {
     '@context': 'https://schema.org',
@@ -40,14 +41,19 @@ const lodgingJsonLd = {
         'A beautifully appointed Victorian farmhouse in Alta, California. Sleeps up to 10 — perfect for family gatherings, retreats, and getting away from it all.',
     url: SITE_URL,
     image: `${SITE_URL}/og-image.jpg`,
+    telephone: '+1-530-448-6242',
     address: {
         '@type': 'PostalAddress',
+        streetAddress: '33800 Alta Bonny Nook Rd',
         addressLocality: 'Alta',
         addressRegion: 'CA',
+        postalCode: '95701',
         addressCountry: 'US',
     },
+    checkinTime: '16:00',
+    checkoutTime: '11:00',
     // 5 bedrooms, per the property photos in /public.
-    // Add `petsAllowed` and `checkinTime`/`checkoutTime` once confirmed.
+    // Add `petsAllowed` once confirmed.
     numberOfRooms: 5,
     amenityFeature: [
         { '@type': 'LocationFeatureSpecification', name: 'Pool', value: true },
