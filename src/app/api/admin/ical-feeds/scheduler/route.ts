@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { startIcalSyncScheduler, getSchedulerStatus } from '@/lib/ical-sync-scheduler';
+import { verifyAdmin } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export async function POST(request: Request) {
+    try {
+        verifyAdmin(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         startIcalSyncScheduler();
         const status = getSchedulerStatus();
@@ -20,7 +27,13 @@ export async function POST() {
     }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+    try {
+        verifyAdmin(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const status = getSchedulerStatus();
         return NextResponse.json({ status });

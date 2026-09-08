@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyAdmin } from "@/lib/adminAuth";
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,14 @@ export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    // Deleting a feed stops Airbnb/VRBO sync, which silently frees up dates that
+    // are actually booked elsewhere — admin only.
+    try {
+        verifyAdmin(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const { id } = await params;
 
