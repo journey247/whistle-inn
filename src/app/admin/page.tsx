@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { ToastProvider, useToast } from "@/components/ui/toast-context";
+import { getAdminToken, setAdminToken, clearAdminToken, authHeaders } from "@/lib/adminToken";
 import {
     LayoutDashboard, CalendarDays, DollarSign, Settings, List,
     LogOut, RefreshCw, Home
@@ -85,7 +86,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Login failed");
-            localStorage.setItem("adminToken", data.token);
+            setAdminToken(data.token);
             onLogin(data.token);
         } catch (err: unknown) {
             addToast(err instanceof Error ? err.message : "Login failed", "error");
@@ -159,7 +160,7 @@ function AdminPanelContent() {
 
     // Restore token from localStorage on mount — validate with server before showing dashboard
     useEffect(() => {
-        const stored = localStorage.getItem("adminToken");
+        const stored = getAdminToken();
         if (!stored) {
             setAuthChecked(true);
             return;
@@ -171,14 +172,14 @@ function AdminPanelContent() {
                 if (res.ok) {
                     setToken(stored);
                 } else {
-                    localStorage.removeItem("adminToken");
+                    clearAdminToken();
                 }
             })
             .catch(() => localStorage.removeItem("adminToken"))
             .finally(() => setAuthChecked(true));
     }, []);
 
-    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: Record<string, string> = authHeaders();
 
     const refreshData = useCallback(async () => {
         if (!token) return;
@@ -189,7 +190,7 @@ function AdminPanelContent() {
                 fetch("/api/admin/analytics", { headers }),
             ]);
             if (bookingsRes.status === 401 || analyticsRes.status === 401) {
-                localStorage.removeItem("adminToken");
+                clearAdminToken();
                 setToken(null);
                 return;
             }
@@ -208,7 +209,7 @@ function AdminPanelContent() {
     }, [token, refreshData]);
 
     function handleLogout() {
-        localStorage.removeItem("adminToken");
+        clearAdminToken();
         setToken(null);
         setBookings([]);
         setAnalytics(null);

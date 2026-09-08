@@ -27,7 +27,7 @@ export function UserManagement() {
 
     const fetchUsers = async () => {
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const res = await fetch('/api/admin/users', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -43,7 +43,7 @@ export function UserManagement() {
 
     const handleCreate = async () => {
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const res = await fetch('/api/admin/users', {
                 method: 'POST',
                 headers: {
@@ -70,7 +70,7 @@ export function UserManagement() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to remove this admin?')) return;
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const res = await fetch(`/api/admin/users/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }

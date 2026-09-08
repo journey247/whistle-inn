@@ -21,7 +21,7 @@ export function EmailLogsPanel() {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem("admin_token");
+            const token = localStorage.getItem("adminToken");
             const res = await fetch("/api/admin/email-logs", {
                 headers: { Authorization: `Bearer ${token}` },
             });

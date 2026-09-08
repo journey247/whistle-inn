@@ -23,7 +23,7 @@ export function AmenityRequestsPanel() {
     const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
-        const t = localStorage.getItem('admin_token');
+        const t = localStorage.getItem('adminToken');
         setToken(t);
         fetchRequests(t);
     }, []);

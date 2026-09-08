@@ -23,7 +23,7 @@ export function CouponsPanel() {
     const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
     useEffect(() => {
-        const t = localStorage.getItem('admin_token');
+        const t = localStorage.getItem('adminToken');
         setToken(t);
         fetchCoupons(t);
     }, []);

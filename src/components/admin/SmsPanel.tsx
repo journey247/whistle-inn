@@ -22,7 +22,7 @@ export function SmsPanel() {
     }, []);
 
     const fetchLogs = async () => {
-        const token = localStorage.getItem('admin_token');
+        const token = localStorage.getItem('adminToken');
         const headers: any = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -38,7 +38,7 @@ export function SmsPanel() {
     const handleSend = async () => {
         setSending(true);
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const headers: any = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
 

@@ -19,7 +19,7 @@ export function NotificationsPanel() {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = localStorage.getItem('admin_token');
+    const t = localStorage.getItem('adminToken');
     setToken(t);
     if (t) {
       fetchNotifications(t);

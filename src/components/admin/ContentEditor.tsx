@@ -29,7 +29,7 @@ export const ContentEditor = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const fetchContent = useCallback(async () => {
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const res = await fetch('/api/admin/content', {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -71,7 +71,7 @@ export const ContentEditor = () => {
     const handleSave = async (key: string, value: string, label?: string, section?: string) => {
         setSaving(key);
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const res = await fetch('/api/admin/content', {
                 method: 'PUT',
                 headers: {

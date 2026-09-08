@@ -32,7 +32,7 @@ function BookingDrawer({ booking, onClose, onStatusChange, addToast }: {
     const updateStatus = async (newStatus: string) => {
         setUpdating(true);
         try {
-            const token = localStorage.getItem("admin_token") ?? "";
+            const token = localStorage.getItem("adminToken") ?? "";
             const res = await fetch(`/api/admin/bookings/${booking.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

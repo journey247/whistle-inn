@@ -24,7 +24,7 @@ export function EmailPanel() {
     }, []);
 
     const fetchTemplates = async () => {
-        const token = localStorage.getItem('admin_token');
+        const token = localStorage.getItem('adminToken');
         const headers: any = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch('/api/admin/email-templates', { headers });
@@ -32,7 +32,7 @@ export function EmailPanel() {
     };
 
     const fetchLogs = async () => {
-        const token = localStorage.getItem('admin_token');
+        const token = localStorage.getItem('adminToken');
         const headers: any = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch('/api/admin/email-logs', { headers });
@@ -51,7 +51,7 @@ export function EmailPanel() {
     const handleCreateTemplate = async () => {
         setCreating(true);
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const headers: any = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
             await fetch('/api/admin/email-templates', {
@@ -73,7 +73,7 @@ export function EmailPanel() {
 
     const handleSend = async () => {
         try {
-            const token = localStorage.getItem('admin_token');
+            const token = localStorage.getItem('adminToken');
             const headers: any = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
             let vars = {};

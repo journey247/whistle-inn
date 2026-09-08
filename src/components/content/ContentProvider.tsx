@@ -25,7 +25,7 @@ interface ContentProviderProps {
 const useAdminAuthInternal = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     useEffect(() => {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
         if (token) setIsAdmin(true); // Basic check, real verify happens on server
     }, []);
     return { isAdmin };
@@ -49,7 +49,7 @@ export function ContentProvider({ initialContent, children }: ContentProviderPro
     const updateContent = async (key: string, value: string) => {
         setSaving(true);
         try {
-            const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+            const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
             if (!token) throw new Error("Not authenticated");
 
             const res = await fetch('/api/admin/content', {

@@ -26,7 +26,7 @@ export function PricingPanel() {
     const { register, handleSubmit, reset } = useForm();
 
     useEffect(() => {
-        const t = localStorage.getItem('admin_token');
+        const t = localStorage.getItem('adminToken');
         setToken(t);
         fetchRates(t);
         fetchBasePricing(t);
