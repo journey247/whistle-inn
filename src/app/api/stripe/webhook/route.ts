@@ -115,6 +115,21 @@ export async function POST(request: Request) {
                         },
                     });
 
+                    // Count the coupon use now that payment has actually landed.
+                    // Guarded by the `status === 'paid'` early-return above, so a
+                    // redelivered webhook won't double-count.
+                    if (existingBooking.couponId) {
+                        try {
+                            await prisma.coupon.update({
+                                where: { id: existingBooking.couponId },
+                                data: { usedCount: { increment: 1 } },
+                            });
+                        } catch (couponError) {
+                            console.error(`Failed to increment coupon ${existingBooking.couponId} for booking ${bookingId}:`, couponError);
+                            // Continue — the booking is paid; a miscount is recoverable
+                        }
+                    }
+
                     // Send admin notification for successful payment
                     try {
                         const paymentAmount = session.amount_total ? session.amount_total / 100 : updatedBooking.totalPrice;

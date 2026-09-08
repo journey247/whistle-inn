@@ -25,8 +25,63 @@ const stripe = initializeStripe();
 
 const MINIMUM_NIGHTS = 3;
 
+/**
+ * Release a pending booking that never made it to Stripe.
+ *
+ * The pending booking is created before the Checkout Session so the dates are
+ * held atomically against concurrent requests. If session creation then fails,
+ * those dates would stay blocked for the full 30-minute expiry window for a
+ * booking that can never be paid — so cancel it immediately.
+ *
+ * No coupon adjustment is needed: usedCount is only incremented by the webhook
+ * on successful payment, which by definition never happened here.
+ *
+ * Best-effort: never throws, since the caller is already handling an error.
+ */
+async function releaseBooking(bookingId: string) {
+    try {
+        await prisma.booking.update({
+            where: { id: bookingId },
+            data: { status: 'cancelled', expiresAt: null },
+        });
+    } catch (releaseErr) {
+        console.error(`Failed to release pending booking ${bookingId}:`, releaseErr);
+    }
+}
+
+/**
+ * Best-effort in-process rate limit on checkout creation.
+ *
+ * Each successful call creates a pending booking that holds those dates for 30
+ * minutes, so an unthrottled endpoint lets anyone take the calendar offline by
+ * scripting requests. Per-instance on serverless, so this is friction rather
+ * than a guarantee — a shared store is the real fix.
+ */
+const checkoutRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+function isCheckoutRateLimited(ip: string): boolean {
+    const now = Date.now();
+    const entry = checkoutRateLimit.get(ip);
+    if (!entry || now > entry.resetAt) {
+        checkoutRateLimit.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
+        return false;
+    }
+    // 5 checkout attempts per 10 minutes is well above what a real guest needs
+    if (entry.count >= 5) return true;
+    entry.count++;
+    return false;
+}
+
 export async function POST(request: Request) {
     try {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+        if (isCheckoutRateLimited(ip)) {
+            return NextResponse.json(
+                { error: 'Too many booking attempts. Please wait a few minutes and try again.' },
+                { status: 429 }
+            );
+        }
+
         const body = await request.json();
         const { startDate, endDate, guestCount: rawGuestCount, guestName, guestEmail } = body;
 
@@ -34,10 +89,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing dates' }, { status: 400 });
         }
 
-        // Validate and sanitize guestCount
+        // Validate and sanitize guestCount against the same limit the booking
+        // modal enforces (see /api/settings/public), so raising max_guests in
+        // the admin panel doesn't leave the server rejecting valid bookings.
+        const maxGuestsBlock = await prisma.contentBlock.findUnique({
+            where: { key: 'max_guests' }
+        });
+        const parsedMaxGuests = maxGuestsBlock ? parseInt(maxGuestsBlock.value, 10) : NaN;
+        const maxGuests = Number.isFinite(parsedMaxGuests) && parsedMaxGuests > 0 ? parsedMaxGuests : 10;
+
         const guestCount = parseInt(String(rawGuestCount ?? 1), 10);
-        if (isNaN(guestCount) || guestCount < 1 || guestCount > 10) {
-            return NextResponse.json({ error: 'Guest count must be between 1 and 10' }, { status: 400 });
+        if (isNaN(guestCount) || guestCount < 1 || guestCount > maxGuests) {
+            return NextResponse.json({ error: `Guest count must be between 1 and ${maxGuests}` }, { status: 400 });
         }
 
         // Validate guest info
@@ -127,13 +190,10 @@ export async function POST(request: Request) {
                 }
             });
 
-            // Increment coupon usedCount if a coupon was applied
-            if (couponId) {
-                await tx.coupon.update({
-                    where: { id: couponId },
-                    data: { usedCount: { increment: 1 } },
-                });
-            }
+            // NOTE: coupon usedCount is deliberately NOT incremented here.
+            // It is incremented in the Stripe webhook once payment actually
+            // succeeds. Counting it at checkout creation meant abandoned
+            // checkouts permanently burned uses off a limited promo.
 
             return newBooking;
         }, {
@@ -151,7 +211,22 @@ export async function POST(request: Request) {
 
         // Create Stripe Checkout Session
         let session: any;
-        const isMock = !stripe; // stripe is null when key is missing/placeholder/corrupted
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        // stripe is null when the key is missing/placeholder/corrupted.
+        // In development we fall back to a mock session so the flow can be
+        // exercised without keys. In production that fallback would mark a
+        // booking as paid without any payment, so we refuse instead.
+        if (!stripe && isProduction) {
+            await releaseBooking(booking.id);
+            console.error('CRITICAL: STRIPE_SECRET_KEY missing or invalid in production — refusing checkout');
+            return NextResponse.json(
+                { error: 'Payments are temporarily unavailable. Please contact us to complete your booking.' },
+                { status: 503 }
+            );
+        }
+
+        const isMock = !stripe;
 
         // Determine base URL safely
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -219,14 +294,22 @@ export async function POST(request: Request) {
                     },
                 });
             } catch (err: any) {
-                // If Stripe Auth fails (wrong key in dev), fallback to mock
-                if (err.statusCode === 401 || err.type === 'StripeAuthenticationError') {
-                    console.warn('[Stripe] Auth failed - Using Mock Session Fallback');
+                const isAuthFailure = err.statusCode === 401 || err.type === 'StripeAuthenticationError';
+
+                // Mock fallback on auth failure is a DEV convenience only. In
+                // production it would hand the guest a fake success URL, so we
+                // release the held dates and surface a real error instead.
+                if (isAuthFailure && !isProduction) {
+                    console.warn('[Stripe] Auth failed - Using Mock Session Fallback (dev only)');
                     session = {
                         id: 'cs_test_mock_' + Date.now(),
-                        url: `${request.headers.get('origin')}/success?session_id=cs_test_mock_${Date.now()}&booking_id=${booking.id}`
+                        url: `${origin}/success?session_id=cs_test_mock_${Date.now()}&booking_id=${booking.id}`
                     };
                 } else {
+                    if (isAuthFailure) {
+                        console.error('CRITICAL: Stripe rejected the API key in production — refusing checkout');
+                    }
+                    await releaseBooking(booking.id);
                     throw err;
                 }
             }

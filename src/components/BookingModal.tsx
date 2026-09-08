@@ -7,6 +7,7 @@ import "react-day-picker/dist/style.css";
 import { loadStripe } from "@stripe/stripe-js";
 import { X, Calendar, Loader2, Users, Info, Tag, User } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/components/ui/toast-context";
 
 // Initialize Stripe (replace with your publishable key)
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder");
@@ -28,6 +29,7 @@ interface Quote {
 }
 
 export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: BookingModalProps) {
+    const { addToast } = useToast();
     const [range, setRange] = useState<DateRange | undefined>();
     const [loading, setLoading] = useState(false);
     const [bookedDates, setBookedDates] = useState<Date[]>([]);
@@ -36,8 +38,10 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     const [guestName, setGuestName] = useState("");
     const [guestEmail, setGuestEmail] = useState("");
     const [guestInfoError, setGuestInfoError] = useState("");
-    const MAX_GUESTS = 10;
-    const [minimumNights, setMinimumNights] = useState(3); // Dynamic minimum nights
+    // Booking constraints come from /api/settings/public; these are only the
+    // fallbacks used before that request resolves (or if it fails).
+    const [maxGuests, setMaxGuests] = useState(10);
+    const [minimumNights, setMinimumNights] = useState(3);
 
     // Pricing State
     const [quote, setQuote] = useState<Quote | null>(null);
@@ -50,7 +54,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     useEffect(() => {
         if (isOpen) {
             fetchAvailability();
-            fetchMinimumNights();
+            fetchBookingSettings();
         }
     }, [isOpen]);
 
@@ -93,19 +97,19 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
         }
     };
 
-    const fetchMinimumNights = async () => {
+    // Previously this hit /api/admin/content, which requires an admin token, so
+    // guests always 401'd and silently fell back to a hardcoded 3-night minimum.
+    const fetchBookingSettings = async () => {
         try {
-            const response = await fetch('/api/admin/content');
+            const response = await fetch('/api/settings/public');
             if (response.ok) {
-                const blocks = await response.json();
-                const minNightsBlock = blocks.find((block: any) => block.key === 'minimum_nights');
-                if (minNightsBlock) {
-                    setMinimumNights(parseInt(minNightsBlock.value) || 3);
-                }
+                const settings = await response.json();
+                if (settings.minimumNights) setMinimumNights(settings.minimumNights);
+                if (settings.maxGuests) setMaxGuests(settings.maxGuests);
             }
         } catch (error) {
-            console.error('Failed to fetch minimum nights:', error);
-            // Keep default value
+            console.error('Failed to fetch booking settings:', error);
+            // Keep defaults
         }
     };
 
@@ -162,7 +166,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
         // Check for conflicts on frontend first
         const hasConflict = checkDateConflict(range.from, range.to);
         if (hasConflict) {
-            alert("These dates are already booked. Please select different dates.");
+            addToast("Those dates are already booked — please pick different dates.", "error");
             return;
         }
 
@@ -202,7 +206,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                 if (response.status === 409) {
                     // Dates are booked - refresh availability and show error
                     await fetchAvailability();
-                    alert("These dates are already booked. The calendar has been updated.");
+                    addToast("Someone just booked those dates. The calendar has been updated — please choose again.", "error");
                     return;
                 }
                 throw new Error(data.error || 'Checkout failed');
@@ -222,7 +226,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
             }
         } catch (err: any) {
             console.error(err);
-            alert(`Checkout failed: ${err.message}`);
+            addToast(err?.message || "Something went wrong starting checkout. Please try again.", "error");
         } finally {
             setLoading(false);
         }
@@ -365,9 +369,9 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                         >-</button>
                                                         <span className="font-serif text-xl w-6 text-center">{guestCount}</span>
                                                         <button
-                                                            onClick={() => setGuestCount(Math.min(MAX_GUESTS, guestCount + 1))}
+                                                            onClick={() => setGuestCount(Math.min(maxGuests, guestCount + 1))}
                                                             className="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all text-slate-600 font-bold"
-                                                            disabled={guestCount >= MAX_GUESTS}
+                                                            disabled={guestCount >= maxGuests}
                                                         >+</button>
                                                     </div>
                                                 </div>

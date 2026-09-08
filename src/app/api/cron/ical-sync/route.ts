@@ -27,11 +27,37 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Cleanup runs first and unconditionally: it used to sit after the
+    // `feeds.length === 0` early return, so a property with no iCal feeds
+    // configured never had its abandoned checkouts cleaned up, leaving stale
+    // 'pending' rows cluttering the admin Reservations list indefinitely.
+    let expiredCount = 0;
+    try {
+        const expired = await prisma.booking.updateMany({
+            where: {
+                status: 'pending',
+                expiresAt: { lt: new Date() },
+            },
+            data: { status: 'cancelled' },
+        });
+        expiredCount = expired.count;
+        if (expiredCount > 0) {
+            console.log(`[iCal Cron] Cancelled ${expiredCount} expired pending booking(s)`);
+        }
+    } catch (cleanupErr) {
+        console.error('[iCal Cron] Expired-pending cleanup failed:', cleanupErr);
+    }
+
     try {
         const feeds = await prisma.iCalFeed.findMany();
 
         if (feeds.length === 0) {
-            return NextResponse.json({ success: true, message: 'No iCal feeds configured', synced: 0 });
+            return NextResponse.json({
+                success: true,
+                message: 'No iCal feeds configured',
+                synced: 0,
+                expiredCancelled: expiredCount,
+            });
         }
 
         const results: { feed: string; synced: number; error?: string }[] = [];
@@ -77,22 +103,11 @@ export async function GET(request: NextRequest) {
         const totalSynced = results.reduce((sum, r) => sum + r.synced, 0);
         console.log(`[iCal Cron] Complete — ${totalSynced} total bookings synced across ${feeds.length} feeds`);
 
-        // Cleanup: cancel expired pending bookings so abandoned checkouts stop blocking dates
-        const expired = await prisma.booking.updateMany({
-            where: {
-                status: 'pending',
-                expiresAt: { lt: new Date() },
-            },
-            data: { status: 'cancelled' },
-        });
-        if (expired.count > 0) {
-            console.log(`[iCal Cron] Cancelled ${expired.count} expired pending booking(s)`);
-        }
-
         return NextResponse.json({
             success: true,
             message: 'iCal sync complete',
             timestamp: new Date().toISOString(),
+            expiredCancelled: expiredCount,
             results,
         });
     } catch (error: any) {
