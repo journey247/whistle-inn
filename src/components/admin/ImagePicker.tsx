@@ -19,9 +19,14 @@ const SAMPLE_IMAGES = [
     "/Bedroom3.avif",
     "/fullkitchen.avif",
     "/halfbath.avif",
-    "/1650/IMG_1650.jpg",
-    "/1650/IMG_1663.jpg",  // Assuming these exist or will exist
-    "/1650/IMG_1673.jpg",
+    "/1650.jpg",
+    "/1663.jpg",
+    "/1673.jpg",
+    "/balcony.webp",
+    "/Poolrock.webp",
+    "/entry.jpg",
+    "/Bedroom1.webp",
+    "/fishing.jpg",
 ];
 
 export function ImagePicker({ isOpen, onClose, onSelect }: ImagePickerProps) {

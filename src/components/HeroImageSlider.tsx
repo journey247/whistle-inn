@@ -11,7 +11,7 @@ type HeroImage = {
 
 export const images: HeroImage[] = [
     { src: "/Exterior.avif", alt: "Whistle Inn Victorian Farmhouse Exterior" },
-    { src: "/1650", alt: "Whistle Inn Train View", attribution: "Photo By: Annette Rogers Purther" },
+    { src: "/1650.jpg", alt: "Whistle Inn Train View", attribution: "Photo By: Annette Rogers Purther" },
     { src: "/pool.webp", alt: "Whistle Inn Pool Area" },
     { src: "/LivingRoom.webp", alt: "Whistle Inn Living Room" },
     { src: "/DiningArea.webp", alt: "Whistle Inn Dining Area" },

@@ -256,7 +256,7 @@ export default function Home() {
                     {/* Image Gallery Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
                         {[
-                            { src: "/1650.webp", alt: "Kids Snow Tubing Fun" },
+                            { src: "/1650.jpg", alt: "Kids Snow Tubing Fun" },
                             { src: "/fullbath1.jpg", alt: "Fly Fishing on American River" },
                             { src: "/fullbath2.webp", alt: "Scenic Sierra Hiking" },
                             { src: "/fullbath3.webp", alt: "Family Snow Play" },
