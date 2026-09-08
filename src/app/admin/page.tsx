@@ -15,6 +15,7 @@ const ReservationsView = dynamic(() => import('@/components/admin/ReservationsVi
 const CalendarView    = dynamic(() => import('@/components/admin/CalendarView').then(m => m.CalendarView), { ssr: false });
 const EarningsView    = dynamic(() => import('@/components/admin/EarningsView').then(m => m.EarningsView), { ssr: false });
 const SettingsView    = dynamic(() => import('@/components/admin/SettingsView').then(m => m.SettingsView), { ssr: false });
+const NotificationsPanel = dynamic(() => import('@/components/admin/NotificationsPanel').then(m => m.NotificationsPanel), { ssr: false });
 
 // ─── Shared types (exported for sub-components) ───────────────────────────────
 export type Booking = {
@@ -235,6 +236,7 @@ function AdminPanelContent() {
                     {dataLoading && (
                         <RefreshCw className="w-4 h-4 text-brand-gold animate-spin" />
                     )}
+                    <NotificationsPanel />
                     <button
                         onClick={handleLogout}
                         className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"

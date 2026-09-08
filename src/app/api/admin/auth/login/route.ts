@@ -58,8 +58,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Create JWT with shorter expiry time
-        const sessionTimeout = process.env.SESSION_TIMEOUT_HOURS || '8';
+        // Session length. This previously read SESSION_TIMEOUT_HOURS but then
+        // hardcoded '8h' into the token, so the response advertised a lifetime
+        // the token did not actually have.
+        const parsedTimeout = parseInt(process.env.SESSION_TIMEOUT_HOURS || '', 10);
+        const sessionTimeout = Number.isFinite(parsedTimeout) && parsedTimeout > 0 && parsedTimeout <= 24
+            ? parsedTimeout
+            : 8;
 
         const token = jwt.sign(
             {
@@ -68,7 +73,7 @@ export async function POST(request: Request) {
                 role: user.role
             },
             jwtSecret,
-            { expiresIn: '8h' }
+            { expiresIn: `${sessionTimeout}h` }
         );
 
         console.log(`Successful login for ${sanitizedEmail} from ${clientIP}`);

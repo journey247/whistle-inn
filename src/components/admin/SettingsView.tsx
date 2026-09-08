@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles } from "lucide-react";
+import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles, MessageSquare } from "lucide-react";
 import { WebsiteEditor } from "./WebsiteEditor";
 import { AmenityRequestsPanel } from "./AmenityRequestsPanel";
+import { SmsPanel } from "./SmsPanel";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
-type SettingsTab = "pricing" | "coupons" | "content" | "channels" | "amenities";
+type SettingsTab = "pricing" | "coupons" | "content" | "channels" | "amenities" | "sms";
 
 type SpecialRate = {
     id: string;
@@ -728,6 +729,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
         { id: "channels", label: "Channels",  Icon: Link2 },
         { id: "content",  label: "Website",   Icon: Globe },
         { id: "amenities", label: "Amenities", Icon: Sparkles },
+        { id: "sms",      label: "SMS",       Icon: MessageSquare },
     ];
 
     return (
@@ -751,6 +753,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
             {tab === "channels" && <ChannelsTab addToast={addToast} />}
             {tab === "content"  && <WebsiteEditor addToast={addToast} />}
             {tab === "amenities" && <AmenityRequestsPanel />}
+            {tab === "sms"      && <SmsPanel addToast={addToast} />}
         </div>
     );
 }

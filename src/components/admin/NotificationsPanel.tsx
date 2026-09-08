@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Bell, X, Check, CheckCheck } from "lucide-react";
+import { authHeaders, jsonAuthHeaders, getAdminToken } from "@/lib/adminToken";
 
 interface Notification {
   id: string;
@@ -16,24 +17,18 @@ export function NotificationsPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = localStorage.getItem('adminToken');
-    setToken(t);
-    if (t) {
-      fetchNotifications(t);
-    }
+    if (getAdminToken()) fetchNotifications();
   }, []);
 
-  const fetchNotifications = async (authToken: string) => {
+  const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/notifications', {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
+      const res = await fetch('/api/admin/notifications', { headers: authHeaders() });
       const data = await res.json();
-      setNotifications(data);
+      // Defensive: an error payload would otherwise crash the render below
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     } finally {
@@ -43,9 +38,13 @@ export function NotificationsPanel() {
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`/api/admin/notifications/${id}/read`, {
+      // The mark-as-read route is POST /api/admin/notifications/[id] —
+      // this previously posted to /[id]/read, which does not exist and 404'd.
+      await fetch(`/api/admin/notifications/${id}`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        // jsonAuthHeaders, not authHeaders: middleware rejects any POST
+        // without an application/json content-type with a 400.
+        headers: jsonAuthHeaders(),
       });
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, read: true } : n)
@@ -59,7 +58,7 @@ export function NotificationsPanel() {
     try {
       await fetch('/api/admin/notifications/read-all', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: jsonAuthHeaders(),
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (err) {
@@ -71,7 +70,7 @@ export function NotificationsPanel() {
     try {
       await fetch(`/api/admin/notifications/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: authHeaders(),
       });
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
@@ -86,7 +85,7 @@ export function NotificationsPanel() {
       {/* Notification Bell Button */}
       <button
         onClick={() => setShowPanel(!showPanel)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
+        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-gold/40 rounded-full"
       >
         <Bell className="h-6 w-6" />
         {unreadCount > 0 && (
