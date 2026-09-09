@@ -38,7 +38,7 @@ const lodgingJsonLd = {
     '@type': 'LodgingBusiness',
     name: 'Whistle Inn',
     description:
-        'A beautifully appointed Victorian farmhouse in Alta, California. Sleeps up to 10 — perfect for family gatherings, retreats, and getting away from it all.',
+        'A beautifully appointed Victorian farmhouse in Alta, California. Sleeps up to 14 — perfect for family gatherings, retreats, and getting away from it all.',
     url: SITE_URL,
     image: `${SITE_URL}/og-image.jpg`,
     telephone: '+1-530-448-6242',

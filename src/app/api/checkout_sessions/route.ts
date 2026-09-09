@@ -97,7 +97,7 @@ export async function POST(request: Request) {
             where: { key: 'max_guests' }
         });
         const parsedMaxGuests = maxGuestsBlock ? parseInt(maxGuestsBlock.value, 10) : NaN;
-        const maxGuests = Number.isFinite(parsedMaxGuests) && parsedMaxGuests > 0 ? parsedMaxGuests : 10;
+        const maxGuests = Number.isFinite(parsedMaxGuests) && parsedMaxGuests > 0 ? parsedMaxGuests : 14;
 
         const guestCount = parseInt(String(rawGuestCount ?? 1), 10);
         if (isNaN(guestCount) || guestCount < 1 || guestCount > maxGuests) {

@@ -19,7 +19,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com'
 
 const SITE_TITLE = 'Whistle Inn — Private Getaway in the Sierra';
 const SITE_DESCRIPTION =
-    'A beautifully appointed Victorian farmhouse in Alta, California. Sleeps up to 10 — perfect for family gatherings, retreats, and getting away from it all.';
+    'A beautifully appointed Victorian farmhouse in Alta, California. Sleeps up to 14 — perfect for family gatherings, retreats, and getting away from it all.';
 
 export const metadata: Metadata = {
     // metadataBase makes the relative OG/Twitter image URLs below resolve to

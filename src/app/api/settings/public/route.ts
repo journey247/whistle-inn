@@ -19,7 +19,11 @@ export const dynamic = 'force-dynamic';
  */
 
 const DEFAULT_MINIMUM_NIGHTS = 3;
-const DEFAULT_MAX_GUESTS = 10;
+// 14 is the property's actual capacity, as advertised on the homepage stats and
+// the gallery. There is no `max_guests` content block seeded or editable from
+// the admin panel, so in practice this fallback is the live value — it must
+// match what the site advertises or large groups are rejected at checkout.
+const DEFAULT_MAX_GUESTS = 14;
 
 export async function GET() {
     try {

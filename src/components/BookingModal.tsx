@@ -40,7 +40,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     const [guestInfoError, setGuestInfoError] = useState("");
     // Booking constraints come from /api/settings/public; these are only the
     // fallbacks used before that request resolves (or if it fails).
-    const [maxGuests, setMaxGuests] = useState(10);
+    const [maxGuests, setMaxGuests] = useState(14);
     const [minimumNights, setMinimumNights] = useState(3);
 
     // Pricing State

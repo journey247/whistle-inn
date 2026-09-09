@@ -10,7 +10,7 @@ export const revalidate = 60;
 
 const TITLE = 'Rooms — Whistle Inn';
 const DESCRIPTION =
-    'Five bedrooms and a shared living space at Whistle Inn, a Victorian farmhouse in Alta, California. Sleeps up to 10.';
+    'Five bedrooms and a shared living space at Whistle Inn, a Victorian farmhouse in Alta, California. Sleeps up to 14.';
 
 export const metadata: Metadata = {
     title: TITLE,

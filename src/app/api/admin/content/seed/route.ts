@@ -83,6 +83,13 @@ const SEED_BLOCKS = [
     { key: 'footer_title',  label: 'Footer CTA Headline', type: 'text',     section: 'Footer', value: 'Ready to create memories?' },
     { key: 'footer_button', label: 'Footer Button Text',  type: 'text',     section: 'Footer', value: 'Reserve Your Dates' },
     { key: 'footer_img',    label: 'Footer Background',   type: 'image_url',section: 'Footer', value: '/patio.webp' },
+
+    // ── Booking limits ───────────────────────────────────────────────────────
+    // Read by /api/settings/public (which the booking modal calls) and by
+    // /api/checkout_sessions. Seeded so the cap is visible and editable rather
+    // than living only as a hardcoded fallback in three separate files — which
+    // is how the site came to advertise 14 guests while rejecting 11 and over.
+    { key: 'max_guests',    label: 'Maximum Guests',      type: 'text',     section: 'Booking', value: '14' },
 ];
 
 export async function POST(request: Request) {
