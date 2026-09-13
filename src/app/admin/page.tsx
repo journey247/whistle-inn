@@ -30,6 +30,8 @@ export type Booking = {
     notes?: string;
     guestCount?: number;
     discount?: number;
+    /** null when the guest booked the whole property. */
+    room?: { slug: string; name: string } | null;
     stripeSessionId?: string;
     stripePaymentIntentId?: string;
 };

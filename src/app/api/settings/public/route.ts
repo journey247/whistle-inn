@@ -24,11 +24,15 @@ const DEFAULT_MINIMUM_NIGHTS = 3;
 // the admin panel, so in practice this fallback is the live value — it must
 // match what the site advertises or large groups are rejected at checkout.
 const DEFAULT_MAX_GUESTS = 14;
+// A single room is a far smaller commitment than the whole house, so it carries
+// its own (shorter) minimum. Holding one bedroom to a 3-night minimum turns away
+// the midweek one-nighters that per-room booking exists to capture.
+const DEFAULT_ROOM_MINIMUM_NIGHTS = 2;
 
 export async function GET() {
     try {
         const blocks = await prisma.contentBlock.findMany({
-            where: { key: { in: ['minimum_nights', 'max_guests'] } },
+            where: { key: { in: ['minimum_nights', 'max_guests', 'room_minimum_nights'] } },
             select: { key: true, value: true },
         });
 
@@ -36,6 +40,7 @@ export async function GET() {
 
         const minimumNights = parseInt(byKey.minimum_nights ?? '', 10);
         const maxGuests = parseInt(byKey.max_guests ?? '', 10);
+        const roomMinimumNights = parseInt(byKey.room_minimum_nights ?? '', 10);
 
         return NextResponse.json({
             minimumNights: Number.isFinite(minimumNights) && minimumNights > 0
@@ -44,6 +49,9 @@ export async function GET() {
             maxGuests: Number.isFinite(maxGuests) && maxGuests > 0
                 ? maxGuests
                 : DEFAULT_MAX_GUESTS,
+            roomMinimumNights: Number.isFinite(roomMinimumNights) && roomMinimumNights > 0
+                ? roomMinimumNights
+                : DEFAULT_ROOM_MINIMUM_NIGHTS,
         });
     } catch (error) {
         console.error('Failed to load public settings:', error);
@@ -51,6 +59,7 @@ export async function GET() {
         return NextResponse.json({
             minimumNights: DEFAULT_MINIMUM_NIGHTS,
             maxGuests: DEFAULT_MAX_GUESTS,
+            roomMinimumNights: DEFAULT_ROOM_MINIMUM_NIGHTS,
         });
     }
 }

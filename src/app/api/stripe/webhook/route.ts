@@ -83,7 +83,10 @@ export async function POST(request: Request) {
                 try {
                     // Validate booking exists and is in correct state
                     const existingBooking = await prisma.booking.findUnique({
-                        where: { id: bookingId }
+                        where: { id: bookingId },
+                        // The room is named in the confirmation email: a guest
+                        // who booked one bedroom should not be told the house is theirs.
+                        include: { room: { select: { name: true } } },
                     });
 
                     if (!existingBooking) {
@@ -157,6 +160,9 @@ export async function POST(request: Request) {
                                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                             });
                             const amount = (session.amount_total ? session.amount_total / 100 : existingBooking.totalPrice).toFixed(2);
+                            const accommodation = existingBooking.room
+                                ? existingBooking.room.name
+                                : 'The whole house';
 
                             await sendEmail({
                                 to: recipientEmail,
@@ -167,6 +173,7 @@ export async function POST(request: Request) {
                                     startDate: checkIn,
                                     endDate: checkOut,
                                     amount,
+                                    accommodation,
                                     cancelUrl,
                                 },
                                 bookingId,
@@ -175,6 +182,7 @@ export async function POST(request: Request) {
                                     <p>Hi ${guestName},</p>
                                     <p>Your stay at <strong>Whistle Inn</strong> is confirmed!</p>
                                     <ul>
+                                      <li><strong>Your booking:</strong> ${accommodation}</li>
                                       <li><strong>Check-in:</strong> ${checkIn}</li>
                                       <li><strong>Check-out:</strong> ${checkOut}</li>
                                       <li><strong>Total paid:</strong> $${amount}</li>

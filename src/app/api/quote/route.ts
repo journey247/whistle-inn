@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { calculateQuote } from '@/lib/pricing-server';
+import { getBookableRoomBySlug } from '@/lib/rooms';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
         }
 
-        const { startDate, endDate, couponCode } = body;
+        const { startDate, endDate, couponCode, roomSlug } = body;
 
         if (!startDate || !endDate) {
             return NextResponse.json({ error: 'Missing dates' }, { status: 400 });
@@ -49,6 +50,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: `Maximum stay is ${MAX_STAY_DAYS} nights` }, { status: 400 });
         }
 
+        // Validate the room. An unknown slug is rejected rather than quietly
+        // quoting the whole house, which would badly under- or over-charge.
+        if (roomSlug !== undefined && roomSlug !== null && roomSlug !== '') {
+            if (typeof roomSlug !== 'string' || !getBookableRoomBySlug(roomSlug)) {
+                return NextResponse.json({ error: 'Unknown room' }, { status: 400 });
+            }
+        }
+
         // Sanitize coupon code: strip, limit length, alphanumeric+dash only
         let sanitizedCoupon: string | undefined;
         if (couponCode !== undefined && couponCode !== null && couponCode !== '') {
@@ -62,7 +71,10 @@ export async function POST(request: Request) {
         }
 
         try {
-            const quote = await calculateQuote(start, end, sanitizedCoupon);
+            const quote = await calculateQuote(start, end, {
+                couponCode: sanitizedCoupon,
+                roomSlug: roomSlug || null,
+            });
             return NextResponse.json(quote);
         } catch (error: any) {
             return NextResponse.json({ error: error.message }, { status: 400 });

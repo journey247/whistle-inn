@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { loadStripe } from "@stripe/stripe-js";
-import { X, Calendar, Loader2, Users, Info, Tag, User } from "lucide-react";
+import { X, Calendar, Loader2, Users, Info, Tag, User, Home, BedDouble } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast-context";
 
@@ -16,10 +16,25 @@ interface BookingModalProps {
     isOpen: boolean;
     onClose: () => void;
     title?: string;
+    /**
+     * Preselect a single room (used by the room pages). The guest can still
+     * switch to another room or to the whole house from inside the modal.
+     */
+    roomSlug?: string | null;
+}
+
+interface BookableRoom {
+    slug: string;
+    name: string;
+    beds: string;
+    weekdayPrice: number;
+    weekendPrice: number;
+    maxGuests: number;
 }
 
 interface Quote {
     total: number;
+    roomName: string | null;
     accommodationTotal: number;
     cleaningFee: number;
     discountAmount: number;
@@ -28,7 +43,7 @@ interface Quote {
     currency: string;
 }
 
-export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: BookingModalProps) {
+export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSlug = null }: BookingModalProps) {
     const { addToast } = useToast();
     const [range, setRange] = useState<DateRange | undefined>();
     const [loading, setLoading] = useState(false);
@@ -42,6 +57,17 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     // fallbacks used before that request resolves (or if it fails).
     const [maxGuests, setMaxGuests] = useState(14);
     const [minimumNights, setMinimumNights] = useState(3);
+    const [roomMinimumNights, setRoomMinimumNights] = useState(2);
+
+    // Which product the guest is buying: a room slug, or null for the whole house.
+    const [selectedRoom, setSelectedRoom] = useState<string | null>(roomSlug);
+    const [rooms, setRooms] = useState<BookableRoom[]>([]);
+
+    // The selected room's own record, or null when booking the whole house.
+    const activeRoom = selectedRoom ? rooms.find(r => r.slug === selectedRoom) ?? null : null;
+    // A room sleeps far fewer people than the property's 14 — cap by the room
+    // when one is selected, otherwise by the property-wide limit.
+    const effectiveMaxGuests = activeRoom ? activeRoom.maxGuests : maxGuests;
 
     // Pricing State
     const [quote, setQuote] = useState<Quote | null>(null);
@@ -50,15 +76,32 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
     const [couponError, setCouponError] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState("");
 
-    // Fetch availability on mount and when modal opens
+    // Fetch settings and the room list when the modal opens
     useEffect(() => {
         if (isOpen) {
-            fetchAvailability();
             fetchBookingSettings();
+            fetchRooms();
         }
     }, [isOpen]);
 
-    // Update quote when dates change (resetting coupon)
+    // Reopening from a room page should land on that room, not on whatever
+    // the guest happened to pick the last time the modal was open.
+    useEffect(() => {
+        if (isOpen) setSelectedRoom(roomSlug);
+    }, [isOpen, roomSlug]);
+
+    // Availability is per room: the whole house needs every room free, while a
+    // single room only cares about its own bookings and any whole-house one.
+    useEffect(() => {
+        if (isOpen) fetchAvailability();
+    }, [isOpen, selectedRoom]);
+
+    // Switching to a smaller room must not leave a party of eight selected.
+    useEffect(() => {
+        setGuestCount(current => Math.min(current, effectiveMaxGuests));
+    }, [effectiveMaxGuests]);
+
+    // Update quote when dates or the selected room change (resetting coupon)
     useEffect(() => {
         if (range?.from && range?.to) {
             setAppliedCoupon(""); // Reset coupon on date change
@@ -67,12 +110,15 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
         } else {
             setQuote(null);
         }
-    }, [range?.from, range?.to]);
+    }, [range?.from, range?.to, selectedRoom]);
 
     const fetchAvailability = async () => {
         try {
             setLoadingAvailability(true);
-            const response = await fetch('/api/availability');
+            const url = selectedRoom
+                ? `/api/availability?room=${encodeURIComponent(selectedRoom)}`
+                : '/api/availability';
+            const response = await fetch(url);
             const bookings = await response.json();
 
             // Convert booking ranges to individual blocked dates
@@ -106,10 +152,21 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                 const settings = await response.json();
                 if (settings.minimumNights) setMinimumNights(settings.minimumNights);
                 if (settings.maxGuests) setMaxGuests(settings.maxGuests);
+                if (settings.roomMinimumNights) setRoomMinimumNights(settings.roomMinimumNights);
             }
         } catch (error) {
             console.error('Failed to fetch booking settings:', error);
             // Keep defaults
+        }
+    };
+
+    const fetchRooms = async () => {
+        try {
+            const response = await fetch('/api/rooms');
+            if (response.ok) setRooms(await response.json());
+        } catch (error) {
+            console.error('Failed to fetch rooms:', error);
+            // Non-fatal: the modal falls back to whole-house booking only.
         }
     };
 
@@ -126,7 +183,8 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                 body: JSON.stringify({
                     startDate: range.from,
                     endDate: range.to,
-                    couponCode: codeToApply
+                    couponCode: codeToApply,
+                    roomSlug: selectedRoom,
                 })
             });
 
@@ -197,6 +255,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                     guestName: trimmedName,
                     guestEmail: trimmedEmail,
                     couponCode: appliedCoupon || undefined,
+                    roomSlug: selectedRoom,
                 }),
             });
 
@@ -240,7 +299,9 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
 
     const hasDateConflict = range?.from && range?.to ? checkDateConflict(range.from, range.to) : false;
     const numNights = quote?.nights || 0;
-    const meetsMinimum = numNights >= minimumNights;
+    // A single room has its own capacity and its own, shorter minimum stay.
+    const effectiveMinimumNights = selectedRoom ? roomMinimumNights : minimumNights;
+    const meetsMinimum = numNights >= effectiveMinimumNights;
 
     return (
         <AnimatePresence>
@@ -288,6 +349,57 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                     <div className="md:grid md:grid-cols-7 lg:grid-cols-5">
                                         {/* Left Side: Calendar & Guests */}
                                         <div className="md:col-span-4 lg:col-span-3 p-4 sm:p-5 border-b md:border-b-0 md:border-r border-gray-100">
+                                            {/* What is being booked. Hidden when no rooms are
+                                                configured, which leaves the original whole-house flow. */}
+                                            {rooms.length > 0 && (
+                                                <div className="mb-4 sm:mb-6">
+                                                    <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
+                                                        <BedDouble className="w-4 h-4" /> What would you like to book?
+                                                    </h3>
+                                                    <div className="space-y-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedRoom(null)}
+                                                            aria-pressed={selectedRoom === null}
+                                                            className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                                                                selectedRoom === null
+                                                                    ? "border-brand-gold bg-amber-50 ring-2 ring-brand-gold/30"
+                                                                    : "border-gray-200 bg-white hover:bg-gray-50"
+                                                            }`}
+                                                        >
+                                                            <Home className="w-4 h-4 text-slate-500 shrink-0" />
+                                                            <span className="flex-1 min-w-0">
+                                                                <span className="block font-medium text-slate-900 text-sm">The whole house</span>
+                                                                <span className="block text-xs text-slate-500">Every room, up to {maxGuests} guests</span>
+                                                            </span>
+                                                        </button>
+
+                                                        {rooms.map(room => (
+                                                            <button
+                                                                key={room.slug}
+                                                                type="button"
+                                                                onClick={() => setSelectedRoom(room.slug)}
+                                                                aria-pressed={selectedRoom === room.slug}
+                                                                className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                                                                    selectedRoom === room.slug
+                                                                        ? "border-brand-gold bg-amber-50 ring-2 ring-brand-gold/30"
+                                                                        : "border-gray-200 bg-white hover:bg-gray-50"
+                                                                }`}
+                                                            >
+                                                                <BedDouble className="w-4 h-4 text-slate-500 shrink-0" />
+                                                                <span className="flex-1 min-w-0">
+                                                                    <span className="block font-medium text-slate-900 text-sm truncate">{room.name}</span>
+                                                                    <span className="block text-xs text-slate-500 truncate">{room.beds} · sleeps {room.maxGuests}</span>
+                                                                </span>
+                                                                <span className="text-right shrink-0">
+                                                                    <span className="block font-bold text-slate-900 text-sm">${room.weekdayPrice}</span>
+                                                                    <span className="block text-[10px] text-slate-500 uppercase tracking-wide">per night</span>
+                                                                </span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="mb-4 sm:mb-6">
                                                 <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3 sm:mb-4 flex items-center gap-2">
                                                     <Calendar className="w-4 h-4" /> Select Dates
@@ -369,9 +481,9 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                         >-</button>
                                                         <span className="font-serif text-xl w-6 text-center">{guestCount}</span>
                                                         <button
-                                                            onClick={() => setGuestCount(Math.min(maxGuests, guestCount + 1))}
+                                                            onClick={() => setGuestCount(Math.min(effectiveMaxGuests, guestCount + 1))}
                                                             className="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all text-slate-600 font-bold"
-                                                            disabled={guestCount >= maxGuests}
+                                                            disabled={guestCount >= effectiveMaxGuests}
                                                         >+</button>
                                                     </div>
                                                 </div>
@@ -422,6 +534,11 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
 
                                                 {range?.from && range?.to && quote && !quote.error ? (
                                                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                                        <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm mb-4">
+                                                            <span className="text-slate-500 block text-xs mb-0.5 font-medium">Booking</span>
+                                                            <span className="font-bold text-slate-900 text-sm">{quote.roomName ?? "The whole house"}</span>
+                                                        </div>
+
                                                         <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                                                             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                                                                 <span className="text-slate-500 block text-xs mb-1 font-medium">Check-in</span>
@@ -446,7 +563,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                             ) : quote ? (
                                                                 <>
                                                                     <div className="flex justify-between items-center text-slate-700">
-                                                                        <span className="font-medium">Accommodation ({quote.nights} nights)</span>
+                                                                        <span className="font-medium">{quote.roomName ?? "Whole house"} ({quote.nights} nights)</span>
                                                                         <span className="font-semibold">${quote.accommodationTotal.toLocaleString()}</span>
                                                                     </div>
 
@@ -513,7 +630,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay" }: Book
                                                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-pulse">
                                                         <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                                                         <p className="text-xs sm:text-sm text-amber-800 font-medium">
-                                                            Minimum {minimumNights} nights required for this stay.
+                                                            Minimum {effectiveMinimumNights} nights required for this stay.
                                                         </p>
                                                     </div>
                                                 )}

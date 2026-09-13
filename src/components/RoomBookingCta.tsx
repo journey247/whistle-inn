@@ -10,8 +10,17 @@ import { BookingModal } from "@/components/BookingModal";
  * The room pages are server components, but BookingModal is a client component
  * that needs a ToastProvider above it (useToast throws without one). This wraps
  * both so a room page can drop in a working "check availability" button.
+ *
+ * Passing `roomSlug` opens the modal with that room already selected — the
+ * guest can still switch rooms or take the whole house from inside the modal.
  */
-export function RoomBookingCta({ label = "Check availability" }: { label?: string }) {
+export function RoomBookingCta({
+    label = "Check availability",
+    roomSlug = null,
+}: {
+    label?: string;
+    roomSlug?: string | null;
+}) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -22,7 +31,7 @@ export function RoomBookingCta({ label = "Check availability" }: { label?: strin
             >
                 {label}
             </button>
-            <BookingModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+            <BookingModal isOpen={isOpen} onClose={() => setIsOpen(false)} roomSlug={roomSlug} />
         </ToastProvider>
     );
 }

@@ -21,6 +21,7 @@ export async function GET(request: Request) {
                     guestName: true,
                     status: true,
                     notes: true,
+                    room: { select: { slug: true, name: true } },
                 }
             }),
             prisma.externalBooking.findMany({
@@ -39,7 +40,12 @@ export async function GET(request: Request) {
             ...bookings.map(b => ({
                 id: b.id,
                 type: 'internal',
-                title: b.guestName,
+                // A room booking leaves the other rooms free, so the room has
+                // to be visible on the calendar or the owner cannot tell a
+                // single-room night from a full buyout.
+                title: b.room ? `${b.guestName} — ${b.room.name}` : b.guestName,
+                room: b.room?.name ?? null,
+                roomSlug: b.room?.slug ?? null,
                 start: b.startDate,
                 end: b.endDate,
                 status: b.status,

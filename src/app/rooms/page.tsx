@@ -32,6 +32,17 @@ export const metadata: Metadata = {
     },
 };
 
+/** Nightly prices by slug, for the rooms that are currently sold separately. */
+async function getRoomPrices(): Promise<Record<string, number>> {
+    try {
+        const rows = await prisma.room.findMany({ where: { isActive: true } });
+        return Object.fromEntries(rows.map(r => [r.slug, r.weekdayPrice]));
+    } catch (error) {
+        console.error('Failed to fetch room prices:', error);
+        return {};
+    }
+}
+
 async function getContent(): Promise<Record<string, string>> {
     try {
         const blocks = await prisma.contentBlock.findMany();
@@ -43,7 +54,7 @@ async function getContent(): Promise<Record<string, string>> {
 }
 
 export default async function RoomsIndexPage() {
-    const content = await getContent();
+    const [content, prices] = await Promise.all([getContent(), getRoomPrices()]);
     const rooms = ROOMS.map(room => resolveRoom(room, content));
 
     return (
@@ -65,8 +76,8 @@ export default async function RoomsIndexPage() {
                         Where you&rsquo;ll sleep
                     </h1>
                     <p className="mt-3 text-slate-600">
-                        Five bedrooms and a shared living space, sleeping up to ten. The whole house
-                        is yours &mdash; rooms aren&rsquo;t booked separately.
+                        Five bedrooms and a shared living space, sleeping up to 14. Book a single
+                        room, or take the whole house.
                     </p>
                 </div>
 
@@ -93,6 +104,12 @@ export default async function RoomsIndexPage() {
                                 <p className="flex items-center gap-2 mt-2 text-sm text-slate-500">
                                     <Bed className="w-4 h-4" /> {room.beds}
                                 </p>
+                                {prices[room.slug] !== undefined && (
+                                    <p className="mt-2 text-sm font-bold text-slate-900">
+                                        From ${prices[room.slug]}
+                                        <span className="font-medium text-slate-500"> / night</span>
+                                    </p>
+                                )}
                                 <p className="mt-3 text-sm text-slate-600 line-clamp-3">
                                     {room.description}
                                 </p>

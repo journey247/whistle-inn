@@ -28,6 +28,10 @@ model Booking {
   stripePaymentIntentId String?
   notes      String?       // admin notes
   guestCount Int           @default(1)
+  // Which room this booking is for. NULL = whole-property buyout, which is
+  // still the primary product and blocks every room over the same dates.
+  roomId     String?
+  room       Room?         @relation(fields: [roomId], references: [id])
   discount   Float         @default(0)
   couponId   String?
   coupon     Coupon?       @relation(fields: [couponId], references: [id])
@@ -39,6 +43,7 @@ model Booking {
 
   @@index([startDate, endDate])          // fast conflict-range queries
   @@index([status, expiresAt])           // fast expired-pending cleanup queries
+  @@index([roomId, startDate, endDate])  // per-room conflict-range queries
 }
 
 model Subscriber {
@@ -131,8 +136,31 @@ model Coupon {
   createdAt   DateTime @default(now())
 }
 
+model Room {
+  id           String   @id @default(cuid())
+  // Must match a slug in src/lib/rooms.ts -- that file owns the copy and
+  // photography, this table owns the price, capacity and sale state.
+  slug         String   @unique
+  name         String
+  weekdayPrice Float    // Mon-Thu, per night
+  weekendPrice Float    // Fri-Sun, per night
+  maxGuests    Int      @default(2)
+  // Off the market without losing history: existing bookings keep their FK.
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  bookings     Booking[]
+  specialRates SpecialRate[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model SpecialRate {
   id          String   @id @default(cuid())
+  // Scope. NULL = a property-wide rate. A property-wide pricePerNight is a
+  // whole-house price, so it is NOT applied to single-room bookings; a
+  // property-wide multiplier is relative and does apply to both.
+  roomId      String?
+  room        Room?    @relation(fields: [roomId], references: [id])
   label       String?   // e.g. 'Peak Season'
   startDate   DateTime
   endDate     DateTime

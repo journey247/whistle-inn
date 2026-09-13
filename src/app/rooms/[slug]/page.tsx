@@ -18,6 +18,22 @@ export function generateStaticParams() {
     return ROOMS.map(room => ({ slug: room.slug }));
 }
 
+/**
+ * The room's live nightly price, or null if it is not sold separately (the
+ * shared living space) or has no Room row yet. Null renders the page exactly
+ * as it looked before per-room booking existed.
+ */
+async function getRoomPricing(slug: string) {
+    try {
+        const row = await prisma.room.findUnique({ where: { slug } });
+        if (!row || !row.isActive) return null;
+        return { weekdayPrice: row.weekdayPrice, weekendPrice: row.weekendPrice, maxGuests: row.maxGuests };
+    } catch (error) {
+        console.error('Failed to fetch room pricing:', error);
+        return null;
+    }
+}
+
 async function getContent(): Promise<Record<string, string>> {
     try {
         const blocks = await prisma.contentBlock.findMany();
@@ -69,6 +85,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
 
     const content = await getContent();
     const room = resolveRoom(base, content);
+    const pricing = base.bookable ? await getRoomPricing(base.slug) : null;
 
     // Previous / next for walking through the rooms without going back to the index
     const position = ROOMS.findIndex(r => r.slug === room.slug);
@@ -86,6 +103,18 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
         url: `${SITE_URL}/rooms/${room.slug}`,
         image: `${SITE_URL}${room.image}`,
         bed: room.beds,
+        ...(pricing
+            ? {
+                  occupancy: { '@type': 'QuantitativeValue', maxValue: pricing.maxGuests },
+                  offers: {
+                      '@type': 'Offer',
+                      price: pricing.weekdayPrice,
+                      priceCurrency: 'USD',
+                      availability: 'https://schema.org/InStock',
+                      url: `${SITE_URL}/rooms/${room.slug}`,
+                  },
+              }
+            : {}),
         containedInPlace: {
             '@type': 'LodgingBusiness',
             name: 'Whistle Inn',
@@ -133,9 +162,16 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
                         <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white drop-shadow-lg">
                             {room.title}
                         </h1>
-                        <p className="mt-3 inline-flex items-center gap-2 text-white/90 bg-black/30 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
-                            <Bed className="w-4 h-4" /> {room.beds}
-                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <p className="inline-flex items-center gap-2 text-white/90 bg-black/30 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium">
+                                <Bed className="w-4 h-4" /> {room.beds}
+                            </p>
+                            {pricing && (
+                                <p className="inline-flex items-center gap-2 text-slate-900 bg-brand-gold rounded-full px-4 py-1.5 text-sm font-bold">
+                                    From ${pricing.weekdayPrice} / night
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </section>
@@ -155,9 +191,11 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
                         Planning a stay?
                     </h2>
                     <p className="text-slate-600 mb-6">
-                        Rooms are booked together as the whole house — check which dates are open.
+                        {pricing
+                            ? `Book this room on its own from ${pricing.weekdayPrice} a night, or take the whole house.`
+                            : 'Rooms are booked together as the whole house — check which dates are open.'}
                     </p>
-                    <RoomBookingCta />
+                    <RoomBookingCta roomSlug={pricing ? room.slug : null} />
                 </div>
             </section>
 

@@ -13,7 +13,7 @@
  * the admin panel edits.
  */
 
-export type Room = {
+type RoomContent = {
     slug: string;
     /** Index used by the existing room_img_N content keys (0-based). */
     index: number;
@@ -34,9 +34,34 @@ export type Room = {
     ogImage: string;
 };
 
+/**
+ * A room that can be sold on its own.
+ *
+ * The `default*Price` / `defaultMaxGuests` values are seed values only — once
+ * the Room rows exist, the database is authoritative and the owner edits them
+ * from Settings → Rooms. They stay here so a fresh database can be seeded
+ * without hand-typing five rooms, and so the site can still quote a price if
+ * the Room row is missing.
+ */
+export type BookableRoom = RoomContent & {
+    bookable: true;
+    defaultWeekdayPrice: number;
+    defaultWeekendPrice: number;
+    defaultMaxGuests: number;
+};
+
+/** A space shown on the site but not sold separately (the shared living room). */
+export type SharedSpace = RoomContent & { bookable: false };
+
+export type Room = BookableRoom | SharedSpace;
+
 export const ROOMS: Room[] = [
     {
         slug: 'conductors-suite',
+        bookable: true,
+        defaultWeekdayPrice: 195,
+        defaultWeekendPrice: 225,
+        defaultMaxGuests: 3,
         index: 0,
         titleKey: 'room_1_title',
         bedsKey: 'room_1_beds',
@@ -51,6 +76,10 @@ export const ROOMS: Room[] = [
     },
     {
         slug: 'tree-house-room',
+        bookable: true,
+        defaultWeekdayPrice: 165,
+        defaultWeekendPrice: 195,
+        defaultMaxGuests: 2,
         index: 1,
         titleKey: 'room_2_title',
         bedsKey: 'room_2_beds',
@@ -65,6 +94,10 @@ export const ROOMS: Room[] = [
     },
     {
         slug: 'train-room',
+        bookable: true,
+        defaultWeekdayPrice: 185,
+        defaultWeekendPrice: 215,
+        defaultMaxGuests: 4,
         index: 2,
         titleKey: 'room_3_title',
         bedsKey: 'room_3_beds',
@@ -79,6 +112,10 @@ export const ROOMS: Room[] = [
     },
     {
         slug: 'starlit-sky-room',
+        bookable: true,
+        defaultWeekdayPrice: 165,
+        defaultWeekendPrice: 195,
+        defaultMaxGuests: 2,
         index: 3,
         titleKey: 'room_4_title',
         bedsKey: 'room_4_beds',
@@ -93,6 +130,10 @@ export const ROOMS: Room[] = [
     },
     {
         slug: 'breakmans-suite',
+        bookable: true,
+        defaultWeekdayPrice: 165,
+        defaultWeekendPrice: 195,
+        defaultMaxGuests: 2,
         index: 4,
         titleKey: 'room_5_title',
         bedsKey: 'room_5_beds',
@@ -107,6 +148,7 @@ export const ROOMS: Room[] = [
     },
     {
         slug: 'living-space',
+        bookable: false,
         index: 5,
         titleKey: 'room_6_title',
         bedsKey: 'room_6_beds',
@@ -120,6 +162,15 @@ export const ROOMS: Room[] = [
         ogImage: '/og-rooms/living-space.jpg',
     },
 ];
+
+/** The rooms that can be booked individually, in display order. */
+export const BOOKABLE_ROOMS: BookableRoom[] = ROOMS.filter(
+    (r): r is BookableRoom => r.bookable
+);
+
+export function getBookableRoomBySlug(slug: string): BookableRoom | undefined {
+    return BOOKABLE_ROOMS.find(r => r.slug === slug);
+}
 
 export function getRoomBySlug(slug: string): Room | undefined {
     return ROOMS.find(r => r.slug === slug);

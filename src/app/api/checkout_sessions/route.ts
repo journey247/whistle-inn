@@ -4,6 +4,8 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { calculateQuote } from '@/lib/pricing-server';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
+import { getBookableRoomBySlug } from '@/lib/rooms';
+import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,11 +86,21 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { startDate, endDate, guestCount: rawGuestCount, guestName, guestEmail } = body;
+        const { startDate, endDate, guestCount: rawGuestCount, guestName, guestEmail, roomSlug } = body;
 
         if (!startDate || !endDate) {
             return NextResponse.json({ error: 'Missing dates' }, { status: 400 });
         }
+
+        // Resolve the room first: a single-room booking has its own capacity,
+        // its own minimum stay and its own nightly price, so most of the
+        // validation below depends on which of the two products this is.
+        if (roomSlug !== undefined && roomSlug !== null && roomSlug !== '') {
+            if (typeof roomSlug !== 'string' || !getBookableRoomBySlug(roomSlug)) {
+                return NextResponse.json({ error: 'Unknown room' }, { status: 400 });
+            }
+        }
+        const requestedRoomSlug: string | null = roomSlug || null;
 
         // Validate and sanitize guestCount against the same limit the booking
         // modal enforces (see /api/settings/public), so raising max_guests in
@@ -119,14 +131,40 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
         }
 
-        // Get minimum nights from content blocks
-        const minNightsBlock = await prisma.contentBlock.findUnique({
-            where: { key: 'minimum_nights' }
-        });
-        const minimumNights = minNightsBlock ? parseInt(minNightsBlock.value) : MINIMUM_NIGHTS;
+        // Use server-side quote calculation for security. The quote also
+        // reports the constraints for this product — a single room has a
+        // shorter minimum stay and a smaller capacity than the whole house.
+        let quote;
+        try {
+            quote = await calculateQuote(start, end, {
+                couponCode: body.couponCode,
+                roomSlug: requestedRoomSlug,
+            });
+        } catch (quoteErr: any) {
+            return NextResponse.json({ error: quoteErr.message }, { status: 400 });
+        }
 
-        // Use server-side quote calculation for security
-        const { nights, accommodationTotal, cleaningFee, total, discountAmount, couponId } = await calculateQuote(start, end, body.couponCode);
+        const { nights, accommodationTotal, cleaningFee, total, discountAmount, couponId } = quote;
+        const minimumNights = quote.constraints.minimumNights || MINIMUM_NIGHTS;
+
+        // A room booking must have a Room row: without one there is no id to
+        // attach, and the booking would be stored as a whole-property buyout —
+        // silently taking the entire house off the calendar at one room's price.
+        if (requestedRoomSlug && !quote.roomId) {
+            console.error(`No Room row for slug "${requestedRoomSlug}" — refusing single-room checkout`);
+            return NextResponse.json(
+                { error: 'That room cannot be booked online yet. Please contact us to reserve it.' },
+                { status: 503 }
+            );
+        }
+
+        // Room capacity is per room and overrides the property-wide cap.
+        if (quote.constraints.maxGuests > 0 && guestCount > quote.constraints.maxGuests) {
+            return NextResponse.json(
+                { error: `${quote.roomName ?? "That room"} sleeps up to ${quote.constraints.maxGuests} guests` },
+                { status: 400 }
+            );
+        }
 
         if (nights < minimumNights) {
             return NextResponse.json({ error: `Minimum ${minimumNights} night stay required` }, { status: 400 });
@@ -140,33 +178,19 @@ export async function POST(request: Request) {
         // Use a serializable transaction so the read + write cannot be interleaved
         // with another concurrent checkout request for the same dates.
         const booking = await prisma.$transaction(async (tx) => {
-            // Check for conflicting internal bookings.
-            // Exclude expired pending bookings — they no longer hold the dates.
+            // Check for conflicting internal bookings, scoped to this room.
+            // A buyout collides with everything; a room collides with itself
+            // and with any buyout. Expired pending bookings no longer hold
+            // their dates and are excluded either way.
             const now = new Date();
             const conflictingBookings = await tx.booking.findMany({
-                where: {
-                    AND: [
-                        { startDate: { lt: end } },
-                        { endDate: { gt: start } },
-                        {
-                            OR: [
-                                { status: 'paid' },
-                                // pending only blocks if it hasn't expired yet
-                                { status: 'pending', expiresAt: { gt: now } },
-                            ]
-                        }
-                    ]
-                }
+                where: conflictingBookingWhere(start, end, quote.roomId, now),
             });
 
-            // Check for conflicting external (Airbnb/VRBO) bookings
+            // Check for conflicting external (Airbnb/VRBO) bookings. Those
+            // channels list the whole house, so they block a single room too.
             const conflictingExternal = await tx.externalBooking.findMany({
-                where: {
-                    AND: [
-                        { startDate: { lt: end } },
-                        { endDate: { gt: start } }
-                    ]
-                }
+                where: conflictingExternalWhere(start, end),
             });
 
             if (conflictingBookings.length > 0 || conflictingExternal.length > 0) {
@@ -183,6 +207,7 @@ export async function POST(request: Request) {
                     guestName: guestName.trim(),
                     email: guestEmail.trim().toLowerCase(),
                     guestCount,
+                    roomId: quote.roomId,
                     totalPrice: total,
                     discount: discountAmount,
                     couponId: couponId || undefined,
@@ -251,7 +276,9 @@ export async function POST(request: Request) {
                         price_data: {
                             currency: 'usd',
                             product_data: {
-                                name: 'Whistle Inn — Nightly Stay',
+                                name: quote.roomName
+                                    ? `Whistle Inn — ${quote.roomName}`
+                                    : 'Whistle Inn — Whole House',
                                 description: accommodationDescription,
                             },
                             unit_amount: Math.round(finalAccommodationPrice * 100),
@@ -289,6 +316,8 @@ export async function POST(request: Request) {
                         bookingId: booking.id,
                         guestCount: String(guestCount),
                         couponId: couponId || '',
+                        roomSlug: quote.roomSlug || '',
+                        roomName: quote.roomName || 'Whole property',
                         checkIn: startDate,
                         checkOut: endDate,
                         nights: String(nights),

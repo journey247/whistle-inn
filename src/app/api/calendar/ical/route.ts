@@ -18,6 +18,7 @@ export async function GET() {
                 guestName: true,
                 createdAt: true,
                 updatedAt: true,
+                room: { select: { name: true } },
             },
         });
 
@@ -42,8 +43,14 @@ export async function GET() {
             const created = formatDateTime(booking.createdAt);
             const lastMod = formatDateTime(booking.updatedAt);
 
-            // Mask guest details for privacy if needed, but 'Reserved' is standard
-            const summary = 'Reserved (Whistle Inn)';
+            // Mask guest details for privacy if needed, but 'Reserved' is standard.
+            // Single-room bookings are exported too, and deliberately: the OTA
+            // listings are for the entire house, so one room being sold here
+            // does make those listings unsellable for those nights. The room
+            // name is included so the block is explicable on the other side.
+            const summary = booking.room
+                ? `Reserved — ${booking.room.name} (Whistle Inn)`
+                : 'Reserved (Whistle Inn)';
 
             const event = [
                 'BEGIN:VEVENT',

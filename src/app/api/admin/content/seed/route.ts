@@ -90,6 +90,8 @@ const SEED_BLOCKS = [
     // than living only as a hardcoded fallback in three separate files — which
     // is how the site came to advertise 14 guests while rejecting 11 and over.
     { key: 'max_guests',    label: 'Maximum Guests',      type: 'text',     section: 'Booking', value: '14' },
+    // Single-room stays get their own, shorter minimum — see /api/settings/public.
+    { key: 'room_minimum_nights', label: 'Minimum Nights (single room)', type: 'text', section: 'Booking', value: '2' },
 ];
 
 export async function POST(request: Request) {

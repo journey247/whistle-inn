@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { getAdminToken } from "@/lib/adminToken";
-import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles, MessageSquare, Mail, Inbox, Shield } from "lucide-react";
+import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles, MessageSquare, Mail, Inbox, Shield, BedDouble } from "lucide-react";
 import { WebsiteEditor } from "./WebsiteEditor";
 import { AmenityRequestsPanel } from "./AmenityRequestsPanel";
 import { SmsPanel } from "./SmsPanel";
@@ -10,7 +10,7 @@ import { EmailPanel } from "./EmailPanel";
 import { EmailLogsPanel } from "./EmailLogsPanel";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
-type SettingsTab = "pricing" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users";
+type SettingsTab = "pricing" | "rooms" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users";
 
 type SpecialRate = {
     id: string;
@@ -212,6 +212,159 @@ function PricingTab({ addToast }: { addToast: AddToast }) {
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+type RoomRow = {
+    slug: string;
+    name: string;
+    weekdayPrice: number;
+    weekendPrice: number;
+    maxGuests: number;
+    isActive: boolean;
+    /** False means the room has no database row yet and cannot be booked online. */
+    configured: boolean;
+};
+
+// ── Rooms sub-tab ────────────────────────────────────────────────────────────
+function RoomsTab({ addToast }: { addToast: AddToast }) {
+    const [rooms, setRooms]   = useState<RoomRow[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [savingSlug, setSavingSlug] = useState<string | null>(null);
+    const [seeding, setSeeding] = useState(false);
+
+    const token = () => getAdminToken() ?? "";
+    const h = useCallback(() => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` }), []);
+
+    const load = useCallback(async () => {
+        try {
+            const res = await fetch("/api/admin/rooms", { headers: h() });
+            if (res.ok) setRooms(await res.json());
+        } catch {
+            addToast("Could not load rooms", "error");
+        } finally {
+            setLoading(false);
+        }
+    }, [h, addToast]);
+
+    useEffect(() => { load(); }, [load]);
+
+    const patch = (slug: string, changes: Partial<RoomRow>) =>
+        setRooms(prev => prev.map(r => (r.slug === slug ? { ...r, ...changes } : r)));
+
+    const setUpRooms = async () => {
+        setSeeding(true);
+        try {
+            const res = await fetch("/api/admin/rooms", { method: "POST", headers: h() });
+            if (!res.ok) throw new Error();
+            const { created } = await res.json();
+            addToast(created > 0 ? `${created} room${created === 1 ? "" : "s"} set up` : "Rooms already set up", "success");
+            await load();
+        } catch {
+            addToast("Could not set up rooms", "error");
+        } finally {
+            setSeeding(false);
+        }
+    };
+
+    const save = async (room: RoomRow) => {
+        setSavingSlug(room.slug);
+        try {
+            const res = await fetch("/api/admin/rooms", {
+                method: "PUT",
+                headers: h(),
+                body: JSON.stringify({
+                    slug: room.slug,
+                    weekdayPrice: Number(room.weekdayPrice),
+                    weekendPrice: Number(room.weekendPrice),
+                    maxGuests: Number(room.maxGuests),
+                    isActive: room.isActive,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Save failed");
+            patch(room.slug, { configured: true });
+            addToast(`${room.name} saved`, "success");
+        } catch (err: any) {
+            addToast(err?.message || "Could not save room", "error");
+        } finally {
+            setSavingSlug(null);
+        }
+    };
+
+    if (loading) return <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-gray-400" /></div>;
+
+    const unconfigured = rooms.filter(r => !r.configured).length;
+
+    return (
+        <div className="space-y-5">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
+                <h3 className="font-semibold text-sm text-gray-900">Per-room rates</h3>
+                <p className="text-xs text-gray-500">
+                    Guests can book a single room at these rates or take the whole house at the
+                    rates on the Pricing tab. A booked room only blocks that room; a whole-house
+                    booking blocks all of them.
+                </p>
+                {unconfigured > 0 && (
+                    <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                        <p className="flex-1 text-xs text-amber-800">
+                            {unconfigured} room{unconfigured === 1 ? " is" : "s are"} not set up yet and
+                            cannot be booked online. Prices shown are the defaults.
+                        </p>
+                        <button onClick={setUpRooms} disabled={seeding}
+                            className="shrink-0 bg-brand-gold text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-yellow-500 disabled:opacity-50 transition">
+                            {seeding ? "Setting up…" : "Set up rooms"}
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {rooms.map(room => (
+                <div key={room.slug} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <h4 className="font-semibold text-sm text-gray-900 truncate">{room.name}</h4>
+                            <p className="text-xs text-gray-400 truncate">/rooms/{room.slug}</p>
+                        </div>
+                        <label className="flex items-center gap-2 text-xs text-gray-600 shrink-0">
+                            <input type="checkbox" checked={room.isActive}
+                                onChange={e => patch(room.slug, { isActive: e.target.checked })}
+                                className="rounded border-gray-300 text-brand-gold focus:ring-brand-gold" />
+                            Bookable
+                        </label>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { label: "Weekday / night", key: "weekdayPrice" as const, money: true },
+                            { label: "Weekend / night", key: "weekendPrice" as const, money: true },
+                            { label: "Sleeps",          key: "maxGuests" as const,    money: false },
+                        ].map(({ label, key, money }) => (
+                            <div key={key}>
+                                <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                                <div className="relative">
+                                    {money && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>}
+                                    <input type="number" min={0} value={room[key]}
+                                        onChange={e => patch(room.slug, { [key]: e.target.value } as Partial<RoomRow>)}
+                                        className={`w-full ${money ? "pl-7" : "pl-3"} pr-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-brand-gold/30 focus:border-brand-gold`} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={() => save(room)} disabled={savingSlug === room.slug}
+                        className="w-full flex items-center justify-center gap-2 bg-brand-gold text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-yellow-500 transition disabled:opacity-50">
+                        {savingSlug === room.slug
+                            ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving…</>
+                            : <><Save className="w-3.5 h-3.5" /> Save {room.name}</>}
+                    </button>
+                </div>
+            ))}
+
+            {rooms.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-6">No rooms found</p>
+            )}
         </div>
     );
 }
@@ -729,6 +882,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
 
     const TABS: { id: SettingsTab; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
         { id: "pricing",  label: "Pricing",   Icon: DollarSign },
+        { id: "rooms",    label: "Rooms",     Icon: BedDouble },
         { id: "coupons",  label: "Coupons",   Icon: Tag },
         { id: "channels", label: "Channels",  Icon: Link2 },
         { id: "content",  label: "Website",   Icon: Globe },
@@ -756,6 +910,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
             </div>
 
             {tab === "pricing"  && <PricingTab  addToast={addToast} />}
+            {tab === "rooms"    && <RoomsTab    addToast={addToast} />}
             {tab === "coupons"  && <CouponsTab  addToast={addToast} />}
             {tab === "channels" && <ChannelsTab addToast={addToast} />}
             {tab === "content"  && <WebsiteEditor addToast={addToast} />}

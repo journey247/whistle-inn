@@ -86,6 +86,7 @@ function BookingDrawer({ booking, onClose, onStatusChange, addToast }: {
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Check-in"  value={fmt(booking.startDate)} />
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Check-out" value={fmt(booking.endDate)} />
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Duration"  value={`${nights} night${nights !== 1 ? "s" : ""}`} />
+                        <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Booked" value={booking.room ? booking.room.name : "Whole house"} />
                         {booking.guestCount ? <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Guests" value={String(booking.guestCount)} /> : null}
                     </Card>
 
