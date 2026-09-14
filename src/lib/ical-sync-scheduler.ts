@@ -1,5 +1,16 @@
 import * as cron from 'node-cron';
-import { prisma } from '@/lib/prisma';
+import { syncAllFeeds } from './ical-sync';
+
+/**
+ * In-process scheduler for self-hosted / local runs.
+ *
+ * Deliberately not used on Vercel — serverless functions do not stay warm, so
+ * a node-cron timer registered during a request dies with that invocation
+ * (see IcalSyncInitializer, which skips this when process.env.VERCEL is set).
+ * On Vercel the schedule comes from vercel.json's cron entry, from any external
+ * caller of /api/cron/ical-sync, and from the stale-feed refresh that
+ * /api/availability runs off real traffic.
+ */
 
 let syncJob: cron.ScheduledTask | null = null;
 
@@ -12,50 +23,11 @@ export function startIcalSyncScheduler() {
     // Run every 30 minutes: '*/30 * * * *'
     syncJob = cron.schedule('*/30 * * * *', async () => {
         console.log('Starting scheduled iCal feed sync...');
-
         try {
-            const feeds = await prisma.iCalFeed.findMany();
-
-            for (const feed of feeds) {
-                try {
-                    // Import dynamically to avoid build issues
-                    const { parseIcalFeed } = await import("@/lib/ical-parser");
-                    const bookings = await parseIcalFeed(feed.url, feed.source);
-
-                    // Clear existing bookings for this feed source
-                    await prisma.externalBooking.deleteMany({
-                        where: { source: feed.source }
-                    });
-
-                    // Add new bookings
-                    for (const booking of bookings) {
-                        await prisma.externalBooking.create({
-                            data: {
-                                source: feed.source,
-                                guestName: booking.guestName,
-                                startDate: new Date(booking.startDate),
-                                endDate: new Date(booking.endDate),
-                                notes: `Auto-synced from ${feed.name} iCal feed`,
-                            },
-                        });
-                    }
-
-                    // Update last sync time
-                    await prisma.iCalFeed.update({
-                        where: { id: feed.id },
-                        data: { lastSync: new Date() },
-                    });
-
-                    console.log(`Successfully synced ${feed.name}`);
-
-                } catch (error) {
-                    console.error(`Failed to sync feed ${feed.name}:`, error);
-                    // Continue with other feeds even if one fails
-                }
-            }
-
+            // Shared with every other entry point, so the empty-feed guard and
+            // the transactional replace apply here too.
+            await syncAllFeeds();
             console.log('Scheduled iCal feed sync completed');
-
         } catch (error) {
             console.error('Scheduled sync error:', error);
         }

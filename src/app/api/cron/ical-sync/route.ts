@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { syncAllFeeds, cancelExpiredPendingBookings } from '@/lib/ical-sync';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/cron/ical-sync
  *
- * Vercel Cron Job endpoint — syncs all iCal feeds every 30 minutes.
+ * Scheduled sync of all iCal feeds, plus cleanup of abandoned checkouts.
  * Protected by CRON_SECRET to prevent unauthorized calls.
  *
- * Configure in vercel.json crons array with schedule "* /30 * * * *" (every 30 min).
- * Vercel automatically sends the Authorization: Bearer CRON_SECRET header.
+ * Driven by the `crons` entry in vercel.json, which on the Hobby plan can only
+ * fire once a day. Any external scheduler that can send an
+ * `Authorization: Bearer <CRON_SECRET>` header can call this more often, and
+ * `/api/availability` also refreshes stale feeds off real guest traffic.
  */
 export async function GET(request: NextRequest) {
     // Verify the request is from Vercel Cron (or authorized caller)
@@ -31,27 +33,12 @@ export async function GET(request: NextRequest) {
     // `feeds.length === 0` early return, so a property with no iCal feeds
     // configured never had its abandoned checkouts cleaned up, leaving stale
     // 'pending' rows cluttering the admin Reservations list indefinitely.
-    let expiredCount = 0;
-    try {
-        const expired = await prisma.booking.updateMany({
-            where: {
-                status: 'pending',
-                expiresAt: { lt: new Date() },
-            },
-            data: { status: 'cancelled' },
-        });
-        expiredCount = expired.count;
-        if (expiredCount > 0) {
-            console.log(`[iCal Cron] Cancelled ${expiredCount} expired pending booking(s)`);
-        }
-    } catch (cleanupErr) {
-        console.error('[iCal Cron] Expired-pending cleanup failed:', cleanupErr);
-    }
+    const expiredCount = await cancelExpiredPendingBookings();
 
     try {
-        const feeds = await prisma.iCalFeed.findMany();
+        const results = await syncAllFeeds();
 
-        if (feeds.length === 0) {
+        if (results.length === 0) {
             return NextResponse.json({
                 success: true,
                 message: 'No iCal feeds configured',
@@ -60,48 +47,8 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        const results: { feed: string; synced: number; error?: string }[] = [];
-
-        for (const feed of feeds) {
-            try {
-                const { parseIcalFeed } = await import('@/lib/ical-parser');
-                const bookings = await parseIcalFeed(feed.url, feed.source);
-
-                // Atomic delete + re-create inside a transaction to eliminate
-                // the race-condition window where dates appear available mid-sync.
-                await prisma.$transaction(async (tx) => {
-                    await tx.externalBooking.deleteMany({
-                        where: { source: feed.source }
-                    });
-
-                    if (bookings.length > 0) {
-                        await tx.externalBooking.createMany({
-                            data: bookings.map((booking) => ({
-                                source: feed.source,
-                                guestName: booking.guestName,
-                                startDate: new Date(booking.startDate),
-                                endDate: new Date(booking.endDate),
-                                notes: `Imported from ${feed.name} iCal feed`,
-                            })),
-                        });
-                    }
-
-                    await tx.iCalFeed.update({
-                        where: { id: feed.id },
-                        data: { lastSync: new Date() },
-                    });
-                });
-
-                results.push({ feed: feed.name, synced: bookings.length });
-                console.log(`[iCal Cron] Synced ${bookings.length} bookings from "${feed.name}"`);
-            } catch (error: any) {
-                console.error(`[iCal Cron] Failed to sync feed "${feed.name}":`, error.message);
-                results.push({ feed: feed.name, synced: 0, error: error.message });
-            }
-        }
-
         const totalSynced = results.reduce((sum, r) => sum + r.synced, 0);
-        console.log(`[iCal Cron] Complete — ${totalSynced} total bookings synced across ${feeds.length} feeds`);
+        console.log(`[iCal Cron] Complete — ${totalSynced} total bookings synced across ${results.length} feeds`);
 
         return NextResponse.json({
             success: true,

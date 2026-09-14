@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getBookableRoomBySlug } from '@/lib/rooms';
+import { syncStaleFeeds } from '@/lib/ical-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,9 +17,43 @@ export const dynamic = 'force-dynamic';
  *
  * External (Airbnb/VRBO) bookings list the entire house, so they block in
  * both cases.
+ *
+ * This endpoint also refreshes stale channel feeds, after the response — see
+ * `refreshChannelsInBackground` below.
  */
+
+/**
+ * Pull the Airbnb/VRBO feeds when they have gone stale, on the back of real
+ * guest traffic.
+ *
+ * The scheduled job runs once a day (Vercel's Hobby plan does not allow more),
+ * which leaves a long window where a channel booking is invisible here. This
+ * closes it where it actually costs money: someone opening the booking
+ * calendar is the moment before a double-booking becomes possible, so that is
+ * the moment worth spending a fetch on.
+ *
+ * `after()` runs this once the response has been sent, so the guest waits on
+ * nothing. It cannot be the only trigger — no visitors means no refresh — so
+ * it complements the cron job rather than replacing it.
+ */
+function refreshChannelsInBackground() {
+    after(async () => {
+        try {
+            // Returns immediately when nothing is stale, and claims each feed
+            // atomically so simultaneous visitors don't all fetch at once.
+            await syncStaleFeeds();
+        } catch (error) {
+            // Never surface this: the guest already has their answer, and a
+            // channel being unreachable is not their problem.
+            console.error('[availability] Background channel refresh failed:', error);
+        }
+    });
+}
+
 export async function GET(request: Request) {
     try {
+        refreshChannelsInBackground();
+
         const roomSlug = new URL(request.url).searchParams.get('room');
 
         if (roomSlug && !getBookableRoomBySlug(roomSlug)) {
