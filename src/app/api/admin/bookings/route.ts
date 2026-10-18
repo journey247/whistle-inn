@@ -22,6 +22,8 @@ export async function GET(request: Request) {
                 createdAt: true,
                 updatedAt: true,
                 stripeSessionId: true,
+                guestCount: true,
+                expiresAt: true,
                 // null for a whole-property booking
                 room: { select: { slug: true, name: true } },
                 // Don't select stripePaymentIntentId for security

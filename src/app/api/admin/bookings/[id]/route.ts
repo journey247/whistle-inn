@@ -47,6 +47,16 @@ export async function PATCH(request: Request) {
         const existing = await prisma.booking.findUnique({ where: { id } });
         if (!existing) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
+        // A request has never been checked against the calendar since it was
+        // made. Marking it pending or paid here would skip that check and can
+        // double-book the house, so it has to go through the approve endpoint.
+        if (existing.status === 'requested' && (status === 'pending' || status === 'paid')) {
+            return NextResponse.json(
+                { error: 'Use Approve to accept a booking request — it re-checks availability first.' },
+                { status: 400 }
+            );
+        }
+
         // ── Cancellation handling ────────────────────────────────────────────
         if (status === 'cancelled' && existing.status !== 'cancelled') {
             // Issue Stripe refund if the booking was paid

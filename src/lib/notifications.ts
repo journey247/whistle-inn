@@ -4,6 +4,7 @@ import { sendSMS } from './sms';
 
 export enum NotificationType {
   BOOKING_CREATED = 'booking_created',
+  BOOKING_REQUESTED = 'booking_requested',
   BOOKING_CANCELLED = 'booking_cancelled',
   PAYMENT_SUCCESS = 'payment_success',
   PAYMENT_FAILED = 'payment_failed',
@@ -199,6 +200,27 @@ function generateEmailContent(
         text: `New booking received: ${data.customerName} (${data.customerEmail}) for ${data.checkInDate} to ${data.checkOutDate}. Total: $${data.amount}. View: ${baseUrl}/admin`
       };
 
+    case NotificationType.BOOKING_REQUESTED:
+      return {
+        subject: `Booking request to approve - ${data.checkInDate} to ${data.checkOutDate}`,
+        html: `
+          <h2>New Booking Request</h2>
+          <p>Dear ${recipient.name || 'Property Owner'},</p>
+          <p>Online checkout is paused, so this guest was asked to call you. Their request has been saved:</p>
+          <ul>
+            <li><strong>Guest:</strong> ${data.customerName}</li>
+            <li><strong>Email:</strong> ${data.customerEmail}</li>
+            <li><strong>Check-in:</strong> ${data.checkInDate}</li>
+            <li><strong>Check-out:</strong> ${data.checkOutDate}</li>
+            <li><strong>Guests:</strong> ${data.guestCount}</li>
+            <li><strong>Quoted total:</strong> $${data.amount}</li>
+          </ul>
+          <p>These dates are <strong>not held</strong> until you approve the request.</p>
+          <p><a href="${baseUrl}/admin">Review it in the Admin Dashboard</a></p>
+        `,
+        text: `Booking request: ${data.customerName} (${data.customerEmail}) for ${data.checkInDate} to ${data.checkOutDate}. Quoted $${data.amount}. Not held until approved: ${baseUrl}/admin`
+      };
+
     case NotificationType.BOOKING_CANCELLED:
       return {
         subject: `Booking Cancelled - ${data.checkInDate} to ${data.checkOutDate}`,
@@ -291,6 +313,9 @@ function generateSMSContent(
     case NotificationType.BOOKING_CREATED:
       return `New booking: ${data.customerName} for ${data.checkInDate} to ${data.checkOutDate}. $${data.amount}. Check admin dashboard.`;
 
+    case NotificationType.BOOKING_REQUESTED:
+      return `Booking request: ${data.customerName} for ${data.checkInDate} to ${data.checkOutDate}. $${data.amount}. Approve in admin dashboard.`;
+
     case NotificationType.BOOKING_CANCELLED:
       return `Booking cancelled: ${data.customerName} for ${data.checkInDate} to ${data.checkOutDate}. Dates now available.`;
 
@@ -320,6 +345,9 @@ function generateInAppContent(
     case NotificationType.BOOKING_CREATED:
       return `New booking from ${data.customerName} (${data.checkInDate} to ${data.checkOutDate}) - $${data.amount}`;
 
+    case NotificationType.BOOKING_REQUESTED:
+      return `Booking request from ${data.customerName} (${data.checkInDate} to ${data.checkOutDate}) - $${data.amount} - awaiting approval`;
+
     case NotificationType.BOOKING_CANCELLED:
       return `Booking cancelled by ${data.customerName} (${data.checkInDate} to ${data.checkOutDate})`;
 
@@ -344,6 +372,8 @@ function getNotificationTitle(type: NotificationType): string {
   switch (type) {
     case NotificationType.BOOKING_CREATED:
       return 'New Booking';
+    case NotificationType.BOOKING_REQUESTED:
+      return 'Booking Request';
     case NotificationType.BOOKING_CANCELLED:
       return 'Booking Cancelled';
     case NotificationType.PAYMENT_SUCCESS:

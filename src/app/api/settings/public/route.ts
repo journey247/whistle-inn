@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCheckoutSettings } from '@/lib/checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,7 @@ export async function GET() {
         });
 
         const byKey = Object.fromEntries(blocks.map(b => [b.key, b.value]));
+        const checkout = await getCheckoutSettings();
 
         const minimumNights = parseInt(byKey.minimum_nights ?? '', 10);
         const maxGuests = parseInt(byKey.max_guests ?? '', 10);
@@ -52,6 +54,7 @@ export async function GET() {
             roomMinimumNights: Number.isFinite(roomMinimumNights) && roomMinimumNights > 0
                 ? roomMinimumNights
                 : DEFAULT_ROOM_MINIMUM_NIGHTS,
+            ...checkout,
         });
     } catch (error) {
         console.error('Failed to load public settings:', error);
@@ -60,6 +63,7 @@ export async function GET() {
             minimumNights: DEFAULT_MINIMUM_NIGHTS,
             maxGuests: DEFAULT_MAX_GUESTS,
             roomMinimumNights: DEFAULT_ROOM_MINIMUM_NIGHTS,
+            ...(await getCheckoutSettings()),
         });
     }
 }

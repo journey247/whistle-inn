@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { loadStripe } from "@stripe/stripe-js";
-import { X, Calendar, Loader2, Users, Info, Tag, User, Home, BedDouble } from "lucide-react";
+import { X, Calendar, Loader2, Users, Info, Tag, User, Home, BedDouble, Phone, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast-context";
 
@@ -58,6 +58,12 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
     const [maxGuests, setMaxGuests] = useState(14);
     const [minimumNights, setMinimumNights] = useState(3);
     const [roomMinimumNights, setRoomMinimumNights] = useState(2);
+    // Online payment can be paused by the owner. While it is, the guest's
+    // details are saved as a request and they are asked to call instead.
+    // Starts paused to match the server, which treats a missing setting as off.
+    const [onlineCheckoutEnabled, setOnlineCheckoutEnabled] = useState(false);
+    const [contact, setContact] = useState({ name: "Nora", phone: "(530) 448-6242" });
+    const [requestSent, setRequestSent] = useState(false);
 
     // Which product the guest is buying: a room slug, or null for the whole house.
     const [selectedRoom, setSelectedRoom] = useState<string | null>(roomSlug);
@@ -79,6 +85,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
     // Fetch settings and the room list when the modal opens
     useEffect(() => {
         if (isOpen) {
+            setRequestSent(false);
             fetchBookingSettings();
             fetchRooms();
         }
@@ -153,6 +160,10 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                 if (settings.minimumNights) setMinimumNights(settings.minimumNights);
                 if (settings.maxGuests) setMaxGuests(settings.maxGuests);
                 if (settings.roomMinimumNights) setRoomMinimumNights(settings.roomMinimumNights);
+                setOnlineCheckoutEnabled(settings.onlineCheckoutEnabled === true);
+                if (settings.contactPhone) {
+                    setContact({ name: settings.contactName || "Nora", phone: settings.contactPhone });
+                }
             }
         } catch (error) {
             console.error('Failed to fetch booking settings:', error);
@@ -271,6 +282,16 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                 throw new Error(data.error || 'Checkout failed');
             }
 
+            // Checkout is paused: the request was saved for the owner to
+            // approve, and the guest is shown who to call.
+            if (data.requested) {
+                if (data.contactPhone) {
+                    setContact({ name: data.contactName || "Nora", phone: data.contactPhone });
+                }
+                setRequestSent(true);
+                return;
+            }
+
             // Handle Mock URL (or explicit redirect URL)
             if (data.url) {
                 window.location.href = data.url;
@@ -338,7 +359,37 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                             </div>
 
                             <div className="flex-1 overflow-y-auto">
-                                {loadingAvailability ? (
+                                {requestSent ? (
+                                    <div className="flex items-center justify-center p-6 sm:p-12" role="status" aria-live="polite">
+                                        <div className="max-w-md text-center">
+                                            <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-5">
+                                                <Wrench className="w-8 h-8 text-brand-gold" />
+                                            </div>
+                                            <h3 className="font-serif text-2xl font-bold text-slate-900 mb-3">Online booking is down for maintenance</h3>
+                                            <p className="text-slate-600 mb-6">
+                                                To book a room, please call {contact.name}, who can confirm your dates and get you set up.
+                                            </p>
+                                            <a
+                                                href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`}
+                                                className="inline-flex items-center justify-center gap-2 bg-brand-gold hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-xl text-lg transition-colors min-h-[44px]"
+                                            >
+                                                <Phone className="w-5 h-5" />
+                                                {contact.phone}
+                                            </a>
+                                            {range?.from && range?.to && (
+                                                <p className="text-sm text-slate-500 mt-6">
+                                                    We've saved your request for {format(range.from, 'MMM d')} – {format(range.to, 'MMM d')}, so {contact.name} will already have your details when you call. Your card has not been charged, and your dates aren't held until the booking is approved.
+                                                </p>
+                                            )}
+                                            <button
+                                                onClick={onClose}
+                                                className="mt-6 text-sm font-semibold text-slate-600 hover:text-slate-900 underline min-h-[44px]"
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : loadingAvailability ? (
                                     <div className="flex items-center justify-center p-12 sm:p-20">
                                         <div className="text-center">
                                             <Loader2 className="w-10 h-10 animate-spin text-brand-gold mx-auto mb-4" />
@@ -635,6 +686,17 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                                                     </div>
                                                 )}
 
+                                                {!onlineCheckoutEnabled && (
+                                                    <div className="p-3 bg-slate-100 border border-slate-200 rounded-lg flex items-start gap-2">
+                                                        <Phone className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
+                                                        <p className="text-xs sm:text-sm text-slate-700">
+                                                            Online payment is paused for maintenance. Send your request and call {contact.name} at{" "}
+                                                            <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="font-semibold underline">{contact.phone}</a>{" "}
+                                                            to book.
+                                                        </p>
+                                                    </div>
+                                                )}
+
                                                 <button
                                                     onClick={handleCheckout}
                                                     disabled={loading || !range?.from || !range?.to || !meetsMinimum || hasDateConflict || !!quote?.error || !guestName.trim() || !guestEmail.trim()}
@@ -647,7 +709,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                                                         </>
                                                     ) : (
                                                         <>
-                                                            Reserve with Stripe
+                                                            {onlineCheckoutEnabled ? "Reserve with Stripe" : "Request to Book"}
                                                         </>
                                                     )}
                                                 </button>

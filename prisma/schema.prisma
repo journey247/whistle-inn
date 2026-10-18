@@ -11,6 +11,9 @@ datasource db {
 }
 
 enum BookingStatus {
+  // Captured while online checkout is paused. Holds no dates until the owner
+  // approves it, which moves it to pending and sends the guest a payment link.
+  requested
   pending
   paid
   cancelled

@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
         // Occupancy from current year only
         const daysInYear = 365;
-        const bookedDays = bookings.filter((b: BookingRow) => b.status !== 'cancelled').reduce((sum: number, b: BookingRow) => {
+        const bookedDays = bookings.filter((b: BookingRow) => b.status !== 'cancelled' && b.status !== 'requested').reduce((sum: number, b: BookingRow) => {
             const start = new Date(b.startDate);
             const end = new Date(b.endDate);
             const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));

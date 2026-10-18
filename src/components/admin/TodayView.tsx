@@ -64,7 +64,9 @@ export function TodayView({ bookings, analytics, refreshData, dataLoading, setTa
         let pendingCount = 0;
 
         for (const b of bookings) {
-            if (b.status === "cancelled") continue;
+            // Requests aren't on the calendar until approved; the
+            // Reservations tab lists them separately.
+            if (b.status === "cancelled" || b.status === "requested") continue;
             if (b.status === "pending") pendingCount++;
             const start = b.startDate.split("T")[0];
             const end   = b.endDate.split("T")[0];

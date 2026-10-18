@@ -12,7 +12,8 @@ export async function GET(request: Request) {
         const [bookings, externalBookings] = await Promise.all([
             prisma.booking.findMany({
                 where: {
-                    status: { not: 'cancelled' },
+                    // Requests hold no dates until approved.
+                    status: { notIn: ['cancelled', 'requested'] },
                 },
                 select: {
                     id: true,

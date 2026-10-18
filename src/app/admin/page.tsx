@@ -33,6 +33,8 @@ export type Booking = {
     /** null when the guest booked the whole property. */
     room?: { slug: string; name: string } | null;
     stripeSessionId?: string;
+    /** When a pending booking stops holding its dates. */
+    expiresAt?: string | null;
     stripePaymentIntentId?: string;
 };
 

@@ -6,6 +6,7 @@ import { calculateQuote } from '@/lib/pricing-server';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 import { getBookableRoomBySlug } from '@/lib/rooms';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
+import { getCheckoutSettings } from '@/lib/checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -174,6 +175,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid duration' }, { status: 400 });
         }
 
+        // While online checkout is paused the guest's details are still taken,
+        // as a request the owner approves from the admin panel. Approval runs
+        // the conflict check again and only then holds the dates.
+        const checkoutSettings = await getCheckoutSettings();
+        const isRequestOnly = !checkoutSettings.onlineCheckoutEnabled;
+
         // --- Atomic conflict check + booking creation ---
         // Use a serializable transaction so the read + write cannot be interleaved
         // with another concurrent checkout request for the same dates.
@@ -200,6 +207,7 @@ export async function POST(request: Request) {
             // Create the pending booking atomically with the conflict check.
             // expiresAt: 30 minutes — enough time to complete Stripe checkout.
             // After this window, the booking no longer blocks availability.
+            // A request holds nothing (no expiry, not pending) until approved.
             const newBooking = await tx.booking.create({
                 data: {
                     startDate: start,
@@ -211,8 +219,8 @@ export async function POST(request: Request) {
                     totalPrice: total,
                     discount: discountAmount,
                     couponId: couponId || undefined,
-                    status: 'pending',
-                    expiresAt: new Date(now.getTime() + 30 * 60 * 1000),
+                    status: isRequestOnly ? 'requested' : 'pending',
+                    expiresAt: isRequestOnly ? null : new Date(now.getTime() + 30 * 60 * 1000),
                 }
             });
 
@@ -226,6 +234,20 @@ export async function POST(request: Request) {
             // Serializable isolation prevents phantom reads / race conditions
             isolationLevel: 'Serializable',
         });
+
+        if (isRequestOnly) {
+            try {
+                await notifyAdminOfBooking(NotificationType.BOOKING_REQUESTED, booking);
+            } catch (notificationError) {
+                console.error(`Failed to send booking request notification for booking ${booking.id}:`, notificationError);
+            }
+            return NextResponse.json({
+                requested: true,
+                bookingId: booking.id,
+                contactName: checkoutSettings.contactName,
+                contactPhone: checkoutSettings.contactPhone,
+            });
+        }
 
         // Send admin notification for new booking (outside transaction — non-critical)
         try {
