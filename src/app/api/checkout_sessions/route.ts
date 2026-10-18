@@ -8,25 +8,11 @@ import { getBookableRoomBySlug } from '@/lib/rooms';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
 import { getCheckoutSettings } from '@/lib/checkout-settings';
 import { PROPERTY } from '@/config/property';
+import { getStripe, getChargeAccountId, onAccount } from '@/lib/stripe';
 
 export const dynamic = 'force-dynamic';
 
-function getStripeKey(): string | null {
-    const raw = process.env.STRIPE_SECRET_KEY;
-    if (!raw) return null;
-    const key = raw.trim(); // strip \r\n or trailing whitespace from Vercel env vars
-    if (!key || key.toLowerCase().includes('placeholder') || key.toLowerCase().includes('waiting')) return null;
-    return key;
-}
-
-function initializeStripe(): Stripe | null {
-    const key = getStripeKey();
-    if (!key) return null;
-    return new Stripe(key, { apiVersion: '2026-01-28.clover' });
-}
-
-const stripe = initializeStripe();
-
+const stripe = getStripe();
 
 const MINIMUM_NIGHTS = 3;
 
@@ -283,6 +269,10 @@ export async function POST(request: Request) {
 
         const isMock = !stripe;
 
+        // The owner's connected account, when one is ready to take charges.
+        // Recorded on the booking so refunds go to the same account later.
+        const chargeAccountId = isMock ? null : await getChargeAccountId();
+
         // Determine base URL safely
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -374,7 +364,7 @@ export async function POST(request: Request) {
                         checkOut: endDate,
                         nights: String(nights),
                     },
-                });
+                }, onAccount(chargeAccountId));
             } catch (err: any) {
                 const isAuthFailure = err.statusCode === 401 || err.type === 'StripeAuthenticationError';
 
@@ -397,11 +387,10 @@ export async function POST(request: Request) {
             }
         }
 
-
         // Update booking with the session ID
         await prisma.booking.update({
             where: { id: booking.id },
-            data: { stripeSessionId: session.id }
+            data: { stripeSessionId: session.id, stripeAccountId: chargeAccountId }
         });
 
         return NextResponse.json({

@@ -29,6 +29,10 @@ model Booking {
   status     BookingStatus @default(pending)
   stripeSessionId String?   @unique
   stripePaymentIntentId String?
+  // Connected account the payment was created on (Stripe Connect direct
+  // charge). NULL = the platform's own account, as before Connect. Refunds
+  // must be made on the same account.
+  stripeAccountId String?
   notes      String?       // admin notes
   guestCount Int           @default(1)
   // Which room this booking is for. NULL = whole-property buyout, which is

@@ -65,7 +65,17 @@ Never fork the repo per owner — that is what makes fixes 10x the work.
   - West Placer unincorporated, Auburn, Loomis: 8%
   - Rocklin, Roseville, Colfax, Lincoln: 10%
 
-### 3. Stripe Connect
+### 3. Stripe Connect — done (direct charges, admin onboarding)
+- Owner clicks Connect in Admin → Settings → Pricing → Payments; the account
+  gets the full Stripe Dashboard, pays its own fees, Stripe carries losses.
+- Checkouts go to the owner's account only once it can take charges; until
+  then the site's own Stripe account is used, as before.
+- Each booking records the account it was charged on; refunds use it.
+- Owners who already have a Stripe account get a new one through onboarding;
+  linking an existing account (OAuth) is not built.
+- Still to do: `application_fee_amount` for ad-attributed bookings (step 4).
+
+Original notes:
 - Your account is the platform; each owner connects their own Stripe account
   (Standard or Express) during onboarding.
 - Checkout sessions are created on the owner's account (direct charges), so

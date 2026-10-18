@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
 import { PROPERTY, SITE_URL } from '@/config/property';
+import { getStripe, getChargeAccountId, onAccount } from '@/lib/stripe';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,20 +18,12 @@ export const dynamic = 'force-dynamic';
  */
 const PAYMENT_WINDOW_MS = 23 * 60 * 60 * 1000;
 
-function initStripe(): Stripe | null {
-    const raw = process.env.STRIPE_SECRET_KEY;
-    if (!raw) return null;
-    const key = raw.trim();
-    if (!key || key.toLowerCase().includes('placeholder') || key.toLowerCase().includes('waiting')) return null;
-    return new Stripe(key, { apiVersion: '2026-01-28.clover' });
-}
-
 /** Put an approval that never produced a payment link back in the queue. */
 async function revertToRequested(bookingId: string) {
     try {
         await prisma.booking.update({
             where: { id: bookingId },
-            data: { status: 'requested', expiresAt: null, stripeSessionId: null },
+            data: { status: 'requested', expiresAt: null, stripeSessionId: null, stripeAccountId: null },
         });
     } catch (err) {
         console.error(`Failed to revert booking ${bookingId} to requested:`, err);
@@ -58,7 +50,7 @@ export async function POST(request: Request) {
         if (!id) return NextResponse.json({ error: 'Booking id required' }, { status: 400 });
 
         const isProduction = process.env.NODE_ENV === 'production';
-        const stripe = initStripe();
+        const stripe = getStripe();
         if (!stripe && isProduction) {
             return NextResponse.json(
                 { error: 'Stripe is not configured, so no payment link can be created.' },
@@ -119,6 +111,7 @@ export async function POST(request: Request) {
         const baseUrl = request.headers.get('origin') || SITE_URL;
 
         let session: { id: string; url: string | null };
+        const chargeAccountId = stripe ? await getChargeAccountId() : null;
         if (!stripe) {
             // Development only (production returned 503 above).
             const mockId = 'cs_test_mock_' + Date.now();
@@ -163,7 +156,7 @@ export async function POST(request: Request) {
                         nights: String(nights),
                         approvedBy: admin.email,
                     },
-                });
+                }, onAccount(chargeAccountId));
             } catch (err) {
                 await revertToRequested(booking.id);
                 throw err;
@@ -172,7 +165,7 @@ export async function POST(request: Request) {
 
         await prisma.booking.update({
             where: { id: booking.id },
-            data: { stripeSessionId: session.id },
+            data: { stripeSessionId: session.id, stripeAccountId: chargeAccountId },
         });
 
         // The link is returned to the admin as well, so a failed email never

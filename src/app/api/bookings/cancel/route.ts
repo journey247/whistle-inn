@@ -1,20 +1,12 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { calculateRefund } from '@/lib/cancellationPolicy';
 import { sendEmail } from '@/lib/email';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 import { PROPERTY } from '@/config/property';
+import { getStripe, onAccount } from '@/lib/stripe';
 
 export const dynamic = 'force-dynamic';
-
-function initStripe(): Stripe | null {
-    const raw = process.env.STRIPE_SECRET_KEY;
-    if (!raw) return null;
-    const key = raw.trim();
-    if (!key || key.toLowerCase().includes('placeholder') || key.toLowerCase().includes('waiting')) return null;
-    return new Stripe(key, { apiVersion: '2026-01-28.clover' as any });
-}
 
 // ── GET /api/bookings/cancel?token=<cancellationToken> ────────────────────────
 // Returns booking details + refund preview. No side-effects.
@@ -106,14 +98,14 @@ export async function POST(request: Request) {
         let stripeRefundId: string | undefined;
 
         if (refund.refundAmount > 0 && booking.stripePaymentIntentId) {
-            const stripe = initStripe();
+            const stripe = getStripe();
             if (stripe) {
                 try {
                     const amountCents = Math.round(refund.refundAmount * 100);
                     const stripeRefund = await stripe.refunds.create({
                         payment_intent: booking.stripePaymentIntentId,
                         amount: amountCents,
-                    });
+                    }, onAccount(booking.stripeAccountId));
                     stripeRefundId = stripeRefund.id;
                     console.log(`[Cancel] Refunded $${refund.refundAmount} (${refund.tier}) for booking ${booking.id}, refund: ${stripeRefundId}`);
                 } catch (refundErr: any) {

@@ -1,21 +1,13 @@
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
-import Stripe from 'stripe';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 import { requireAdmin } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
 import { PROPERTY, SITE_URL } from '@/config/property';
+import { getStripe, onAccount } from '@/lib/stripe';
 
 export const dynamic = 'force-dynamic';
-
-function initStripe(): Stripe | null {
-    const raw = process.env.STRIPE_SECRET_KEY;
-    if (!raw) return null;
-    const key = raw.trim();
-    if (!key || key.toLowerCase().includes('placeholder') || key.toLowerCase().includes('waiting')) return null;
-    return new Stripe(key, { apiVersion: '2026-01-28.clover' as any });
-}
 
 // ── GET /api/admin/bookings/[id] ──────────────────────────────────────────────
 export async function GET(request: Request) {
@@ -62,10 +54,14 @@ export async function PATCH(request: Request) {
         if (status === 'cancelled' && existing.status !== 'cancelled') {
             // Issue Stripe refund if the booking was paid
             if (existing.status === 'paid' && existing.stripePaymentIntentId) {
-                const stripe = initStripe();
+                const stripe = getStripe();
                 if (stripe) {
                     try {
-                        await stripe.refunds.create({ payment_intent: existing.stripePaymentIntentId });
+                        // Refund on the account that took the payment (the owner's, under Connect).
+                        await stripe.refunds.create(
+                            { payment_intent: existing.stripePaymentIntentId },
+                            onAccount(existing.stripeAccountId)
+                        );
                         console.log(`[Cancel] Refunded payment intent ${existing.stripePaymentIntentId} for booking ${id}`);
                     } catch (refundErr: any) {
                         // Log but don't block — admin may cancel even if Stripe refund fails (e.g. already refunded)

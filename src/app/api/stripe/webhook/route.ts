@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
 import { PROPERTY, SITE_URL } from '@/config/property';
+import { getStripe, getConnectState, saveChargesEnabled } from '@/lib/stripe';
 
 /** Generate a cryptographically secure, URL-safe cancellation token */
 function generateCancellationToken(): string {
@@ -13,18 +14,7 @@ function generateCancellationToken(): string {
 
 export const dynamic = 'force-dynamic';
 
-// Initialize Stripe with proper validation — trim() handles \r\n from Vercel env vars
-function initializeStripe(): Stripe | null {
-    const raw = process.env.STRIPE_SECRET_KEY;
-    if (!raw) return null;
-    const secretKey = raw.trim();
-    if (!secretKey || secretKey.toLowerCase().includes('placeholder') || secretKey.toLowerCase().includes('waiting')) {
-        return null;
-    }
-    return new Stripe(secretKey, { apiVersion: '2026-01-28.clover' });
-}
-
-const stripe = initializeStripe();
+const stripe = getStripe();
 
 /**
  * Check if a booking_confirmation email has already been sent for this booking.
@@ -50,24 +40,45 @@ export async function POST(request: Request) {
         // Read raw body for signature verification
         const buf = Buffer.from(await request.arrayBuffer());
         const sig = request.headers.get('stripe-signature');
-        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+        // Two endpoints can point here: the platform's own events, and the
+        // Connect endpoint for events on owners' connected accounts. Each has
+        // its own signing secret.
+        const secrets = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_CONNECT_WEBHOOK_SECRET]
+            .map(s => s?.trim())
+            .filter((s): s is string => !!s && !s.toLowerCase().includes('placeholder') && !s.toLowerCase().includes('waiting'));
 
         if (!sig) {
             console.error('Missing Stripe signature');
             return new Response('Missing signature', { status: 400 });
         }
 
-        if (!webhookSecret || webhookSecret.toLowerCase().includes('placeholder') || webhookSecret.toLowerCase().includes('waiting')) {
+        if (secrets.length === 0) {
             console.error('Webhook secret not configured');
             return new Response('Webhook secret not configured', { status: 500 });
         }
 
-        let event: Stripe.Event;
-        try {
-            event = stripe!.webhooks.constructEvent(buf, sig, webhookSecret);
-        } catch (err: any) {
-            console.error('⚠️  Webhook signature verification failed:', err.message);
-            return new Response(`Webhook signature verification failed: ${err.message}`, { status: 400 });
+        let event: Stripe.Event | null = null;
+        let lastError = '';
+        for (const secret of secrets) {
+            try {
+                event = stripe!.webhooks.constructEvent(buf, sig, secret);
+                break;
+            } catch (err: any) {
+                lastError = err.message;
+            }
+        }
+        if (!event) {
+            console.error('⚠️  Webhook signature verification failed:', lastError);
+            return new Response(`Webhook signature verification failed: ${lastError}`, { status: 400 });
+        }
+
+        // A platform's Connect endpoint receives events for every connected
+        // account, including other owners' sites. Only act on this site's.
+        if (event.account) {
+            const { accountId } = await getConnectState();
+            if (event.account !== accountId) {
+                return NextResponse.json({ received: true, ignored: 'other account' });
+            }
         }
 
         // Handle the event types
@@ -92,6 +103,13 @@ export async function POST(request: Request) {
 
                     if (!existingBooking) {
                         console.error(`Booking ${bookingId} not found for session ${session.id}`);
+                        break;
+                    }
+
+                    // The payment must have been taken on the account the
+                    // booking was sent to, or a refund later would fail.
+                    if ((event.account ?? null) !== (existingBooking.stripeAccountId ?? null)) {
+                        console.error(`Session ${session.id} completed on ${event.account ?? 'the platform'}, but booking ${bookingId} expects ${existingBooking.stripeAccountId ?? 'the platform'} — ignoring`);
                         break;
                     }
 
@@ -228,6 +246,14 @@ export async function POST(request: Request) {
                     }
                 }
 
+                break;
+            }
+
+            case 'account.updated': {
+                // Onboarding finished (or Stripe paused the account): this
+                // decides whether new checkouts go to the owner's account.
+                const account = event.data.object as Stripe.Account;
+                await saveChargesEnabled(account.id, !!account.charges_enabled);
                 break;
             }
 
