@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bed, Users, Bath, MapPin, WifiOff, Tv, Coffee, Waves, ArrowRight, Mountain, Snowflake, Fish, Gem, Utensils, Sparkles, ShoppingBag, Calendar, UserCheck, Edit2 } from "lucide-react";
+import { Bed, Users, Bath, WifiOff, Tv, Coffee, Waves, ArrowRight, Mountain, Snowflake, Fish, Gem, Edit2 } from "lucide-react";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import clsx from "clsx";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
@@ -433,46 +433,6 @@ export default function Home() {
                                         </div>
                                     </div>
                                 </Link>
-                            </FadeIn>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Amenities - Dark Mode -> Renamed to Concierge */}
-            <section className="py-24 bg-brand-green text-white relative overflow-hidden">
-                <div className="absolute -right-20 -top-20 w-96 h-96 bg-brand-gold/10 rounded-full blur-3xl rounded-full mix-blend-overlay" />
-                <div className="absolute -left-20 bottom-0 w-80 h-80 bg-white/5 rounded-full blur-3xl rounded-full mix-blend-overlay" />
-
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="text-center mb-20">
-                        <h2 className="font-serif text-4xl md:text-5xl font-bold mb-6">
-                            "<EditableText id="concierge_title" fallback="Whatever You Need, We've Got You Covered" />"
-                        </h2>
-                        <p className="text-white/80 text-lg max-w-2xl mx-auto">
-                            <EditableText id="concierge_desc" fallback="We don't just host; we curate. From fresh local bakery deliveries to private event planning, our concierge team is here to make your wildest dreams a reality." />
-                        </p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
-                        {[
-                            { icon: Utensils, title: "Personal Chef", desc: "Gourmet meals prepared in your kitchen" },
-                            { icon: ShoppingBag, title: "Fresh Bakery Delivery", desc: "Local goods delivered to your door" },
-                            { icon: Sparkles, title: "On-Demand Cleaning", desc: "Daily housekeeping services available" },
-                            { icon: Calendar, title: "Event Planning", desc: "Retreats, reunions, and celebrations" },
-                            { icon: UserCheck, title: "Local Adventure Guides", desc: "Expert locals to lead the way" },
-                            { icon: ShoppingBag, title: "Shopping Assistant", desc: "Fully stocked fridge upon arrival" },
-                            { icon: MapPin, title: "Prime Train Viewing", desc: "Front-row seats to railroad action" },
-                            { icon: MapPin, title: "Anything You Want", desc: "Just ask, and we'll make it happen" },
-                        ].map((amenity, idx) => (
-                            <FadeIn key={idx} delay={idx * 0.1}>
-                                <div className="flex flex-col items-center text-center group">
-                                    <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-6 backdrop-blur-sm group-hover:bg-brand-gold group-hover:text-black transition-all duration-300 transform group-hover:-translate-y-2 shadow-lg">
-                                        <amenity.icon className="w-8 h-8" />
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-3">{amenity.title}</h3>
-                                    <p className="text-white/60 leading-relaxed group-hover:text-white/90 transition-colors">{amenity.desc}</p>
-                                </div>
                             </FadeIn>
                         ))}
                     </div>

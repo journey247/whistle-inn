@@ -114,7 +114,7 @@ export const ContentEditor = () => {
     const sections: Record<string, ContentBlock[]> = {};
     const sectionOrder = [
         "Hero Section", "Hero Slider", "About Section", "Highlights",
-        "Concierge", "Adventures", "Skiing", "Fishing", "Serenity",
+        "Adventures", "Skiing", "Fishing", "Serenity",
         "Rooms", "Gallery", "House Rules", "Other"
     ];
 

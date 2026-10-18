@@ -75,10 +75,6 @@ const SEED_BLOCKS = [
     { key: 'room_5_desc', label: 'Breakmans Suite — Description',    type: 'textarea', section: 'Accommodations', value: 'A comfortable queen room with a warm, understated feel — an easy place to land at the end of a long day outdoors.' },
     { key: 'room_6_desc', label: 'Living Space — Description',       type: 'textarea', section: 'Accommodations', value: 'The shared living room, with a sofa bed for extra guests and room for the whole group to gather.' },
 
-    // ── Concierge ────────────────────────────────────────────────────────────
-    { key: 'concierge_title', label: 'Concierge Headline',   type: 'text',     section: 'Concierge', value: "Whatever You Need, We've Got You Covered" },
-    { key: 'concierge_desc',  label: 'Concierge Description',type: 'textarea', section: 'Concierge', value: "We don't just host; we curate. From fresh local bakery deliveries to private event planning, our concierge team is here to make your wildest dreams a reality." },
-
     // ── Footer ───────────────────────────────────────────────────────────────
     { key: 'footer_title',  label: 'Footer CTA Headline', type: 'text',     section: 'Footer', value: 'Ready to create memories?' },
     { key: 'footer_button', label: 'Footer Button Text',  type: 'text',     section: 'Footer', value: 'Reserve Your Dates' },

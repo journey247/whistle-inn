@@ -24,7 +24,6 @@ const SECTIONS: { key: string; icon: string; desc: string }[] = [
     { key: "Fishing",        icon: "🎣", desc: "Fly fishing section content" },
     { key: "Serenity",       icon: "🚂", desc: "Train / railroad section" },
     { key: "Rooms",          icon: "🛏️", desc: "Bedroom names and descriptions" },
-    { key: "Concierge",      icon: "🛎️", desc: "Concierge services copy" },
     { key: "Footer",         icon: "📍", desc: "Bottom CTA and footer text" },
 ];
 

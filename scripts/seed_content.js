@@ -110,10 +110,6 @@ const blocks = [
   // room_img_5 logic in HomeContent uses array index 5
   { key: 'room_img_5', value: "/LivingRoom.webp", label: "Living Space Image", type: 'image', section: 'Accommodations' },
 
-  // Concierge
-  { key: 'concierge_title', value: "Your Adventure Concierge", label: 'Concierge Title', section: 'Concierge' },
-  { key: 'concierge_desc', value: "From lift ticket arrangements and fishing guide recommendations to fresh local provisions and trail maps, our team helps you make the most of your Sierra adventure. Focus on the fun—we'll handle the details.", label: 'Concierge Description', type: 'textarea', section: 'Concierge' },
-
   // Footer
   { key: 'footer_title', value: 'Ready for your Sierra adventure?', label: 'Footer Title', section: 'Footer' },
   { key: 'footer_button', value: 'Book Your Stay', label: 'Footer Button', section: 'Footer' },

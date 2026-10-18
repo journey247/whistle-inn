@@ -147,27 +147,6 @@ async function main() {
         { key: "stats_baths", label: "Stats Baths Title", value: "4.5 Baths", type: "text", category: "Home", section: "Stats" },
         { key: "stats_baths_sub", label: "Stats Baths Sub", value: "Luxury amenities", type: "text", category: "Home", section: "Stats" },
 
-        // Concierge
-        { key: "concierge_title", label: "Concierge Title", value: "Whatever You Need, We've Got You Covered", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_subtitle", label: "Concierge Subtitle", value: "We don't just host; we curate. From fresh local bakery deliveries to private event planning, our concierge team is here to make your wildest dreams a reality.", type: "textarea", category: "Home", section: "Concierge" },
-        { key: "concierge_item_1_title", label: "Concierge Item 1 Title", value: "Personal Chef", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_1_desc", label: "Concierge Item 1 Desc", value: "Gourmet meals prepared in your kitchen", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_2_title", label: "Concierge Item 2 Title", value: "Fresh Bakery Delivery", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_2_desc", label: "Concierge Item 2 Desc", value: "Local goods delivered to your door", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_3_title", label: "Concierge Item 3 Title", value: "On-Demand Cleaning", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_3_desc", label: "Concierge Item 3 Desc", value: "Daily housekeeping services available", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_4_title", label: "Concierge Item 4 Title", value: "Event Planning", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_4_desc", label: "Concierge Item 4 Desc", value: "Retreats, reunions, and celebrations", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_5_title", label: "Concierge Item 5 Title", value: "Local Adventure Guides", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_5_desc", label: "Concierge Item 5 Desc", value: "Expert locals to lead the way", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_6_title", label: "Concierge Item 6 Title", value: "Shopping Assistant", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_6_desc", label: "Concierge Item 6 Desc", value: "Fully stocked fridge upon arrival", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_7_title", label: "Concierge Item 7 Title", value: "Digital Detox", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_7_desc", label: "Concierge Item 7 Desc", value: "Disconnect to reconnect", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_8_title", label: "Concierge Item 8 Title", value: "Anything You Want", type: "text", category: "Home", section: "Concierge" },
-        { key: "concierge_item_8_desc", label: "Concierge Item 8 Desc", value: "Just ask, and we'll make it happen", type: "text", category: "Home", section: "Concierge" },
-
-
         // Rooms
         { key: "rooms_title", label: "Rooms Section Title", value: "Sweet Dreams", type: "text", category: "Home", section: "Rooms" },
         { key: "rooms_description", label: "Rooms Section Description", value: "Five beautifully curated bedrooms designed for rest and relaxation after a day of mountain adventures.", type: "textarea", category: "Home", section: "Rooms" },
