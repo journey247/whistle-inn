@@ -11,6 +11,7 @@ import { BookingModal } from "@/components/BookingModal";
 import { HeroImageSlider, useHeroSlider, images } from "@/components/HeroImageSlider";
 import { useContent } from "@/components/content/ContentProvider";
 import { ROOMS } from "@/lib/rooms";
+import { PROPERTY, formatAddress } from '@/config/property';
 
 // Helper to render editable content
 const EditableText = ({ id, fallback, className = "" }: { id: string, fallback: string, className?: string }) => {
@@ -104,7 +105,7 @@ export default function Home() {
                         <EditableText id="hero_pill" fallback="The Ultimate Freedom" />
                     </div>
                     <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-serif font-bold text-white mb-4 sm:mb-6 tracking-tight drop-shadow-2xl leading-tight">
-                        <EditableText id="hero_title" fallback="Whistle Inn" />
+                        <EditableText id="hero_title" fallback={PROPERTY.name} />
                         <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light mt-2 sm:mt-4 italic font-sans opacity-90">
                             <EditableText id="hero_subtitle" fallback="Live Your Sierra Dream" />
                         </span>
@@ -469,21 +470,21 @@ export default function Home() {
                         <address className="mt-12 not-italic text-slate-400 text-sm space-y-1">
                             <p>
                                 <a
-                                    href="https://maps.google.com/?q=33800+Alta+Bonny+Nook+Rd,+Alta,+CA+95701"
+                                    href={`https://maps.google.com/?q=${encodeURIComponent(formatAddress())}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="hover:text-brand-gold transition-colors"
                                 >
-                                    33800 Alta Bonny Nook Rd, Alta, CA 95701
+                                    {formatAddress()}
                                 </a>
                             </p>
                             <p>
-                                <a href="tel:+15304486242" className="hover:text-brand-gold transition-colors">
-                                    (530) 448-6242
+                                <a href={`tel:${PROPERTY.phoneE164}`} className="hover:text-brand-gold transition-colors">
+                                    {PROPERTY.phone}
                                 </a>
                             </p>
                         </address>
-                        <p className="mt-4 text-slate-500 text-sm">Hosted by Nora • &copy; 2026 Whistle Inn Private Getaway</p>
+                        <p className="mt-4 text-slate-500 text-sm">Hosted by {PROPERTY.hostName} • &copy; {new Date().getFullYear()} {PROPERTY.brandLine}</p>
                     </FadeIn>
                 </div>
             </section>

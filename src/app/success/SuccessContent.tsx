@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { CheckCircle, Calendar, Mail, Loader2, Home, XCircle } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { PROPERTY } from '@/config/property';
 
 interface BookingDetails {
     id: string;
@@ -119,7 +120,7 @@ export default function SuccessContent() {
                         </h1>
                         <p className="text-lg text-slate-600">
                             {isPaid
-                                ? "Your reservation at Whistle Inn has been confirmed"
+                                ? `Your reservation at ${PROPERTY.name} has been confirmed`
                                 : "Your booking is being processed. We'll send you a confirmation email shortly."
                             }
                         </p>

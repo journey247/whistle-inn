@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { PROPERTY } from '../config/property';
 
 // Initialize Stripe with proper validation
 function initializeStripe() {
@@ -46,13 +47,13 @@ export async function createOrUpdateStripeProduct(
             // Update existing product
             product = await stripe.products.update(productId, {
                 name,
-                description: description || `${name} for Whistle Inn`,
+                description: description || `${name} for ${PROPERTY.name}`,
             });
         } else {
             // Create new product
             product = await stripe.products.create({
                 name,
-                description: description || `${name} for Whistle Inn`,
+                description: description || `${name} for ${PROPERTY.name}`,
                 type: 'service',
             });
         }
@@ -150,7 +151,7 @@ export async function updatePricingAndStripe(
         const cleaningInfo = await createOrUpdateStripeProduct(
             cleaningProductBlock?.value || null,
             cleaningPriceBlock?.value || null,
-            'Whistle Inn Cleaning Fee',
+            `${PROPERTY.name} Cleaning Fee`,
             cleaningFee,
             'One-time cleaning fee'
         );
@@ -196,7 +197,7 @@ export async function updatePricingAndStripe(
             weekdayInfo = await createOrUpdateStripeProduct(
                 weekdayProductBlock?.value || null,
                 weekdayPriceBlock?.value || null,
-                'Whistle Inn Weekday Night',
+                `${PROPERTY.name} Weekday Night`,
                 weekdayPrice,
                 'Nightly rate for weekday nights'
             );
@@ -232,7 +233,7 @@ export async function updatePricingAndStripe(
             weekendInfo = await createOrUpdateStripeProduct(
                 weekendProductBlock?.value || null,
                 weekendPriceBlock?.value || null,
-                'Whistle Inn Weekend Night',
+                `${PROPERTY.name} Weekend Night`,
                 weekendPrice,
                 'Nightly rate for weekend nights'
             );

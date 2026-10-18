@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { ToastProvider, useToast } from "@/components/ui/toast-context";
 import { logout as endSession, clearLegacyTokens } from "@/lib/adminToken";
+import { PROPERTY } from '@/config/property';
 import {
     LayoutDashboard, CalendarDays, DollarSign, Settings, List,
     LogOut, RefreshCw, Home
@@ -111,7 +112,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-gold mb-4">
                         <Home className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-white">Whistle Inn</h1>
+                    <h1 className="text-2xl font-bold text-white">{PROPERTY.name}</h1>
                     <p className="text-slate-400 mt-1 text-sm">Host Dashboard</p>
                 </div>
 
@@ -225,7 +226,7 @@ function AdminPanelContent() {
                     <div className="w-8 h-8 rounded-lg bg-brand-gold flex items-center justify-center">
                         <Home className="w-4 h-4 text-white" />
                     </div>
-                    <span className="font-bold text-gray-900 text-sm">Whistle Inn</span>
+                    <span className="font-bold text-gray-900 text-sm">{PROPERTY.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     {dataLoading && (

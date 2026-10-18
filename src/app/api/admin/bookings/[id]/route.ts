@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 import { requireAdmin } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
+import { PROPERTY, SITE_URL } from '@/config/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,10 +98,10 @@ export async function PATCH(request: Request) {
                     },
                     bookingId: existing.id,
                     // Fallback subject + body used when the DB template doesn't exist
-                    fallbackSubject: 'Your Whistle Inn booking has been cancelled',
+                    fallbackSubject: `Your ${PROPERTY.name} booking has been cancelled`,
                     fallbackHtml: `
                         <p>Hi ${existing.guestName},</p>
-                        <p>Your booking at <strong>Whistle Inn</strong> has been cancelled.</p>
+                        <p>Your booking at <strong>${PROPERTY.name}</strong> has been cancelled.</p>
                         <ul>
                           <li>Check-in: ${checkIn}</li>
                           <li>Check-out: ${checkOut}</li>
@@ -152,7 +153,7 @@ export async function PATCH(request: Request) {
                     });
                 }
 
-                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
+                const baseUrl = SITE_URL;
                 const cancelUrl = `${baseUrl}/cancel/${cancellationToken}`;
                 const checkIn = new Date(updated.startDate).toLocaleDateString('en-US', {
                     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -173,10 +174,10 @@ export async function PATCH(request: Request) {
                         cancelUrl,
                     },
                     bookingId: updated.id,
-                    fallbackSubject: 'Your Whistle Inn booking is confirmed! 🎉',
+                    fallbackSubject: `Your ${PROPERTY.name} booking is confirmed! 🎉`,
                     fallbackHtml: `
                         <p>Hi ${updated.guestName},</p>
-                        <p>Your stay at <strong>Whistle Inn</strong> is confirmed!</p>
+                        <p>Your stay at <strong>${PROPERTY.name}</strong> is confirmed!</p>
                         <ul>
                           <li><strong>Check-in:</strong> ${checkIn}</li>
                           <li><strong>Check-out:</strong> ${checkOut}</li>

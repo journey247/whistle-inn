@@ -7,6 +7,7 @@ import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 import { getBookableRoomBySlug } from '@/lib/rooms';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
 import { getCheckoutSettings } from '@/lib/checkout-settings';
+import { PROPERTY } from '@/config/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -305,8 +306,8 @@ export async function POST(request: Request) {
                             currency: 'usd',
                             product_data: {
                                 name: quote.roomName
-                                    ? `Whistle Inn — ${quote.roomName}`
-                                    : 'Whistle Inn — Whole House',
+                                    ? `${PROPERTY.name} — ${quote.roomName}`
+                                    : `${PROPERTY.name} — Whole House`,
                                 description: accommodationDescription,
                             },
                             unit_amount: Math.round(finalAccommodationPrice * 100),

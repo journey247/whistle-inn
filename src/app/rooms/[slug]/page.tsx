@@ -6,12 +6,11 @@ import { Bed, ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { ROOMS, getRoomBySlug, resolveRoom } from '@/lib/rooms';
 import { RoomBookingCta } from '@/components/RoomBookingCta';
+import { PROPERTY, SITE_URL } from '@/config/property';
 
 // Match the homepage: rebuild at most once a minute so edits made in the admin
 // panel appear without turning every visit into a server render.
 export const revalidate = 60;
-
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
 
 /** Prerender all six room pages at build time. */
 export function generateStaticParams() {
@@ -55,7 +54,7 @@ export async function generateMetadata(
 
     // Trim long-form copy down to a usable meta description.
     const description = room.description.replace(/\s+/g, ' ').slice(0, 155).trim();
-    const title = `${room.title} — Whistle Inn`;
+    const title = `${room.title} — ${PROPERTY.name}`;
 
     return {
         title,
@@ -63,11 +62,11 @@ export async function generateMetadata(
         alternates: { canonical: `/rooms/${room.slug}` },
         openGraph: {
             type: 'website',
-            siteName: 'Whistle Inn',
+            siteName: PROPERTY.name,
             title,
             description,
             url: `/rooms/${room.slug}`,
-            images: [{ url: room.ogImage, width: 1200, height: 630, alt: `${room.title} at Whistle Inn` }],
+            images: [{ url: room.ogImage, width: 1200, height: 630, alt: `${room.title} at ${PROPERTY.name}` }],
         },
         twitter: {
             card: 'summary_large_image',
@@ -117,7 +116,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             : {}),
         containedInPlace: {
             '@type': 'LodgingBusiness',
-            name: 'Whistle Inn',
+            name: PROPERTY.name,
             url: SITE_URL,
         },
     };
@@ -133,7 +132,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             <section className="relative h-[45vh] min-h-[320px] md:h-[60vh]">
                 <Image
                     src={room.image}
-                    alt={`${room.title} at Whistle Inn`}
+                    alt={`${room.title} at ${PROPERTY.name}`}
                     fill
                     priority
                     sizes="100vw"

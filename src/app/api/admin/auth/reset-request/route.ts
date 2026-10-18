@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
 import { checkRateLimit, sanitizeInput, validateEmail, getClientIp } from '@/lib/adminAuth';
+import { PROPERTY, SITE_URL } from '@/config/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,19 +59,19 @@ export async function POST(request: Request) {
             { expiresIn: '1h' }
         );
 
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://thewhistleinn.com';
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || SITE_URL;
         const resetUrl = `${baseUrl}/admin/reset-password?token=${resetToken}&id=${user.id}`;
 
-        const from = process.env.NEXT_PUBLIC_RESEND_FROM_EMAIL || 'noreply@thewhistleinn.com';
+        const from = process.env.NEXT_PUBLIC_RESEND_FROM_EMAIL || PROPERTY.fromEmail;
 
         await getResend().emails.send({
             from,
             to: sanitizedEmail,
-            subject: 'Whistle Inn Admin — Password Reset',
+            subject: `${PROPERTY.name} Admin — Password Reset`,
             html: `
                 <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
                     <h2 style="color: #0f172a;">Reset Your Password</h2>
-                    <p style="color: #475569;">Click the button below to reset your Whistle Inn admin password. This link expires in <strong>1 hour</strong>.</p>
+                    <p style="color: #475569;">Click the button below to reset your ${PROPERTY.name} admin password. This link expires in <strong>1 hour</strong>.</p>
                     <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#d4a017;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;">
                         Reset Password
                     </a>

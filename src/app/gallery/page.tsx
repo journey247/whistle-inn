@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { PROPERTY } from '@/config/property';
 
 type GalleryImage = {
     src: string;
@@ -14,7 +15,7 @@ type GalleryImage = {
 
 const GALLERY_IMAGES: GalleryImage[] = [
     // Exterior & Property
-    { src: "/Exterior.avif", alt: "Whistle Inn exterior — Victorian Farmhouse", category: "Exterior" },
+    { src: "/Exterior.avif", alt: `${PROPERTY.name} exterior — ${PROPERTY.propertyType}`, category: "Exterior" },
     { src: "/entry.jpg", alt: "Property entry", category: "Exterior" },
     { src: "/patio.webp", alt: "Outdoor patio area", category: "Exterior" },
     { src: "/balcony.webp", alt: "Balcony with views", category: "Exterior" },
@@ -83,7 +84,7 @@ export default function GalleryPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition font-medium text-sm">
                         <Home className="w-4 h-4" />
-                        Back to Whistle Inn
+                        Back to {PROPERTY.name}
                     </Link>
                     <h1 className="text-xl font-bold text-slate-900 font-serif">Photo Gallery</h1>
                     <div className="w-24" />
@@ -94,7 +95,7 @@ export default function GalleryPage() {
                 {/* Hero text */}
                 <div className="text-center mb-8">
                     <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 font-serif mb-2">
-                        Experience Whistle Inn
+                        Experience {PROPERTY.name}
                     </h2>
                     <p className="text-slate-500 max-w-lg mx-auto">
                         A Victorian Farmhouse retreat in the Sierra Nevada — explore every room, every view.
@@ -160,7 +161,7 @@ export default function GalleryPage() {
                 {/* CTA */}
                 <div className="text-center mt-16 py-12 border-t border-slate-200">
                     <h3 className="text-2xl font-bold text-slate-900 font-serif mb-3">Ready to book your stay?</h3>
-                    <p className="text-slate-500 mb-6">Up to 14 guests · 5 bedrooms · Alta, California</p>
+                    <p className="text-slate-500 mb-6">Up to {PROPERTY.maxGuests} guests · {PROPERTY.bedrooms} bedrooms · {PROPERTY.locationLabel}</p>
                     <Link
                         href="/"
                         className="inline-flex items-center px-8 py-4 bg-brand-gold hover:bg-yellow-500 text-white font-semibold rounded-full transition-all shadow-lg hover:shadow-brand-gold/30 hover:scale-[1.02]"

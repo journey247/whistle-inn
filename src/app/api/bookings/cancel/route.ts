@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { calculateRefund } from '@/lib/cancellationPolicy';
 import { sendEmail } from '@/lib/email';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
+import { PROPERTY } from '@/config/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -166,10 +167,10 @@ export async function POST(request: Request) {
                     refunded: refund.tier !== 'none' ? 'yes' : 'no',
                 },
                 bookingId: booking.id,
-                fallbackSubject: 'Your Whistle Inn booking has been cancelled',
+                fallbackSubject: `Your ${PROPERTY.name} booking has been cancelled`,
                 fallbackHtml: `
                     <p>Hi ${booking.guestName},</p>
-                    <p>Your booking at <strong>Whistle Inn</strong> has been cancelled.</p>
+                    <p>Your booking at <strong>${PROPERTY.name}</strong> has been cancelled.</p>
                     <ul>
                       <li>Check-in: ${checkIn}</li>
                       <li>Check-out: ${checkOut}</li>

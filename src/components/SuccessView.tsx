@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { CheckCircle, Home, Printer } from 'lucide-react';
+import { PROPERTY } from '@/config/property';
 
 interface SuccessViewProps {
     booking: {
@@ -26,7 +27,7 @@ export function SuccessView({ booking }: SuccessViewProps) {
                             <CheckCircle className="w-8 h-8 text-white" />
                         </div>
                         <h1 className="text-3xl font-serif font-bold mb-2">Booking Confirmed!</h1>
-                        <p className="text-green-100">Thank you for choosing Whistle Inn.</p>
+                        <p className="text-green-100">Thank you for choosing {PROPERTY.name}.</p>
                     </div>
 
                     {/* Booking Details */}

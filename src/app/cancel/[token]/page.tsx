@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { POLICY_SUMMARY } from '@/lib/cancellationPolicy';
+import { PROPERTY } from '@/config/property';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -136,10 +137,10 @@ export default function CancelBookingPage() {
           <h1 className="mb-2 text-xl font-bold text-stone-800">Something went wrong</h1>
           <p className="mb-6 text-stone-600">{errorMsg}</p>
           <a
-            href="mailto:Nora@thewhistleinn.com"
+            href={`mailto:${PROPERTY.email}`}
             className="inline-block rounded-lg bg-amber-500 px-6 py-3 font-semibold text-white hover:bg-amber-600 transition-colors"
           >
-            Email us at Nora@thewhistleinn.com
+            Email us at {PROPERTY.email}
           </a>
         </div>
       </div>
@@ -156,8 +157,8 @@ export default function CancelBookingPage() {
           <p className="text-sm text-stone-500">
             You'll receive a confirmation email shortly. If you have questions,
             email us at{' '}
-            <a href="mailto:Nora@thewhistleinn.com" className="text-amber-600 underline">
-              Nora@thewhistleinn.com
+            <a href={`mailto:${PROPERTY.email}`} className="text-amber-600 underline">
+              {PROPERTY.email}
             </a>
             .
           </p>
@@ -180,7 +181,7 @@ export default function CancelBookingPage() {
 
         {/* Header */}
         <div className="mb-8 text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">Whistle Inn</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">{PROPERTY.name}</p>
           <h1 className="mt-1 text-3xl font-bold text-stone-900">Cancel Your Booking</h1>
         </div>
 
@@ -272,8 +273,8 @@ export default function CancelBookingPage() {
 
         <p className="mt-6 text-center text-xs text-stone-400">
           Need help? Email{' '}
-          <a href="mailto:Nora@thewhistleinn.com" className="underline">
-            Nora@thewhistleinn.com
+          <a href={`mailto:${PROPERTY.email}`} className="underline">
+            {PROPERTY.email}
           </a>
         </p>
       </div>

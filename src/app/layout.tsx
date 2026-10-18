@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
+import { PROPERTY, SITE_URL } from '@/config/property';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
@@ -15,11 +16,8 @@ export const viewport: Viewport = {
     themeColor: '#DAA520',
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
-
-const SITE_TITLE = 'Whistle Inn — Private Getaway in the Sierra';
-const SITE_DESCRIPTION =
-    'A beautifully appointed Victorian farmhouse in Alta, California. Sleeps up to 14 — perfect for family gatherings, retreats, and getting away from it all.';
+const SITE_TITLE = PROPERTY.title;
+const SITE_DESCRIPTION = PROPERTY.description;
 
 export const metadata: Metadata = {
     // metadataBase makes the relative OG/Twitter image URLs below resolve to
@@ -33,7 +31,7 @@ export const metadata: Metadata = {
     },
     openGraph: {
         type: 'website',
-        siteName: 'Whistle Inn',
+        siteName: PROPERTY.name,
         title: SITE_TITLE,
         description: SITE_DESCRIPTION,
         url: '/',
@@ -43,7 +41,7 @@ export const metadata: Metadata = {
                 url: '/og-image.jpg',
                 width: 1200,
                 height: 630,
-                alt: 'The Whistle Inn — Victorian farmhouse exterior in Alta, California',
+                alt: PROPERTY.ogImageAlt,
             },
         ],
     },
@@ -75,7 +73,7 @@ export const metadata: Metadata = {
     appleWebApp: {
         capable: true,
         statusBarStyle: 'default',
-        title: 'Whistle Inn'
+        title: PROPERTY.name
     }
 };
 

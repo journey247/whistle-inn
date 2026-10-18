@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { PROPERTY } from '@/config/property';
 
 /**
  * Whether guests can pay online, and who to call when they can't.
@@ -9,8 +10,8 @@ import { prisma } from '@/lib/prisma';
  * request for the owner to approve instead of sending them to Stripe.
  */
 
-export const DEFAULT_CONTACT_PHONE = '(530) 448-6242';
-export const DEFAULT_CONTACT_NAME = 'Nora';
+export const DEFAULT_CONTACT_PHONE = PROPERTY.phone;
+export const DEFAULT_CONTACT_NAME = PROPERTY.hostName;
 
 export type CheckoutSettings = {
     onlineCheckoutEnabled: boolean;

@@ -5,12 +5,12 @@ import { Bed, Home } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { ROOMS, resolveRoom } from '@/lib/rooms';
 import { RoomBookingCta } from '@/components/RoomBookingCta';
+import { PROPERTY } from '@/config/property';
 
 export const revalidate = 60;
 
-const TITLE = 'Rooms — Whistle Inn';
-const DESCRIPTION =
-    'Five bedrooms and a shared living space at Whistle Inn, a Victorian farmhouse in Alta, California. Sleeps up to 14.';
+const TITLE = `Rooms — ${PROPERTY.name}`;
+const DESCRIPTION = PROPERTY.roomsDescription;
 
 export const metadata: Metadata = {
     title: TITLE,
@@ -18,11 +18,11 @@ export const metadata: Metadata = {
     alternates: { canonical: '/rooms' },
     openGraph: {
         type: 'website',
-        siteName: 'Whistle Inn',
+        siteName: PROPERTY.name,
         title: TITLE,
         description: DESCRIPTION,
         url: '/rooms',
-        images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Whistle Inn' }],
+        images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: PROPERTY.name }],
     },
     twitter: {
         card: 'summary_large_image',
@@ -65,7 +65,7 @@ export default async function RoomsIndexPage() {
                         href="/"
                         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-gold transition-colors"
                     >
-                        <Home className="w-3.5 h-3.5" /> Back to Whistle Inn
+                        <Home className="w-3.5 h-3.5" /> Back to {PROPERTY.name}
                     </Link>
                 </div>
             </header>

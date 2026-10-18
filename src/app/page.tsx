@@ -1,6 +1,7 @@
 // src/app/page.tsx - Server Component
 import { prisma } from "@/lib/prisma";
 import PageClient from "@/components/PageClient";
+import { PROPERTY, SITE_URL } from '@/config/property';
 
 // ISR: rebuild the page at most once a minute so admin content edits appear
 // without making every visit a server render. Previously this was overridden
@@ -22,8 +23,6 @@ async function getContent() {
     }
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
-
 /**
  * Structured data so Google can surface the property as a lodging result.
  *
@@ -36,30 +35,26 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com'
 const lodgingJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'LodgingBusiness',
-    name: 'Whistle Inn',
-    description:
-        'A beautifully appointed Victorian farmhouse in Alta, California. Sleeps up to 14 — perfect for family gatherings, retreats, and getting away from it all.',
+    name: PROPERTY.name,
+    description: PROPERTY.description,
     url: SITE_URL,
     image: `${SITE_URL}/og-image.jpg`,
-    telephone: '+1-530-448-6242',
+    telephone: PROPERTY.phoneE164,
     address: {
         '@type': 'PostalAddress',
-        streetAddress: '33800 Alta Bonny Nook Rd',
-        addressLocality: 'Alta',
-        addressRegion: 'CA',
-        postalCode: '95701',
-        addressCountry: 'US',
+        streetAddress: PROPERTY.address.street,
+        addressLocality: PROPERTY.address.locality,
+        addressRegion: PROPERTY.address.region,
+        postalCode: PROPERTY.address.postalCode,
+        addressCountry: PROPERTY.address.country,
     },
-    checkinTime: '16:00',
-    checkoutTime: '11:00',
-    // 5 bedrooms, per the property photos in /public.
+    checkinTime: PROPERTY.checkinTime,
+    checkoutTime: PROPERTY.checkoutTime,
     // Add `petsAllowed` once confirmed.
-    numberOfRooms: 5,
-    amenityFeature: [
-        { '@type': 'LocationFeatureSpecification', name: 'Pool', value: true },
-        { '@type': 'LocationFeatureSpecification', name: 'Full kitchen', value: true },
-        { '@type': 'LocationFeatureSpecification', name: 'Balcony', value: true },
-    ],
+    numberOfRooms: PROPERTY.bedrooms,
+    amenityFeature: PROPERTY.amenities.map(name => (
+        { '@type': 'LocationFeatureSpecification', name, value: true }
+    )),
 };
 
 export default async function Page() {

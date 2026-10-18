@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
+import { PROPERTY } from '@/config/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ export async function GET() {
         let icsContent = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//Whistle Inn//Website Booking System//EN',
+            `PRODID:-//${PROPERTY.name}//Website Booking System//EN`,
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
         ].join('\r\n');
@@ -49,8 +50,8 @@ export async function GET() {
             // does make those listings unsellable for those nights. The room
             // name is included so the block is explicable on the other side.
             const summary = booking.room
-                ? `Reserved — ${booking.room.name} (Whistle Inn)`
-                : 'Reserved (Whistle Inn)';
+                ? `Reserved — ${booking.room.name} (${PROPERTY.name})`
+                : `Reserved (${PROPERTY.name})`;
 
             const event = [
                 'BEGIN:VEVENT',

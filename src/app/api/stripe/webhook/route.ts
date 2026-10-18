@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
+import { PROPERTY, SITE_URL } from '@/config/property';
 
 /** Generate a cryptographically secure, URL-safe cancellation token */
 function generateCancellationToken(): string {
@@ -150,7 +151,7 @@ export async function POST(request: Request) {
                         console.log(`Confirmation email already sent for booking ${bookingId} — skipping duplicate`);
                     } else {
                         try {
-                            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
+                            const baseUrl = SITE_URL;
                             const cancelUrl = `${baseUrl}/cancel/${cancellationToken}`;
                             const guestName = session.customer_details?.name || existingBooking.guestName;
                             const checkIn = new Date(existingBooking.startDate).toLocaleDateString('en-US', {
@@ -177,10 +178,10 @@ export async function POST(request: Request) {
                                     cancelUrl,
                                 },
                                 bookingId,
-                                fallbackSubject: 'Your Whistle Inn booking is confirmed! 🎉',
+                                fallbackSubject: `Your ${PROPERTY.name} booking is confirmed! 🎉`,
                                 fallbackHtml: `
                                     <p>Hi ${guestName},</p>
-                                    <p>Your stay at <strong>Whistle Inn</strong> is confirmed!</p>
+                                    <p>Your stay at <strong>${PROPERTY.name}</strong> is confirmed!</p>
                                     <ul>
                                       <li><strong>Your booking:</strong> ${accommodation}</li>
                                       <li><strong>Check-in:</strong> ${checkIn}</li>
@@ -191,7 +192,7 @@ export async function POST(request: Request) {
                                     <p>We look forward to hosting you. If you need to cancel, you can do so here:<br>
                                     <a href="${cancelUrl}">${cancelUrl}</a></p>
                                     <p><em>Cancellation policy: Full refund if cancelled 5+ days before check-in. 50% refund if cancelled 1–4 days before. No refund within 24 hours of check-in.</em></p>
-                                    <p>See you soon!<br>Nora &amp; the Whistle Inn team</p>
+                                    <p>See you soon!<br>${PROPERTY.hostName} &amp; the ${PROPERTY.name} team</p>
                                 `,
                             });
                             console.log(`Confirmation email sent to ${recipientEmail} for booking ${bookingId}`);

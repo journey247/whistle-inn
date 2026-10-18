@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { ROOMS } from '@/lib/rooms';
-
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://thewhistleinn.com';
+import { SITE_URL } from '@/config/property';
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const lastModified = new Date();

@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { getAdminToken } from "@/lib/adminToken";
 import { SharedProps, Booking } from "@/app/admin/page";
 import { Search, X, ChevronDown, Mail, Calendar, DollarSign, FileText, RefreshCw, Check, Inbox, Copy, Loader2, Power } from "lucide-react";
+import { PROPERTY } from '@/config/property';
 
 function nightsBetween(a: string, b: string) {
     return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
@@ -311,7 +312,7 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
                         </>
                     )}
                     <a
-                        href={`mailto:${booking.email}?subject=Your Booking at Whistle Inn`}
+                        href={`mailto:${booking.email}?subject=${encodeURIComponent(`Your Booking at ${PROPERTY.name}`)}`}
                         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition mt-2"
                     >
                         <Mail className="w-4 h-4" /> Email Guest

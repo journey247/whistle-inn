@@ -13,7 +13,8 @@ const SOURCE_STYLES: Record<string, string> = {
     'VRBO':         'bg-blue-100 text-blue-700 border-blue-200',
     'Booking.com':  'bg-indigo-100 text-indigo-700 border-indigo-200',
     'Hipcamp':      'bg-green-100 text-green-700 border-green-200',
-    'Whistle Inn':  'bg-emerald-100 text-emerald-700 border-emerald-200',
+    // Direct bookings carry the property's own name as their source.
+    [PROPERTY.name]: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     'Blocked':      'bg-slate-100 text-slate-500 border-slate-200',
 };
 function SourceBadge({ source }: { source: string }) {
@@ -25,6 +26,7 @@ function SourceBadge({ source }: { source: string }) {
     );
 }
 import { format } from 'date-fns';
+import { PROPERTY } from '@/config/property';
 
 type CalendarEvent = {
     id: string;
@@ -178,7 +180,7 @@ export function CalendarView() {
                 <div className="flex flex-wrap gap-4 mt-6 text-xs text-slate-500 justify-center border-t border-slate-100 pt-4">
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-600"></span>
-                        <span>Whistle Inn Guests</span>
+                        <span>{PROPERTY.name} Guests</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-sky-100 border border-sky-600"></span>

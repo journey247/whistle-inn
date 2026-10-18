@@ -37,16 +37,21 @@ Never fork the repo per owner — that is what makes fixes 10x the work.
 
 ## Phase 1 — pilot-ready (in order)
 
-### 1. Property settings instead of hardcoded details
-- New `PropertySettings` table (one row per database): name, owner/contact
-  name, phone, email, domain, from-address, minimum nights (whole house /
-  single room), cancellation tiers, check-in/out times, permit number.
-- Move room copy and photos from `rooms.ts` into the `Room` table; keep slugs
-  immutable.
-- Replace every Whistle Inn / Nora / domain literal with settings lookups.
-- Seed script fills the Whistle Inn's current values, so this site doesn't change.
+### 1. Property settings instead of hardcoded details — done (name, contact, address)
+- Each owner is a file in `src/config/properties/` (name, host, email, phone,
+  address, check-in/out, bedrooms, amenities, SEO copy), registered in
+  `src/config/property.ts` and picked by `NEXT_PUBLIC_PROPERTY_ID`.
+- Pages, emails, Stripe line items, the iCal feed and the admin header read it;
+  no code outside `src/config/` names a property.
+- To add an owner: copy `whistle-inn.ts`, fill it in, register it, and set
+  `NEXT_PUBLIC_PROPERTY_ID` and `NEXT_PUBLIC_BASE_URL` on their Vercel project.
+- Still per-property in code: photos (`HeroImageSlider`, gallery, `/public`),
+  room list and copy (`src/lib/rooms.ts`), cancellation tiers
+  (`src/lib/cancellationPolicy.ts`), minimum nights in the checkout route, and
+  the `vercel.json` admin redirect to `thewhistleinn.com`. Homepage copy is
+  already editable from the admin panel.
 
-### 2. Occupancy tax (do this first for the Whistle Inn too)
+### 2. Occupancy tax — done (`feat/occupancy-tax`)
 - `TaxSetting` fields: TOT rate, tourism-assessment rate, whether cleaning
   fees are taxed, jurisdiction (zone), TOT certificate number.
 - `calculateQuote` returns tax lines; checkout sends them as Stripe tax rates

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
+import { PROPERTY } from '@/config/property';
 
 type HeroImage = {
     src: string;
@@ -11,16 +12,16 @@ type HeroImage = {
 };
 
 export const images: HeroImage[] = [
-    { src: "/Exterior.avif", alt: "Whistle Inn Victorian Farmhouse Exterior" },
-    { src: "/1650.jpg", alt: "Whistle Inn Train View", attribution: "Photo By: Annette Rogers Purther" },
-    { src: "/pool.webp", alt: "Whistle Inn Pool Area" },
-    { src: "/LivingRoom.webp", alt: "Whistle Inn Living Room" },
-    { src: "/DiningArea.webp", alt: "Whistle Inn Dining Area" },
-    { src: "/balcony.webp", alt: "Whistle Inn Balcony View" },
-    { src: "/entry.jpg", alt: "Whistle Inn Grand Entrance" },
-    { src: "/patio.webp", alt: "Whistle Inn Patio" },
-    { src: "/fullkitchen.avif", alt: "Whistle Inn Kitchen" },
-    { src: "/Bedroom1.webp", alt: "Whistle Inn Primary Bedroom" },
+    { src: "/Exterior.avif", alt: `${PROPERTY.name} ${PROPERTY.propertyType} Exterior` },
+    { src: "/1650.jpg", alt: `${PROPERTY.name} Train View`, attribution: "Photo By: Annette Rogers Purther" },
+    { src: "/pool.webp", alt: `${PROPERTY.name} Pool Area` },
+    { src: "/LivingRoom.webp", alt: `${PROPERTY.name} Living Room` },
+    { src: "/DiningArea.webp", alt: `${PROPERTY.name} Dining Area` },
+    { src: "/balcony.webp", alt: `${PROPERTY.name} Balcony View` },
+    { src: "/entry.jpg", alt: `${PROPERTY.name} Grand Entrance` },
+    { src: "/patio.webp", alt: `${PROPERTY.name} Patio` },
+    { src: "/fullkitchen.avif", alt: `${PROPERTY.name} Kitchen` },
+    { src: "/Bedroom1.webp", alt: `${PROPERTY.name} Primary Bedroom` },
 ];
 
 // Custom hook to share slider state

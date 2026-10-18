@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { sendEmail } from './email';
 import { sendSMS } from './sms';
+import { PROPERTY } from '../config/property';
 
 export enum NotificationType {
   BOOKING_CREATED = 'booking_created',
@@ -185,7 +186,7 @@ function generateEmailContent(
         html: `
           <h2>New Booking Received!</h2>
           <p>Dear ${recipient.name || 'Property Owner'},</p>
-          <p>You have received a new booking for Whistle Inn:</p>
+          <p>You have received a new booking for ${PROPERTY.name}:</p>
           <ul>
             <li><strong>Guest:</strong> ${data.customerName}</li>
             <li><strong>Email:</strong> ${data.customerEmail}</li>
@@ -294,7 +295,7 @@ function generateEmailContent(
 
     default:
       return {
-        subject: `Whistle Inn Notification`,
+        subject: `${PROPERTY.name} Notification`,
         html: `<p>${data.message || 'You have a new notification.'}</p>`,
         text: data.message || 'You have a new notification.'
       };
