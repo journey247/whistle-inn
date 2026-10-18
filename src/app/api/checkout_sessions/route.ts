@@ -145,7 +145,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: quoteErr.message }, { status: 400 });
         }
 
-        const { nights, accommodationTotal, cleaningFee, total, discountAmount, couponId } = quote;
+        const { nights, accommodationTotal, cleaningFee, total, discountAmount, couponId, tax } = quote;
         const minimumNights = quote.constraints.minimumNights || MINIMUM_NIGHTS;
 
         // A room booking must have a Room row: without one there is no id to
@@ -218,6 +218,12 @@ export async function POST(request: Request) {
                     roomId: quote.roomId,
                     totalPrice: total,
                     discount: discountAmount,
+                    taxableAmount: tax.taxableAmount,
+                    occupancyTax: tax.totAmount,
+                    occupancyTaxRate: tax.totRate,
+                    assessmentTax: tax.assessmentAmount,
+                    assessmentRate: tax.assessmentRate,
+                    taxExempt: tax.exempt,
                     couponId: couponId || undefined,
                     status: isRequestOnly ? 'requested' : 'pending',
                     expiresAt: isRequestOnly ? null : new Date(now.getTime() + 30 * 60 * 1000),
@@ -315,6 +321,29 @@ export async function POST(request: Request) {
                             currency: 'usd',
                             product_data: { name: 'Cleaning Fee' },
                             unit_amount: Math.round(cleaningFee * 100),
+                        },
+                        quantity: 1,
+                    });
+                }
+
+                // Occupancy tax goes on its own lines so the receipt shows
+                // exactly what is remitted to the county, separate from rent.
+                if (tax.totAmount > 0) {
+                    lineItems.push({
+                        price_data: {
+                            currency: 'usd',
+                            product_data: { name: `Transient Occupancy Tax (${tax.totRate}%)` },
+                            unit_amount: Math.round(tax.totAmount * 100),
+                        },
+                        quantity: 1,
+                    });
+                }
+                if (tax.assessmentAmount > 0) {
+                    lineItems.push({
+                        price_data: {
+                            currency: 'usd',
+                            product_data: { name: `${tax.assessmentLabel} (${tax.assessmentRate}%)` },
+                            unit_amount: Math.round(tax.assessmentAmount * 100),
                         },
                         quantity: 1,
                     });

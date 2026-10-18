@@ -55,7 +55,7 @@ export function SuccessView({ booking }: SuccessViewProps) {
                             </div>
                             <div className="flex justify-between items-center py-2">
                                 <span className="text-slate-600">Total Paid</span>
-                                <span className="font-bold text-lg text-brand-gold">${booking.totalPrice.toLocaleString()}</span>
+                                <span className="font-bold text-lg text-brand-gold">${booking.totalPrice.toLocaleString("en-US", { minimumFractionDigits: Number.isInteger(booking.totalPrice) ? 0 : 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 

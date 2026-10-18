@@ -8,6 +8,7 @@ import { SmsPanel } from "./SmsPanel";
 import { UserManagement } from "./UserManagement";
 import { EmailPanel } from "./EmailPanel";
 import { EmailLogsPanel } from "./EmailLogsPanel";
+import { TaxSettingsCard } from "./TaxSettings";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
 type SettingsTab = "pricing" | "rooms" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users";
@@ -212,6 +213,8 @@ function PricingTab({ addToast }: { addToast: AddToast }) {
                     </div>
                 )}
             </div>
+
+            <TaxSettingsCard addToast={addToast} />
         </div>
     );
 }

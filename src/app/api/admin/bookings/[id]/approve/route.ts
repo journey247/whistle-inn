@@ -128,8 +128,10 @@ export async function POST(request: Request) {
                 const checkOut = booking.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
                 // Charged at the total quoted when the guest made the request
-                // (cleaning fee and any coupon already included), so approving
-                // a request never changes the price the guest was shown.
+                // (cleaning fee, any coupon and occupancy tax already included),
+                // so approving a request never changes the price the guest was shown.
+                const taxTotal = booking.occupancyTax + booking.assessmentTax;
+                const includes = taxTotal > 0 ? 'includes cleaning fee and occupancy tax' : 'includes cleaning fee';
                 session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
                     mode: 'payment',
@@ -138,7 +140,7 @@ export async function POST(request: Request) {
                             currency: 'usd',
                             product_data: {
                                 name: `Whistle Inn — ${booking.room ? booking.room.name : 'Whole House'}`,
-                                description: `${nights} night${nights !== 1 ? 's' : ''} · ${checkIn} to ${checkOut} · includes cleaning fee`,
+                                description: `${nights} night${nights !== 1 ? 's' : ''} · ${checkIn} to ${checkOut} · ${includes}`,
                             },
                             unit_amount: Math.round(booking.totalPrice * 100),
                         },

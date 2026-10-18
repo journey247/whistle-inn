@@ -17,6 +17,8 @@ export async function GET(request: Request) {
                 guestName: true,
                 email: true,
                 totalPrice: true,
+                occupancyTax: true,
+                assessmentTax: true,
                 status: true,
                 notes: true,
                 createdAt: true,

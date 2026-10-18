@@ -251,6 +251,10 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
                     {/* Payment */}
                     <Card>
                         <Row icon={<DollarSign className="w-4 h-4 text-gray-400" />} label="Total" value={`$${booking.totalPrice.toFixed(2)}`} bold />
+                        {(booking.occupancyTax ?? 0) + (booking.assessmentTax ?? 0) > 0 && (
+                            <Row icon={<DollarSign className="w-4 h-4 text-gray-400" />} label="Occupancy tax (included)"
+                                value={`$${((booking.occupancyTax ?? 0) + (booking.assessmentTax ?? 0)).toFixed(2)}`} />
+                        )}
                         {booking.stripePaymentIntentId && (
                             <Row icon={<DollarSign className="w-4 h-4 text-gray-400" />} label="Stripe ID"
                                 value={<span className="font-mono text-xs text-gray-500 break-all">{booking.stripePaymentIntentId}</span>} />

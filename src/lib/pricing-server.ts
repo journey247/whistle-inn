@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { differenceInCalendarDays, eachDayOfInterval, isWithinInterval } from 'date-fns';
 import { getBookableRoomBySlug } from './rooms';
+import { calculateTax, parseTaxSettings, TAX_SETTING_KEYS, DEFAULT_TAX_SETTINGS, type TaxBreakdown, type TaxSettings } from './tax';
 
 // Cache for pricing data to enable real-time invalidation
 interface PricingCache {
@@ -48,6 +49,20 @@ async function getPricingData() {
     };
 
     return pricingCache;
+}
+
+/** Occupancy-tax settings. Fails closed: if they can't be read, no tax is added. */
+export async function getTaxSettings(): Promise<TaxSettings> {
+    try {
+        const blocks = await prisma.contentBlock.findMany({
+            where: { key: { in: Object.values(TAX_SETTING_KEYS) } },
+            select: { key: true, value: true },
+        });
+        return parseTaxSettings(Object.fromEntries(blocks.map(b => [b.key, b.value])));
+    } catch (error) {
+        console.error('Failed to load tax settings — quoting without tax:', error);
+        return DEFAULT_TAX_SETTINGS;
+    }
 }
 
 // Get base pricing from content management system
@@ -104,7 +119,11 @@ export interface QuoteConstraints {
 }
 
 export interface PriceBreakdown {
+    /** Everything the guest pays, occupancy tax included. */
     total: number;
+    /** Rent + cleaning − discount, before tax. */
+    subtotal: number;
+    tax: TaxBreakdown;
     accommodationTotal: number;
     cleaningFee: number;
     nights: number;
@@ -169,9 +188,10 @@ export async function calculateQuote(
     const nights = differenceInCalendarDays(endDate, startDate);
 
     // Get cached pricing data and base pricing
-    const [pricingData, basePricing] = await Promise.all([
+    const [pricingData, basePricing, taxSettings] = await Promise.all([
         getPricingData(),
-        getBasePricing()
+        getBasePricing(),
+        getTaxSettings(),
     ]);
 
     const room = roomSlug ? await resolveRoomPricing(roomSlug) : null;
@@ -264,10 +284,17 @@ export async function calculateQuote(
 
     // The cleaning fee is charged once per booking, whether the guest takes one
     // room or the whole house — it is the same turnover either way.
-    const total = accommodationTotal + basePricing.CLEANING_FEE - discountAmount;
+    const subtotal = accommodationTotal + basePricing.CLEANING_FEE - discountAmount;
+    const tax = calculateTax(
+        { accommodationTotal, discountAmount, cleaningFee: basePricing.CLEANING_FEE, nights },
+        taxSettings
+    );
+    const total = Math.round((subtotal + tax.totalTax) * 100) / 100;
 
     return {
         total,
+        subtotal,
+        tax,
         accommodationTotal,
         cleaningFee: basePricing.CLEANING_FEE,
         nights,

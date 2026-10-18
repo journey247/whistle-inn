@@ -36,6 +36,15 @@ model Booking {
   roomId     String?
   room       Room?         @relation(fields: [roomId], references: [id])
   discount   Float         @default(0)
+  // Occupancy tax charged on this booking, already included in totalPrice.
+  // Stored per booking so the tax report reflects what the guest actually
+  // paid, even after the owner changes rates.
+  taxableAmount    Float   @default(0)
+  occupancyTax     Float   @default(0)
+  occupancyTaxRate Float   @default(0)  // percent
+  assessmentTax    Float   @default(0)
+  assessmentRate   Float   @default(0)  // percent
+  taxExempt        Boolean @default(false)  // long stay
   couponId   String?
   coupon     Coupon?       @relation(fields: [couponId], references: [id])
   expiresAt         DateTime?   // set on pending creation; cleared on paid; null = no expiry

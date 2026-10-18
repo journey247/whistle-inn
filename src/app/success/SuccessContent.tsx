@@ -160,7 +160,7 @@ export default function SuccessContent() {
                         <div className="flex justify-between items-center">
                             <span className="text-lg font-medium text-slate-700">Total Amount</span>
                             <span className="text-2xl font-bold text-brand-gold">
-                                ${booking.totalPrice.toLocaleString()}
+                                ${booking.totalPrice.toLocaleString("en-US", { minimumFractionDigits: Number.isInteger(booking.totalPrice) ? 0 : 2, maximumFractionDigits: 2 })}
                             </span>
                         </div>
                     </div>

@@ -41,6 +41,22 @@ interface Quote {
     nights: number;
     error?: string;
     currency: string;
+    tax?: {
+        totRate: number;
+        totAmount: number;
+        assessmentRate: number;
+        assessmentLabel: string;
+        assessmentAmount: number;
+        totalTax: number;
+        exempt: boolean;
+    };
+}
+
+/** Whole dollars stay whole ($1,950); tax brings in cents ($2,106.00). */
+function money(n: number): string {
+    return Number.isInteger(n)
+        ? n.toLocaleString('en-US')
+        : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSlug = null }: BookingModalProps) {
@@ -629,6 +645,20 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                                                                             <span className="font-semibold">-${quote.discountAmount.toLocaleString()}</span>
                                                                         </div>
                                                                     )}
+
+                                                                    {quote.tax && quote.tax.totAmount > 0 && (
+                                                                        <div className="flex justify-between items-center text-slate-700">
+                                                                            <span className="font-medium">Occupancy tax ({quote.tax.totRate}%)</span>
+                                                                            <span className="font-semibold">${money(quote.tax.totAmount)}</span>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {quote.tax && quote.tax.assessmentAmount > 0 && (
+                                                                        <div className="flex justify-between items-center text-slate-700">
+                                                                            <span className="font-medium">{quote.tax.assessmentLabel} ({quote.tax.assessmentRate}%)</span>
+                                                                            <span className="font-semibold">${money(quote.tax.assessmentAmount)}</span>
+                                                                        </div>
+                                                                    )}
                                                                 </>
                                                             ) : null}
                                                         </div>
@@ -659,8 +689,10 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                                                             <div className="flex justify-between items-end">
                                                                 <span className="font-serif font-bold text-xl text-slate-900">Total</span>
                                                                 <div className="text-right">
-                                                                    <span className="block font-bold text-2xl text-brand-gold">${quote.total.toLocaleString()}</span>
-                                                                    <span className="text-xs text-slate-600 block font-medium">Includes taxes & fees</span>
+                                                                    <span className="block font-bold text-2xl text-brand-gold">${money(quote.total)}</span>
+                                                                    <span className="text-xs text-slate-600 block font-medium">
+                                                                        {quote.tax?.totalTax ? "Includes occupancy tax & fees" : quote.tax?.exempt ? "Includes fees · long stays are tax-exempt" : "Includes fees"}
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </div>

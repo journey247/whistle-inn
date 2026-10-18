@@ -25,6 +25,9 @@ export type Booking = {
     guestName: string;
     email: string;
     totalPrice: number;
+    /** Included in totalPrice. Absent on bookings made before tax was added. */
+    occupancyTax?: number;
+    assessmentTax?: number;
     status: string;
     createdAt?: string;
     notes?: string;
