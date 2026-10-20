@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 const stripe = getStripe();
 
-const MINIMUM_NIGHTS = 3;
+const MINIMUM_NIGHTS = PROPERTY.pricingDefaults.minimumNights;
 
 /**
  * Release a pending booking that never made it to Stripe.
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
             where: { key: 'max_guests' }
         });
         const parsedMaxGuests = maxGuestsBlock ? parseInt(maxGuestsBlock.value, 10) : NaN;
-        const maxGuests = Number.isFinite(parsedMaxGuests) && parsedMaxGuests > 0 ? parsedMaxGuests : 14;
+        const maxGuests = Number.isFinite(parsedMaxGuests) && parsedMaxGuests > 0 ? parsedMaxGuests : PROPERTY.maxGuests;
 
         const guestCount = parseInt(String(rawGuestCount ?? 1), 10);
         if (isNaN(guestCount) || guestCount < 1 || guestCount > maxGuests) {

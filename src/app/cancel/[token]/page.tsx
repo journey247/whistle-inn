@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { POLICY_SUMMARY } from '@/lib/cancellationPolicy';
+import { POLICY_SUMMARY, PARTIAL_REFUND_PERCENT } from '@/lib/cancellationPolicy';
 import { PROPERTY } from '@/config/property';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ function RefundBadge({ tier, amount }: { tier: RefundInfo['tier']; amount: numbe
   if (tier === 'half') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
-        ⚠️ 50% refund — ${amount.toFixed(2)}
+        ⚠️ {PARTIAL_REFUND_PERCENT}% refund — ${amount.toFixed(2)}
       </span>
     );
   }

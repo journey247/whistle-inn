@@ -5,52 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { PROPERTY } from '@/config/property';
+import { PROPERTY, type PropertyConfig } from '@/config/property';
 
-type GalleryImage = {
-    src: string;
-    alt: string;
-    category: string;
-};
+type GalleryImage = PropertyConfig['galleryImages'][number];
 
-const GALLERY_IMAGES: GalleryImage[] = [
-    // Exterior & Property
-    { src: "/Exterior.avif", alt: `${PROPERTY.name} exterior — ${PROPERTY.propertyType}`, category: "Exterior" },
-    { src: "/entry.jpg", alt: "Property entry", category: "Exterior" },
-    { src: "/patio.webp", alt: "Outdoor patio area", category: "Exterior" },
-    { src: "/balcony.webp", alt: "Balcony with views", category: "Exterior" },
-    { src: "/Poolrock.webp", alt: "Pool area with natural rock", category: "Pool" },
-    { src: "/pool.webp", alt: "Pool — daytime", category: "Pool" },
-    { src: "/pool@night.webp", alt: "Pool — evening ambiance", category: "Pool" },
-    // Living Spaces
-    { src: "/LivingRoom.webp", alt: "Spacious living room", category: "Living Areas" },
-    { src: "/DiningArea.webp", alt: "Dining area — seats 14", category: "Living Areas" },
-    { src: "/fullkitchen.avif", alt: "Full gourmet kitchen", category: "Living Areas" },
-    // Bedrooms
-    { src: "/Bedroom1.webp", alt: "Primary bedroom", category: "Bedrooms" },
-    { src: "/Bedroom2.avif", alt: "Bedroom 2", category: "Bedrooms" },
-    { src: "/Bedroom3.avif", alt: "Bedroom 3", category: "Bedrooms" },
-    { src: "/Bedroom4.webp", alt: "Bedroom 4", category: "Bedrooms" },
-    { src: "/Bedroom5.webp", alt: "Bedroom 5", category: "Bedrooms" },
-    // Bathrooms
-    { src: "/fullbath1.jpg", alt: "Full bathroom 1", category: "Bathrooms" },
-    { src: "/fullbath2.webp", alt: "Full bathroom 2", category: "Bathrooms" },
-    { src: "/fullbath3.webp", alt: "Full bathroom 3", category: "Bathrooms" },
-    { src: "/fullbath4.webp", alt: "Full bathroom 4", category: "Bathrooms" },
-    { src: "/halfbath.avif", alt: "Half bath", category: "Bathrooms" },
-    // Property Details
-    { src: "/1663.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1665.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1667.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1673.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1676.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1678.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1681.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1687.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1689.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1691.jpg", alt: "Property detail", category: "Details" },
-    { src: "/1692.jpg", alt: "Property detail", category: "Details" },
-];
+const GALLERY_IMAGES: GalleryImage[] = PROPERTY.galleryImages;
 
 const CATEGORIES = ["All", ...Array.from(new Set(GALLERY_IMAGES.map(img => img.category)))];
 

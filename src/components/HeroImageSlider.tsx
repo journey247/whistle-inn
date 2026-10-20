@@ -3,26 +3,11 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { PROPERTY } from '@/config/property';
+import { PROPERTY, type PropertyConfig } from '@/config/property';
 
-type HeroImage = {
-    src: string;
-    alt: string;
-    attribution?: string;
-};
+type HeroImage = PropertyConfig['heroImages'][number];
 
-export const images: HeroImage[] = [
-    { src: "/Exterior.avif", alt: `${PROPERTY.name} ${PROPERTY.propertyType} Exterior` },
-    { src: "/1650.jpg", alt: `${PROPERTY.name} Train View`, attribution: "Photo By: Annette Rogers Purther" },
-    { src: "/pool.webp", alt: `${PROPERTY.name} Pool Area` },
-    { src: "/LivingRoom.webp", alt: `${PROPERTY.name} Living Room` },
-    { src: "/DiningArea.webp", alt: `${PROPERTY.name} Dining Area` },
-    { src: "/balcony.webp", alt: `${PROPERTY.name} Balcony View` },
-    { src: "/entry.jpg", alt: `${PROPERTY.name} Grand Entrance` },
-    { src: "/patio.webp", alt: `${PROPERTY.name} Patio` },
-    { src: "/fullkitchen.avif", alt: `${PROPERTY.name} Kitchen` },
-    { src: "/Bedroom1.webp", alt: `${PROPERTY.name} Primary Bedroom` },
-];
+export const images: HeroImage[] = PROPERTY.heroImages;
 
 // Custom hook to share slider state
 export const useHeroSlider = (images: HeroImage[]) => {

@@ -1,5 +1,7 @@
+import { PROPERTY } from '@/config/property';
+
 /**
- * Canonical list of the property's rooms.
+ * The property's rooms, and helpers for reading them.
  *
  * Single source of truth for the homepage grid, the /rooms pages and the
  * sitemap, so a room cannot appear in one place and be missing from another.
@@ -55,113 +57,11 @@ export type SharedSpace = RoomContent & { bookable: false };
 
 export type Room = BookableRoom | SharedSpace;
 
-export const ROOMS: Room[] = [
-    {
-        slug: 'conductors-suite',
-        bookable: true,
-        defaultWeekdayPrice: 195,
-        defaultWeekendPrice: 225,
-        defaultMaxGuests: 3,
-        index: 0,
-        titleKey: 'room_1_title',
-        bedsKey: 'room_1_beds',
-        imageKey: 'room_img_0',
-        descKey: 'room_1_desc',
-        defaultTitle: 'Conductors Suite',
-        defaultBeds: '1 King, 1 Single',
-        defaultImage: '/Bedroom1.webp',
-        defaultSummary:
-            'The largest of the bedrooms, with a king bed and a single — comfortable for a couple, a family, or a pair of friends.',
-        ogImage: '/og-rooms/conductors-suite.jpg',
-    },
-    {
-        slug: 'tree-house-room',
-        bookable: true,
-        defaultWeekdayPrice: 165,
-        defaultWeekendPrice: 195,
-        defaultMaxGuests: 2,
-        index: 1,
-        titleKey: 'room_2_title',
-        bedsKey: 'room_2_beds',
-        imageKey: 'room_img_1',
-        descKey: 'room_2_desc',
-        defaultTitle: 'The Tree House Room',
-        defaultBeds: '1 Queen Bed',
-        defaultImage: '/Bedroom2.avif',
-        defaultSummary:
-            'A quiet queen room set among the pines, with the feel of a tree house and the light to match.',
-        ogImage: '/og-rooms/tree-house-room.jpg',
-    },
-    {
-        slug: 'train-room',
-        bookable: true,
-        defaultWeekdayPrice: 185,
-        defaultWeekendPrice: 215,
-        defaultMaxGuests: 4,
-        index: 2,
-        titleKey: 'room_3_title',
-        bedsKey: 'room_3_beds',
-        imageKey: 'room_img_2',
-        descKey: 'room_3_desc',
-        defaultTitle: 'The Train Room',
-        defaultBeds: '1 Queen, 1 Full',
-        defaultImage: '/Bedroom3.avif',
-        defaultSummary:
-            'A queen and a full bed in a room that leans into the railroad history the inn is named for — a favourite with families.',
-        ogImage: '/og-rooms/train-room.jpg',
-    },
-    {
-        slug: 'starlit-sky-room',
-        bookable: true,
-        defaultWeekdayPrice: 165,
-        defaultWeekendPrice: 195,
-        defaultMaxGuests: 2,
-        index: 3,
-        titleKey: 'room_4_title',
-        bedsKey: 'room_4_beds',
-        imageKey: 'room_img_3',
-        descKey: 'room_4_desc',
-        defaultTitle: 'Starlit Sky Room',
-        defaultBeds: '1 Queen Bed',
-        defaultImage: '/Bedroom4.webp',
-        defaultSummary:
-            'A restful queen room named for the Sierra night sky, far enough from town that the stars actually show.',
-        ogImage: '/og-rooms/starlit-sky-room.jpg',
-    },
-    {
-        slug: 'breakmans-suite',
-        bookable: true,
-        defaultWeekdayPrice: 165,
-        defaultWeekendPrice: 195,
-        defaultMaxGuests: 2,
-        index: 4,
-        titleKey: 'room_5_title',
-        bedsKey: 'room_5_beds',
-        imageKey: 'room_img_4',
-        descKey: 'room_5_desc',
-        defaultTitle: 'Breakmans Suite',
-        defaultBeds: '1 Queen Bed',
-        defaultImage: '/Bedroom5.webp',
-        defaultSummary:
-            'A comfortable queen room with a warm, understated feel — an easy place to land at the end of a long day outdoors.',
-        ogImage: '/og-rooms/breakmans-suite.jpg',
-    },
-    {
-        slug: 'living-space',
-        bookable: false,
-        index: 5,
-        titleKey: 'room_6_title',
-        bedsKey: 'room_6_beds',
-        imageKey: 'room_img_5',
-        descKey: 'room_6_desc',
-        defaultTitle: 'Living Space',
-        defaultBeds: 'Sofa Bed Available',
-        defaultImage: '/LivingRoom.webp',
-        defaultSummary:
-            'The shared living room, with a sofa bed for extra guests and room for the whole group to gather.',
-        ogImage: '/og-rooms/living-space.jpg',
-    },
-];
+/**
+ * The rooms, in display order. Each owner's list lives in their property
+ * config (src/config/properties/), so no property's rooms are named here.
+ */
+export const ROOMS: Room[] = PROPERTY.rooms;
 
 /** The rooms that can be booked individually, in display order. */
 export const BOOKABLE_ROOMS: BookableRoom[] = ROOMS.filter(

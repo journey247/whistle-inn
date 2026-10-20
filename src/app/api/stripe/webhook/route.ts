@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/email';
 import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
 import { PROPERTY, SITE_URL } from '@/config/property';
 import { getStripe, getConnectState, saveChargesEnabled } from '@/lib/stripe';
+import { policySentence } from '@/lib/cancellationPolicy';
 
 /** Generate a cryptographically secure, URL-safe cancellation token */
 function generateCancellationToken(): string {
@@ -209,7 +210,7 @@ export async function POST(request: Request) {
                                     </ul>
                                     <p>We look forward to hosting you. If you need to cancel, you can do so here:<br>
                                     <a href="${cancelUrl}">${cancelUrl}</a></p>
-                                    <p><em>Cancellation policy: Full refund if cancelled 5+ days before check-in. 50% refund if cancelled 1–4 days before. No refund within 24 hours of check-in.</em></p>
+                                    <p><em>Cancellation policy: ${policySentence()}</em></p>
                                     <p>See you soon!<br>${PROPERTY.hostName} &amp; the ${PROPERTY.name} team</p>
                                 `,
                             });

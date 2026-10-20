@@ -13,6 +13,7 @@
  * Kept free of server-only imports so client components can use it too.
  */
 
+import type { Room } from '@/lib/rooms';
 import { whistleInn } from './properties/whistle-inn';
 
 export type PropertyConfig = {
@@ -53,6 +54,30 @@ export type PropertyConfig = {
     bedrooms: number;
     maxGuests: number;
     amenities: string[];
+    /** Used until the owner sets their own in the admin panel. */
+    pricingDefaults: {
+        weekdayNight: number;
+        weekendNight: number;
+        cleaningFee: number;
+        minimumNights: number;
+        roomMinimumNights: number;
+    };
+    /** Refund tiers by how far ahead of check-in the guest cancels. */
+    cancellation: {
+        /** Full refund within this many hours of booking… */
+        graceHours: number;
+        /** …if check-in is at least this many days away. */
+        graceMinDaysBeforeCheckIn: number;
+        /** Full refund at least this many days before check-in. */
+        fullRefundDays: number;
+        /** Partial refund at least this many days before check-in; none after. */
+        partialRefundDays: number;
+        partialRefundPercent: number;
+    };
+    heroImages: { src: string; alt: string; attribution?: string }[];
+    galleryImages: { src: string; alt: string; category: string }[];
+    /** Rooms in display order; see src/lib/rooms.ts for the fields. */
+    rooms: Room[];
 };
 
 const PROPERTIES: Record<string, PropertyConfig> = {

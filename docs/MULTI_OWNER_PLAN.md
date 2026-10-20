@@ -45,11 +45,12 @@ Never fork the repo per owner — that is what makes fixes 10x the work.
   no code outside `src/config/` names a property.
 - To add an owner: copy `whistle-inn.ts`, fill it in, register it, and set
   `NEXT_PUBLIC_PROPERTY_ID` and `NEXT_PUBLIC_BASE_URL` on their Vercel project.
-- Still per-property in code: photos (`HeroImageSlider`, gallery, `/public`),
-  room list and copy (`src/lib/rooms.ts`), cancellation tiers
-  (`src/lib/cancellationPolicy.ts`), minimum nights in the checkout route, and
-  the `vercel.json` admin redirect to `thewhistleinn.com`. Homepage copy is
-  already editable from the admin panel.
+- Also in the owner's config: hero and gallery photos, the room list and
+  copy, default prices and minimum nights, and cancellation tiers. New owners'
+  photos go in `/public/properties/<id>/`.
+- Still Whistle-Inn-specific: the homepage section layout (trains, skiing,
+  fishing) and the content seed in `api/admin/content/seed`; homepage copy is
+  editable in the admin panel, but a different layout needs code.
 
 ### 2. Occupancy tax — done (`feat/occupancy-tax`)
 - `TaxSetting` fields: TOT rate, tourism-assessment rate, whether cleaning

@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
 import { PROPERTY, SITE_URL } from '@/config/property';
 import { getStripe, onAccount } from '@/lib/stripe';
+import { policySentence } from '@/lib/cancellationPolicy';
 
 export const dynamic = 'force-dynamic';
 
@@ -185,7 +186,7 @@ export async function PATCH(request: Request) {
                           <li><strong>Booking ID:</strong> ${updated.id}</li>
                         </ul>
                         <p>Need to cancel? <a href="${cancelUrl}">Click here</a></p>
-                        <p><em>Policy: Full refund 5+ days before check-in. 50% refund 1–4 days before. No refund within 24 h of check-in.</em></p>
+                        <p><em>Policy: ${policySentence()}</em></p>
                     `,
                 });
             } catch (e) {

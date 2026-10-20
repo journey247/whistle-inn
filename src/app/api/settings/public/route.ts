@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCheckoutSettings } from '@/lib/checkout-settings';
+import { PROPERTY } from '@/config/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,16 +20,13 @@ export const dynamic = 'force-dynamic';
  * Only expose values that are safe for anyone to read.
  */
 
-const DEFAULT_MINIMUM_NIGHTS = 3;
-// 14 is the property's actual capacity, as advertised on the homepage stats and
-// the gallery. There is no `max_guests` content block seeded or editable from
-// the admin panel, so in practice this fallback is the live value — it must
-// match what the site advertises or large groups are rejected at checkout.
-const DEFAULT_MAX_GUESTS = 14;
-// A single room is a far smaller commitment than the whole house, so it carries
-// its own (shorter) minimum. Holding one bedroom to a 3-night minimum turns away
-// the midweek one-nighters that per-room booking exists to capture.
-const DEFAULT_ROOM_MINIMUM_NIGHTS = 2;
+const DEFAULT_MINIMUM_NIGHTS = PROPERTY.pricingDefaults.minimumNights;
+// The property's actual capacity, as advertised on the homepage and gallery.
+// There is no `max_guests` content block editable from the admin panel, so in
+// practice this fallback is the live value — it must match what the site
+// advertises or large groups are rejected at checkout.
+const DEFAULT_MAX_GUESTS = PROPERTY.maxGuests;
+const DEFAULT_ROOM_MINIMUM_NIGHTS = PROPERTY.pricingDefaults.roomMinimumNights;
 
 export async function GET() {
     try {

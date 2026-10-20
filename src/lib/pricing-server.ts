@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { differenceInCalendarDays, eachDayOfInterval, isWithinInterval } from 'date-fns';
 import { getBookableRoomBySlug } from './rooms';
 import { calculateTax, parseTaxSettings, TAX_SETTING_KEYS, DEFAULT_TAX_SETTINGS, type TaxBreakdown, type TaxSettings } from './tax';
+import { PROPERTY } from '@/config/property';
 
 // Cache for pricing data to enable real-time invalidation
 interface PricingCache {
@@ -85,30 +86,25 @@ async function getBasePricing() {
         });
 
         return {
-            WEEKDAY_NIGHT: weekdayBlock ? parseFloat(weekdayBlock.value) : 650,
-            WEEKEND_NIGHT: weekendBlock ? parseFloat(weekendBlock.value) : 700,
-            CLEANING_FEE: cleaningBlock ? parseFloat(cleaningBlock.value) : 150,
-            MINIMUM_NIGHTS: minNightsBlock ? parseInt(minNightsBlock.value) : 3,
-            ROOM_MINIMUM_NIGHTS: roomMinNightsBlock ? parseInt(roomMinNightsBlock.value) : 2,
+            WEEKDAY_NIGHT: weekdayBlock ? parseFloat(weekdayBlock.value) : PRICING.WEEKDAY_NIGHT,
+            WEEKEND_NIGHT: weekendBlock ? parseFloat(weekendBlock.value) : PRICING.WEEKEND_NIGHT,
+            CLEANING_FEE: cleaningBlock ? parseFloat(cleaningBlock.value) : PRICING.CLEANING_FEE,
+            MINIMUM_NIGHTS: minNightsBlock ? parseInt(minNightsBlock.value) : PRICING.MINIMUM_NIGHTS,
+            ROOM_MINIMUM_NIGHTS: roomMinNightsBlock ? parseInt(roomMinNightsBlock.value) : PRICING.ROOM_MINIMUM_NIGHTS,
         };
     } catch (error) {
-        // Fallback to hardcoded values if content blocks don't exist
-        return {
-            WEEKDAY_NIGHT: 650,
-            WEEKEND_NIGHT: 700,
-            CLEANING_FEE: 150,
-            MINIMUM_NIGHTS: 3,
-            ROOM_MINIMUM_NIGHTS: 2,
-        };
+        // Fall back to the property's defaults if content blocks don't exist
+        return { ...PRICING };
     }
 }
 
+/** The property's defaults; content blocks edited in the admin panel override them. */
 export const PRICING = {
-    WEEKDAY_NIGHT: 650, // Mon-Thu - will be overridden by content blocks
-    WEEKEND_NIGHT: 700, // Fri-Sun - will be overridden by content blocks
-    CLEANING_FEE: 150, // will be overridden by content blocks
-    MINIMUM_NIGHTS: 3, // will be overridden by content blocks
-    ROOM_MINIMUM_NIGHTS: 2, // single-room stays; will be overridden by content blocks
+    WEEKDAY_NIGHT: PROPERTY.pricingDefaults.weekdayNight, // Mon-Thu
+    WEEKEND_NIGHT: PROPERTY.pricingDefaults.weekendNight, // Fri-Sun
+    CLEANING_FEE: PROPERTY.pricingDefaults.cleaningFee,
+    MINIMUM_NIGHTS: PROPERTY.pricingDefaults.minimumNights,
+    ROOM_MINIMUM_NIGHTS: PROPERTY.pricingDefaults.roomMinimumNights, // single-room stays
 };
 
 /** Booking constraints that go with a quote, so callers need not re-read them. */
