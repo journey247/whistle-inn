@@ -41,6 +41,8 @@ model Booking {
   utmCampaign String?
   // Provider's fee on a paid-ad booking (Stripe application fee), dollars.
   platformFee Float   @default(0)
+  // When the post-stay thank-you / return-offer email went out (null = not yet).
+  followupSentAt DateTime?
   notes      String?       // admin notes
   guestCount Int           @default(1)
   // Which room this booking is for. NULL = whole-property buyout, which is
@@ -69,6 +71,13 @@ model Booking {
   @@index([status, expiresAt])           // fast expired-pending cleanup queries
   @@index([roomId, startDate, endDate])  // per-room conflict-range queries
   @@index([source])
+}
+
+// Guests who unsubscribed from marketing email (post-stay offers). Booking
+// confirmations and other transactional mail still go to them.
+model EmailOptOut {
+  email     String   @id
+  createdAt DateTime @default(now())
 }
 
 model Subscriber {

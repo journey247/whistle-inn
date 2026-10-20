@@ -10,6 +10,7 @@ import { EmailPanel } from "./EmailPanel";
 import { EmailLogsPanel } from "./EmailLogsPanel";
 import { TaxSettingsCard } from "./TaxSettings";
 import { StripeConnectCard } from "./StripeConnectCard";
+import { GuestFollowupsCard } from "./GuestFollowupsCard";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
 type SettingsTab = "pricing" | "rooms" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users";
@@ -218,6 +219,8 @@ function PricingTab({ addToast }: { addToast: AddToast }) {
             <StripeConnectCard addToast={addToast} />
 
             <TaxSettingsCard addToast={addToast} />
+
+            <GuestFollowupsCard addToast={addToast} />
         </div>
     );
 }

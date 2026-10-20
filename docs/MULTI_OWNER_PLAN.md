@@ -101,7 +101,16 @@ Original notes:
 - Owner dashboard shows bookings and revenue by source — this is the proof for
   the performance fee.
 
-### 5. Built-in marketing (included in base price)
+### 5. Built-in marketing (included in base price) — follow-up email done (`feat/guest-followups`)
+- Day after checkout (daily cron, 17:00 UTC): thank-you, optional review
+  link, and a single-use BACK-XXXXXXXX return-stay code (default 10%, 12
+  months). Off until the owner enables it in Admin → Settings → Pricing.
+- Carries the property address and an HMAC unsubscribe link; opt-outs live in
+  `EmailOptOut` and are skipped. Only stays that ended in the last 7 days are
+  emailed, so switching it on never reaches old guests.
+- Not built yet: printable "book direct" card.
+
+Original notes:
 - Repeat-guest email after checkout with a return-stay coupon (cron + Resend,
   reusing `EmailTemplate`).
 - Review-request email.
