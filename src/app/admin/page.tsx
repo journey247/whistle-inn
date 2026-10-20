@@ -29,6 +29,7 @@ export type Booking = {
     /** Included in totalPrice. Absent on bookings made before tax was added. */
     occupancyTax?: number;
     assessmentTax?: number;
+    source?: string;
     status: string;
     createdAt?: string;
     notes?: string;
@@ -47,6 +48,8 @@ export type Analytics = {
     totalRevenue: number;
     occupancyRate: number;
     monthlyRevenue?: { month: string; revenue: number }[];
+    /** Paid bookings grouped by where the guest came from. */
+    bySource?: { source: string; label: string; paid: boolean; bookings: number; revenue: number; platformFees: number }[];
 };
 
 export type SharedProps = {

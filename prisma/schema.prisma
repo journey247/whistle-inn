@@ -33,6 +33,14 @@ model Booking {
   // charge). NULL = the platform's own account, as before Connect. Refunds
   // must be made on the same account.
   stripeAccountId String?
+  // Where the guest came from (see src/lib/attribution.ts): direct,
+  // google_ads, meta_ads, paid_other or campaign, plus the raw UTM tags.
+  source      String  @default("direct")
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  // Provider's fee on a paid-ad booking (Stripe application fee), dollars.
+  platformFee Float   @default(0)
   notes      String?       // admin notes
   guestCount Int           @default(1)
   // Which room this booking is for. NULL = whole-property buyout, which is
@@ -60,6 +68,7 @@ model Booking {
   @@index([startDate, endDate])          // fast conflict-range queries
   @@index([status, expiresAt])           // fast expired-pending cleanup queries
   @@index([roomId, startDate, endDate])  // per-room conflict-range queries
+  @@index([source])
 }
 
 model Subscriber {

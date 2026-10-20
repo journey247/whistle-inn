@@ -59,7 +59,11 @@ export async function PATCH(request: Request) {
                     try {
                         // Refund on the account that took the payment (the owner's, under Connect).
                         await stripe.refunds.create(
-                            { payment_intent: existing.stripePaymentIntentId },
+                            {
+                                payment_intent: existing.stripePaymentIntentId,
+                                // Give back the provider's ad fee too: no fee on a cancelled stay.
+                                ...(existing.platformFee > 0 && { refund_application_fee: true }),
+                            },
                             onAccount(existing.stripeAccountId)
                         );
                         console.log(`[Cancel] Refunded payment intent ${existing.stripePaymentIntentId} for booking ${id}`);

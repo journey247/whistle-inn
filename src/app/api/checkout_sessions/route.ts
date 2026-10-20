@@ -8,7 +8,8 @@ import { getBookableRoomBySlug } from '@/lib/rooms';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
 import { getCheckoutSettings } from '@/lib/checkout-settings';
 import { PROPERTY } from '@/config/property';
-import { getStripe, getChargeAccountId, onAccount } from '@/lib/stripe';
+import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
+import { attributionFromCookieHeader, adFeeFor } from '@/lib/attribution';
 
 export const dynamic = 'force-dynamic';
 
@@ -133,6 +134,9 @@ export async function POST(request: Request) {
         }
 
         const { nights, accommodationTotal, cleaningFee, total, discountAmount, couponId, tax } = quote;
+
+        // Where the guest came from — set by AttributionCapture on an ad click.
+        const attribution = attributionFromCookieHeader(request.headers.get('cookie'));
         const minimumNights = quote.constraints.minimumNights || MINIMUM_NIGHTS;
 
         // A room booking must have a Room row: without one there is no id to
@@ -211,6 +215,10 @@ export async function POST(request: Request) {
                     assessmentTax: tax.assessmentAmount,
                     assessmentRate: tax.assessmentRate,
                     taxExempt: tax.exempt,
+                    source: attribution.source,
+                    utmSource: attribution.utmSource,
+                    utmMedium: attribution.utmMedium,
+                    utmCampaign: attribution.utmCampaign,
                     couponId: couponId || undefined,
                     status: isRequestOnly ? 'requested' : 'pending',
                     expiresAt: isRequestOnly ? null : new Date(now.getTime() + 30 * 60 * 1000),
@@ -272,6 +280,7 @@ export async function POST(request: Request) {
         // The owner's connected account, when one is ready to take charges.
         // Recorded on the booking so refunds go to the same account later.
         const chargeAccountId = isMock ? null : await getChargeAccountId();
+        const platformFee = chargeAccountId ? adFeeFor(attribution.source, quote.subtotal, adFeePercent()) : 0;
 
         // Determine base URL safely
         const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -345,6 +354,7 @@ export async function POST(request: Request) {
 
                 session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
+                    ...feeParams(chargeAccountId, platformFee),
                     line_items: lineItems,
                     mode: 'payment',
                     customer_email: guestEmail.trim().toLowerCase(),
@@ -390,7 +400,7 @@ export async function POST(request: Request) {
         // Update booking with the session ID
         await prisma.booking.update({
             where: { id: booking.id },
-            data: { stripeSessionId: session.id, stripeAccountId: chargeAccountId }
+            data: { stripeSessionId: session.id, stripeAccountId: chargeAccountId, platformFee }
         });
 
         return NextResponse.json({

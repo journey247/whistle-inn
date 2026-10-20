@@ -4,7 +4,8 @@ import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
 import { PROPERTY, SITE_URL } from '@/config/property';
-import { getStripe, getChargeAccountId, onAccount } from '@/lib/stripe';
+import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
+import { adFeeFor } from '@/lib/attribution';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ async function revertToRequested(bookingId: string) {
     try {
         await prisma.booking.update({
             where: { id: bookingId },
-            data: { status: 'requested', expiresAt: null, stripeSessionId: null, stripeAccountId: null },
+            data: { status: 'requested', expiresAt: null, stripeSessionId: null, stripeAccountId: null, platformFee: 0 },
         });
     } catch (err) {
         console.error(`Failed to revert booking ${bookingId} to requested:`, err);
@@ -112,6 +113,10 @@ export async function POST(request: Request) {
 
         let session: { id: string; url: string | null };
         const chargeAccountId = stripe ? await getChargeAccountId() : null;
+        // The request recorded its source when it was made; the fee is on the
+        // pre-tax amount the guest was quoted.
+        const subtotal = booking.totalPrice - booking.occupancyTax - booking.assessmentTax;
+        const platformFee = chargeAccountId ? adFeeFor(booking.source, subtotal, adFeePercent()) : 0;
         if (!stripe) {
             // Development only (production returned 503 above).
             const mockId = 'cs_test_mock_' + Date.now();
@@ -129,6 +134,7 @@ export async function POST(request: Request) {
                 session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
                     mode: 'payment',
+                    ...feeParams(chargeAccountId, platformFee),
                     line_items: [{
                         price_data: {
                             currency: 'usd',
@@ -165,7 +171,7 @@ export async function POST(request: Request) {
 
         await prisma.booking.update({
             where: { id: booking.id },
-            data: { stripeSessionId: session.id, stripeAccountId: chargeAccountId },
+            data: { stripeSessionId: session.id, stripeAccountId: chargeAccountId, platformFee },
         });
 
         // The link is returned to the admin as well, so a failed email never

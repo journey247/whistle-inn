@@ -105,6 +105,8 @@ export async function POST(request: Request) {
                     const stripeRefund = await stripe.refunds.create({
                         payment_intent: booking.stripePaymentIntentId,
                         amount: amountCents,
+                        // Partial refunds return the same share of the ad fee.
+                        ...(booking.platformFee > 0 && { refund_application_fee: true }),
                     }, onAccount(booking.stripeAccountId));
                     stripeRefundId = stripeRefund.id;
                     console.log(`[Cancel] Refunded $${refund.refundAmount} (${refund.tier}) for booking ${booking.id}, refund: ${stripeRefundId}`);

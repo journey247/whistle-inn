@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
+import { BOOKING_SOURCES, PAID_SOURCES, SOURCE_LABELS } from "@/lib/attribution";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,10 +20,12 @@ export async function GET(request: Request) {
                 endDate: true,
                 status: true,
                 createdAt: true,
+                source: true,
+                platformFee: true,
             }
         });
 
-        type BookingRow = { totalPrice: number; startDate: Date; endDate: Date; status: string; createdAt: Date };
+        type BookingRow = { totalPrice: number; startDate: Date; endDate: Date; status: string; createdAt: Date; source: string; platformFee: number };
 
         const paidBookings = bookings.filter((b: BookingRow) => b.status === 'paid');
 
@@ -58,7 +61,20 @@ export async function GET(request: Request) {
             monthlyRevenue.push({ month: monthLabel, revenue });
         }
 
-        return NextResponse.json({ totalBookings, totalRevenue, occupancyRate, monthlyRevenue });
+        // Paid bookings by where the guest came from, for crediting ad spend.
+        const bySource = BOOKING_SOURCES.map(source => {
+            const rows = paidBookings.filter(b => (b.source || 'direct') === source);
+            return {
+                source,
+                label: SOURCE_LABELS[source],
+                paid: PAID_SOURCES.has(source),
+                bookings: rows.length,
+                revenue: Math.round(rows.reduce((s, b) => s + b.totalPrice, 0) * 100) / 100,
+                platformFees: Math.round(rows.reduce((s, b) => s + b.platformFee, 0) * 100) / 100,
+            };
+        }).filter(r => r.bookings > 0);
+
+        return NextResponse.json({ totalBookings, totalRevenue, occupancyRate, monthlyRevenue, bySource });
     } catch (error) {
         console.error('Database error:', error);
         return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });

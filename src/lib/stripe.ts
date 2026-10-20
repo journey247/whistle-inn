@@ -71,6 +71,23 @@ export async function getChargeAccountId(): Promise<string | null> {
     return state.chargesEnabled ? state.accountId : null;
 }
 
+/**
+ * Percent of a paid-ad booking (before tax) the provider keeps as a Stripe
+ * application fee. Set per owner site; 0 or unset means no fee. Only applies
+ * to payments on a connected account — there is no fee to take otherwise.
+ */
+export function adFeePercent(): number {
+    const n = parseFloat(process.env.PLATFORM_AD_FEE_PERCENT ?? '');
+    return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/** Stripe payment_intent_data for a direct charge carrying the ad fee, if any. */
+export function feeParams(chargeAccountId: string | null, fee: number) {
+    return chargeAccountId && fee > 0
+        ? { payment_intent_data: { application_fee_amount: Math.round(fee * 100) } }
+        : {};
+}
+
 /** Request options for a call on a booking's account (null/undefined = platform). */
 export function onAccount(accountId: string | null | undefined): Stripe.RequestOptions | undefined {
     return accountId ? { stripeAccount: accountId } : undefined;

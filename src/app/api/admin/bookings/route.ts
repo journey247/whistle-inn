@@ -19,6 +19,7 @@ export async function GET(request: Request) {
                 totalPrice: true,
                 occupancyTax: true,
                 assessmentTax: true,
+                source: true,
                 status: true,
                 notes: true,
                 createdAt: true,

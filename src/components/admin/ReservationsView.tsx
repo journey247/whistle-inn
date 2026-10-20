@@ -4,6 +4,7 @@ import { getAdminToken } from "@/lib/adminToken";
 import { SharedProps, Booking } from "@/app/admin/page";
 import { Search, X, ChevronDown, Mail, Calendar, DollarSign, FileText, RefreshCw, Check, Inbox, Copy, Loader2, Power } from "lucide-react";
 import { PROPERTY } from '@/config/property';
+import { SOURCE_LABELS, type BookingSource } from "@/lib/attribution";
 
 function nightsBetween(a: string, b: string) {
     return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
@@ -246,6 +247,10 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Check-out" value={fmt(booking.endDate)} />
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Duration"  value={`${nights} night${nights !== 1 ? "s" : ""}`} />
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Booked" value={booking.room ? booking.room.name : "Whole house"} />
+                        {booking.source && booking.source !== "direct" && (
+                            <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Came from"
+                                value={SOURCE_LABELS[booking.source as BookingSource] ?? booking.source} />
+                        )}
                         {booking.guestCount ? <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Guests" value={String(booking.guestCount)} /> : null}
                     </Card>
 

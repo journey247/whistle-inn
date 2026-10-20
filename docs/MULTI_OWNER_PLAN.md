@@ -83,7 +83,17 @@ Original notes:
 - `application_fee_amount` set only on ad-attributed bookings (step 4).
 - Webhook switches to a Connect webhook.
 
-### 4. Booking-source tracking
+### 4. Booking-source tracking — done (`feat/booking-source`)
+- A tracked landing (gclid, or UTM tags) sets a 30-day `book_src` cookie;
+  checkout stores `source` + UTM tags on the booking. fbclid alone is not an
+  ad (Facebook adds it to organic links) — tag Meta ads `utm_medium=paid`.
+- `PLATFORM_AD_FEE_PERCENT` on an owner's site takes that % of pre-tax rent on
+  paid-ad bookings as a Stripe application fee (connected accounts only).
+  Refunds return the fee proportionally.
+- Admin → Earnings shows paid revenue by source and ad fees paid.
+- Not built: ad-only coupon codes as a backup attribution.
+
+Original notes:
 - `Booking.source` (direct, ad_google, ad_meta, coupon, repeat) plus UTM fields.
 - 30-day attribution cookie set from tracked ad links; ad-only coupon codes as
   a backup.

@@ -121,6 +121,32 @@ export function EarningsView({ bookings, analytics, refreshData, dataLoading }: 
                 <p className="text-xs text-gray-400 mt-2">Based on booked nights over the past year</p>
             </div>
 
+            {/* Booking sources */}
+            {analytics?.bySource && analytics.bySource.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <h2 className="text-sm font-semibold text-gray-900 mb-3">Where Bookings Come From</h2>
+                    <div className="space-y-2">
+                        {analytics.bySource.map(s => (
+                            <div key={s.source} className="flex items-center justify-between gap-3 text-sm">
+                                <span className="text-gray-700">
+                                    {s.label}
+                                    {s.paid && <span className="ml-1.5 text-[10px] font-semibold uppercase text-amber-700 bg-amber-50 rounded px-1.5 py-0.5">Ad</span>}
+                                </span>
+                                <span className="text-right shrink-0">
+                                    <span className="font-semibold text-gray-900">${s.revenue.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                                    <span className="text-xs text-gray-400 ml-1.5">{s.bookings} booking{s.bookings !== 1 ? "s" : ""}</span>
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    {analytics.bySource.some(s => s.platformFees > 0) && (
+                        <p className="text-xs text-gray-400 mt-3">
+                            Ad fees paid: ${analytics.bySource.reduce((t, s) => t + s.platformFees, 0).toFixed(2)}
+                        </p>
+                    )}
+                </div>
+            )}
+
             {/* Recent transactions */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
                 <h2 className="text-sm font-semibold text-gray-900 mb-3">Recent Payments</h2>
