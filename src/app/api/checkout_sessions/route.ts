@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getClientIp } from '@/lib/adminAuth';
+import { rateLimit } from '@/lib/rateLimit';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { calculateQuote } from '@/lib/pricing-server';
@@ -41,33 +42,17 @@ async function releaseBooking(bookingId: string) {
     }
 }
 
-/**
- * Best-effort in-process rate limit on checkout creation.
- *
- * Each successful call creates a pending booking that holds those dates for 30
- * minutes, so an unthrottled endpoint lets anyone take the calendar offline by
- * scripting requests. Per-instance on serverless, so this is friction rather
- * than a guarantee — a shared store is the real fix.
- */
-const checkoutRateLimit = new Map<string, { count: number; resetAt: number }>();
-
-function isCheckoutRateLimited(ip: string): boolean {
-    const now = Date.now();
-    const entry = checkoutRateLimit.get(ip);
-    if (!entry || now > entry.resetAt) {
-        checkoutRateLimit.set(ip, { count: 1, resetAt: now + 10 * 60 * 1000 });
-        return false;
-    }
-    // 5 checkout attempts per 10 minutes is well above what a real guest needs
-    if (entry.count >= 5) return true;
-    entry.count++;
-    return false;
-}
+// Each successful checkout creates a pending booking that holds those dates
+// for 30 minutes, so an unthrottled endpoint lets anyone take the calendar
+// offline by scripting requests. 5 per 10 minutes is well above what a real
+// guest needs.
+const CHECKOUT_LIMIT = 5;
+const CHECKOUT_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(request: Request) {
     try {
         const ip = getClientIp(request);
-        if (isCheckoutRateLimited(ip)) {
+        if (!(await rateLimit(`checkout:${ip}`, CHECKOUT_LIMIT, CHECKOUT_WINDOW_MS))) {
             return NextResponse.json(
                 { error: 'Too many booking attempts. Please wait a few minutes and try again.' },
                 { status: 429 }

@@ -11,9 +11,10 @@ import { EmailLogsPanel } from "./EmailLogsPanel";
 import { TaxSettingsCard } from "./TaxSettings";
 import { StripeConnectCard } from "./StripeConnectCard";
 import { GuestFollowupsCard } from "./GuestFollowupsCard";
+import { SecurityPanel } from "./SecurityPanel";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
-type SettingsTab = "pricing" | "rooms" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users";
+type SettingsTab = "pricing" | "rooms" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users" | "security";
 
 type SpecialRate = {
     id: string;
@@ -900,6 +901,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
         { id: "email",    label: "Email",     Icon: Mail },
         { id: "emaillog", label: "Email log", Icon: Inbox },
         { id: "users",    label: "Users",     Icon: Shield },
+        { id: "security", label: "Security",  Icon: Shield },
     ];
 
     return (
@@ -928,6 +930,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
             {tab === "email"    && <EmailPanel />}
             {tab === "emaillog" && <EmailLogsPanel />}
             {tab === "users"    && <UserManagement />}
+            {tab === "security" && <SecurityPanel addToast={addToast} />}
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncAllFeeds, cancelExpiredPendingBookings } from '@/lib/ical-sync';
+import { pruneRateLimits } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest) {
     // configured never had its abandoned checkouts cleaned up, leaving stale
     // 'pending' rows cluttering the admin Reservations list indefinitely.
     const expiredCount = await cancelExpiredPendingBookings();
+    await pruneRateLimits();
 
     try {
         const results = await syncAllFeeds();

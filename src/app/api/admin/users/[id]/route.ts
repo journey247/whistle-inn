@@ -26,11 +26,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     try {
         await requireAdmin(request);
         const { id } = await params;
-        const { password, role } = await request.json();
+        const { password, role, resetTwoFactor } = await request.json();
 
         const data: any = {};
         if (password) {
             data.hashedPassword = await bcrypt.hash(password, 10);
+            data.sessionVersion = { increment: 1 };
+        }
+        // For an admin who lost their phone and recovery codes: turns their
+        // 2FA off so they can sign in with the password and set it up again.
+        if (resetTwoFactor === true) {
+            Object.assign(data, { totpSecret: null, totpPendingSecret: null, totpLastStep: null, recoveryCodes: { set: [] }, sessionVersion: { increment: 1 } });
         }
         if (role) {
             data.role = role;

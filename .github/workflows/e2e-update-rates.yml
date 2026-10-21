@@ -1,10 +1,16 @@
 name: E2E - Update Rates & Stripe
 
+# Manual only for now. The test signs in to the admin panel, so it needs a
+# database with an admin account plus ADMIN_EMAIL / ADMIN_PASSWORD, and none
+# exist in CI yet — on every push it failed (first on a missing pnpm, then it
+# would have failed at login). Run it from the Actions tab against an
+# environment that has those, or move it back to push once CI gets a seeded
+# Postgres service. The CI workflow (typecheck, lint, unit tests) is the gate.
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   e2e:
@@ -18,18 +24,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
 
       - name: Install system Chromium
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium
 
-      - name: Install dependencies (skip build scripts)
-        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
 
       - name: Start dev server
         run: |
-          pnpm dev &
+          npm run dev &
           # wait for localhost:3000 to respond
           for i in {1..60}; do
             if curl -sSf http://localhost:3000 >/dev/null; then
@@ -40,14 +49,18 @@ jobs:
           done
         env:
           NODE_ENV: development
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
 
       - name: Run E2E update-rates test
         env:
           PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+          ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
         run: |
           node tests/e2e/update-rates-and-stripe.test.js
 
       - name: Upload screenshots (if any)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-screenshots

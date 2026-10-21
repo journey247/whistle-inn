@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
-import { checkRateLimit, sanitizeInput, validateEmail, getClientIp } from '@/lib/adminAuth';
+import { sanitizeInput, validateEmail, getClientIp } from '@/lib/adminAuth';
+import { rateLimit } from '@/lib/rateLimit';
 import { PROPERTY, SITE_URL } from '@/config/property';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     const clientIP = getClientIp(request);
 
     // Rate limit: 3 reset requests per 15 minutes per IP
-    if (!checkRateLimit(`reset-${clientIP}`, 3, 900000)) {
+    if (!(await rateLimit(`reset:${clientIP}`, 3, 900000))) {
         return NextResponse.json({ error: 'Too many reset requests. Try again later.' }, { status: 429 });
     }
 

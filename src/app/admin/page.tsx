@@ -16,6 +16,7 @@ const ReservationsView = dynamic(() => import('@/components/admin/ReservationsVi
 const CalendarView    = dynamic(() => import('@/components/admin/CalendarView').then(m => m.CalendarView), { ssr: false });
 const EarningsView    = dynamic(() => import('@/components/admin/EarningsView').then(m => m.EarningsView), { ssr: false });
 const SettingsView    = dynamic(() => import('@/components/admin/SettingsView').then(m => m.SettingsView), { ssr: false });
+const TwoFactorCard   = dynamic(() => import('@/components/admin/SecurityPanel').then(m => m.TwoFactorCard), { ssr: false });
 const NotificationsPanel = dynamic(() => import('@/components/admin/NotificationsPanel').then(m => m.NotificationsPanel), { ssr: false });
 
 // ─── Shared types (exported for sub-components) ───────────────────────────────
@@ -85,6 +86,9 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
     const { addToast } = useToast();
     const [email, setEmail]       = useState("");
     const [password, setPassword] = useState("");
+    const [code, setCode]         = useState("");
+    // Set once the password checks out on an account with 2FA on.
+    const [needsCode, setNeedsCode] = useState(false);
     const [loading, setLoading]   = useState(false);
 
     async function handleSubmit(e: React.FormEvent) {
@@ -94,9 +98,17 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             const res = await fetch("/api/admin/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify(needsCode ? { email, password, code } : { email, password }),
             });
             const data = await res.json();
+            if (data.mfaRequired) {
+                // First pass: the password was right, now ask for the code.
+                // A wrong code lands here too, with its own message.
+                if (needsCode) addToast(data.error || "That code did not work", "error");
+                setNeedsCode(true);
+                setCode("");
+                return;
+            }
             if (!res.ok) throw new Error(data.error || "Login failed");
             // The session is an httpOnly cookie set by the response — there is
             // no token for this page to hold on to.
@@ -143,6 +155,24 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold"
                         />
                     </div>
+                    {needsCode && (
+                        <div>
+                            <label htmlFor="login-code" className="block text-sm font-medium text-slate-700 mb-1">Authenticator code</label>
+                            <input
+                                id="login-code"
+                                type="text"
+                                value={code}
+                                onChange={e => setCode(e.target.value.trim())}
+                                required
+                                autoFocus
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                placeholder="123456"
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold"
+                            />
+                            <p className="text-xs text-slate-400 mt-1">Lost your phone? Enter one of your recovery codes instead.</p>
+                        </div>
+                    )}
                     <button
                         type="submit"
                         disabled={loading}
@@ -170,19 +200,24 @@ function AdminPanelContent() {
     const [bookings, setBookings]         = useState<Booking[]>([]);
     const [analytics, setAnalytics]       = useState<Analytics | null>(null);
     const [dataLoading, setDataLoading]   = useState(false);
+    // ADMIN_REQUIRE_2FA is on and this account has not set it up yet.
+    const [setupRequired, setSetupRequired] = useState(false);
 
     // The session cookie is httpOnly, so only the server can say whether it is
     // valid. Ask it on mount rather than trusting anything held client-side.
     useEffect(() => {
         clearLegacyTokens(); // drop tokens left behind by the old localStorage scheme
         fetch("/api/admin/auth/me")
-            .then(res => setSignedIn(res.ok))
+            .then(async res => {
+                setSignedIn(res.ok);
+                if (res.ok) setSetupRequired(Boolean((await res.json()).twoFactorSetupRequired));
+            })
             .catch(() => setSignedIn(false))
             .finally(() => setAuthChecked(true));
     }, []);
 
     const refreshData = useCallback(async () => {
-        if (!signedIn) return;
+        if (!signedIn || setupRequired) return;
         setDataLoading(true);
         try {
             const [bookingsRes, analyticsRes] = await Promise.all([
@@ -201,7 +236,7 @@ function AdminPanelContent() {
             setDataLoading(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [signedIn]);
+    }, [signedIn, setupRequired]);
 
     useEffect(() => {
         if (signedIn) refreshData();
@@ -217,7 +252,21 @@ function AdminPanelContent() {
 
     // Show nothing while verifying token to prevent login screen flash
     if (!authChecked) return null;
-    if (!signedIn) return <LoginScreen onLogin={() => setSignedIn(true)} />;
+    // Reload after login so the session check above also learns whether 2FA
+    // setup is still owed.
+    if (!signedIn) return <LoginScreen onLogin={() => window.location.reload()} />;
+    if (setupRequired) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="w-full max-w-md space-y-3">
+                    <h1 className="text-lg font-bold text-gray-900">Set up two-factor login to continue</h1>
+                    <p className="text-sm text-gray-500">This dashboard requires a code from an authenticator app at every sign-in.</p>
+                    <TwoFactorCard addToast={addToast} onEnabled={() => setSetupRequired(false)} />
+                    <button onClick={handleLogout} className="text-xs text-gray-500 hover:text-gray-800">Sign out</button>
+                </div>
+            </div>
+        );
+    }
 
     const sharedProps: SharedProps = { bookings, analytics, refreshData, dataLoading, addToast };
 

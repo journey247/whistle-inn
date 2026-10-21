@@ -66,10 +66,6 @@ export function middleware(request: NextRequest) {
                 }
             }
         }
-
-        // Rate limiting headers
-        response.headers.set('X-RateLimit-Limit', '100');
-        response.headers.set('X-RateLimit-Remaining', '99');
     }
 
     return response;

@@ -1,28 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getClientIp } from '@/lib/adminAuth';
+import { rateLimit } from '@/lib/rateLimit';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-// Best-effort in-process rate limit. Per-instance on serverless, so this adds
-// friction rather than a guarantee — see the shared limiter planned for later.
-const requestRateLimit = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(ip: string): boolean {
-    const now = Date.now();
-    const entry = requestRateLimit.get(ip);
-    if (!entry || now > entry.resetAt) {
-        requestRateLimit.set(ip, { count: 1, resetAt: now + 60_000 });
-        return false;
-    }
-    if (entry.count >= 10) return true;
-    entry.count++;
-    return false;
-}
 
 export async function POST(req: Request) {
     const ip = getClientIp(req);
-    if (isRateLimited(ip)) {
+    if (!(await rateLimit(`amenity-request:${ip}`, 10, 60_000))) {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 

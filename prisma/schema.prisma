@@ -116,7 +116,46 @@ model AdminUser {
   email          String   @unique
   hashedPassword String
   role           String?
+  // Bumped whenever sessions must end (2FA turned on/off, password reset).
+  // Tokens carry the version they were issued under; requireAdmin rejects
+  // older ones.
+  sessionVersion Int      @default(0)
+  // Authenticator-app 2FA (src/lib/totp.ts). Secrets are AES-GCM encrypted.
+  // totpPendingSecret holds a secret during setup, before the first code
+  // confirms it; totpSecret is set only once 2FA is on.
+  totpSecret        String?
+  totpPendingSecret String?
+  // Last accepted 30s time step, so a code cannot be replayed.
+  totpLastStep      Int?
+  // sha256 of each unused one-time recovery code.
+  recoveryCodes     String[] @default([])
   createdAt      DateTime @default(now())
+}
+
+// Who did what in the admin panel. Written by src/lib/audit.ts; never holds
+// passwords, codes or tokens.
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorEmail String?
+  action     String   // e.g. "booking.refund", "auth.login_failed"
+  target     String?  // e.g. booking id
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+}
+
+// Shared rate-limit counters (src/lib/rateLimit.ts). key is a sha256 of the
+// identifier, so no raw IPs or emails are stored.
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+
+  @@index([windowStart])
 }
 
 model EmailLog {

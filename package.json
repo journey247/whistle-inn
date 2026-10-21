@@ -7,13 +7,15 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "create-admin": "node scripts/create_admin.js",
     "test:e2e": "node tests/e2e/admin-login.test.js",
     "test:e2e:update-rates": "node tests/e2e/update-rates-and-stripe.test.js",
     "test:e2e:all": "pnpm -w test:e2e && pnpm -w test:e2e:update-rates",
     "security:audit": "node scripts/security-setup.js --audit",
-    "security:generate": "node scripts/security-setup.js --generate"
+    "security:generate": "node scripts/security-setup.js --generate",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
@@ -42,6 +44,7 @@
     "node-cron": "^4.2.1",
     "postcss": "^8",
     "prisma": "^5.22.0",
+    "qrcode": "^1.5.4",
     "react": "^18",
     "react-day-picker": "^9.13.0",
     "react-dom": "^18",
@@ -56,8 +59,10 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.5",
     "cross-env": "^7.0.3",
-    "puppeteer": "^24.37.3"
+    "puppeteer": "^24.37.3",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=20.0.0"
