@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { checkRateLimit, sanitizeInput, validateEmail, getClientIp } from '@/lib/adminAuth';
+import { sanitizeInput, validateEmail, getClientIp } from '@/lib/adminAuth';
+import { rateLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
     const clientIP = getClientIp(request);
 
     // Rate limiting for admin creation attempts
-    if (!checkRateLimit(`admin-create-${clientIP}`, 3, 300000)) { // 3 attempts per 5 minutes
+    if (!(await rateLimit(`admin-create:${clientIP}`, 3, 300000))) { // 3 attempts per 5 minutes
         return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 });
     }
 

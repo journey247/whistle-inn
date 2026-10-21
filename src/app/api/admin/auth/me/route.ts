@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/adminAuth';
+import { requireAdmin, twoFactorRequired } from '@/lib/adminAuth';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +18,15 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request) {
     try {
-        const admin = await requireAdmin(request);
+        // Allowed without 2FA so the page can send such an account to setup
+        // when ADMIN_REQUIRE_2FA is on.
+        const admin = await requireAdmin(request, { allowWithout2fa: true });
+        const user = await prisma.adminUser.findUnique({ where: { id: admin.sub }, select: { totpSecret: true } });
+        const twoFactorEnabled = Boolean(user?.totpSecret);
         return NextResponse.json({
             user: { id: admin.sub, email: admin.email, role: admin.role },
+            twoFactorEnabled,
+            twoFactorSetupRequired: twoFactorRequired() && !twoFactorEnabled,
         });
     } catch {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

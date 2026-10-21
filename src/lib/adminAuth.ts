@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
+import type { NextResponse } from 'next/server';
 import { prisma } from './prisma';
+import { audit } from './audit';
 
 /**
  * Thrown by requireAdmin for every authentication failure.
@@ -81,7 +83,7 @@ function extractToken(request: Request): string | null {
  * Previously a signed token kept working on every admin endpoint until it
  * expired, even after the account behind it had been deleted.
  */
-export async function requireAdmin(request: Request) {
+export async function requireAdmin(request: Request, options: { allowWithout2fa?: boolean } = {}) {
     const token = extractToken(request);
 
     if (!token) {
@@ -113,58 +115,76 @@ export async function requireAdmin(request: Request) {
     // access for the remaining lifetime of their token.
     const user = await prisma.adminUser.findUnique({
         where: { id: String(decoded.sub) },
-        select: { id: true, email: true, role: true },
+        select: { id: true, email: true, role: true, sessionVersion: true, totpSecret: true },
     });
 
     if (!user) {
         throw new AdminAuthError('Account no longer exists');
     }
 
+    // Tokens issued before 2FA was turned on/off or the password was reset
+    // carry an older version and are revoked. Tokens from before this field
+    // existed have no `sv`, which reads as 0 — the column's default.
+    if ((Number(decoded.sv) || 0) !== user.sessionVersion) {
+        throw new AdminAuthError('Session revoked');
+    }
+
+    // With ADMIN_REQUIRE_2FA on, an account without 2FA can reach only the
+    // routes that let it set 2FA up.
+    if (twoFactorRequired() && !user.totpSecret && !options.allowWithout2fa) {
+        throw new AdminAuthError('Two-factor setup required');
+    }
+
+    // Every admin write is logged with no per-route code, so a new route
+    // cannot forget to. Only method and path: bodies can hold passwords.
+    const method = request.method?.toUpperCase();
+    if (method && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        let path = '';
+        try { path = new URL(request.url).pathname; } catch { /* non-URL request in tests */ }
+        await audit({ actor: { sub: user.id, email: user.email }, action: `${method} ${path}`, request });
+    }
+
     return { sub: user.id, email: user.email, role: user.role, raw: decoded };
 }
 
-/**
- * Best-effort in-process rate limiter.
- *
- * Per-instance on serverless, so treat it as friction rather than a guarantee;
- * a shared store (Vercel KV / Upstash) is the real fix for multi-instance
- * deployments. Entries are swept on write so the map cannot grow without bound
- * — it previously retained every key it had ever seen.
- */
-const rateLimitStore = new Map<string, { count: number; timestamp: number }>();
-const RATE_LIMIT_MAX_KEYS = 10_000;
-
-function sweepExpired(now: number, windowMs: number) {
-    for (const [key, entry] of rateLimitStore) {
-        if (now - entry.timestamp > windowMs) rateLimitStore.delete(key);
-    }
-    // Hard cap as a backstop against a flood of distinct keys within one window
-    if (rateLimitStore.size > RATE_LIMIT_MAX_KEYS) {
-        const excess = rateLimitStore.size - RATE_LIMIT_MAX_KEYS;
-        let i = 0;
-        for (const key of rateLimitStore.keys()) {
-            if (i++ >= excess) break;
-            rateLimitStore.delete(key);
-        }
-    }
+/** ADMIN_REQUIRE_2FA=true makes authenticator-app 2FA mandatory. */
+export function twoFactorRequired(): boolean {
+    return process.env.ADMIN_REQUIRE_2FA === 'true';
 }
 
-export function checkRateLimit(identifier: string, maxRequests: number = 5, windowMs: number = 60000) {
-    const now = Date.now();
-    const current = rateLimitStore.get(identifier);
+/** Session length in hours, from SESSION_TIMEOUT_HOURS (1–24, default 8). */
+export function sessionHours(): number {
+    const parsed = parseInt(process.env.SESSION_TIMEOUT_HOURS || '', 10);
+    return Number.isFinite(parsed) && parsed > 0 && parsed <= 24 ? parsed : 8;
+}
 
-    if (!current || now - current.timestamp > windowMs) {
-        sweepExpired(now, windowMs);
-        rateLimitStore.set(identifier, { count: 1, timestamp: now });
-        return true;
-    }
+/** Sign a session token for an admin, stamped with their session version. */
+export function signSession(user: { id: string; email: string; role: string | null; sessionVersion: number }): string {
+    return jwt.sign(
+        { sub: user.id, email: user.email, role: user.role, sv: user.sessionVersion },
+        getJwtSecret(),
+        { expiresIn: `${sessionHours()}h` },
+    );
+}
 
-    if (current.count >= maxRequests) {
-        return false;
-    }
-
-    current.count++;
-    return true;
+/**
+ * Put the session on a response as an httpOnly cookie.
+ *
+ * Page scripts cannot read it — a stored token was readable by any XSS on the
+ * admin origin. SameSite=Strict is the CSRF defence now that a cookie is sent
+ * automatically; combined with the middleware's JSON content-type
+ * requirement, a cross-site form post cannot reach a mutating endpoint.
+ */
+export function setSessionCookie(response: NextResponse, token: string): void {
+    response.cookies.set({
+        name: ADMIN_SESSION_COOKIE,
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: sessionHours() * 60 * 60,
+    });
 }
 
 /**

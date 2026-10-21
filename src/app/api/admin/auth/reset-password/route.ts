@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { checkRateLimit, sanitizeInput, getClientIp } from '@/lib/adminAuth';
+import { sanitizeInput, getClientIp } from '@/lib/adminAuth';
+import { rateLimit } from '@/lib/rateLimit';
+import { audit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +12,7 @@ export async function POST(request: Request) {
     const clientIP = getClientIp(request);
 
     // Rate limit: 5 attempts per 15 minutes per IP
-    if (!checkRateLimit(`reset-confirm-${clientIP}`, 5, 900000)) {
+    if (!(await rateLimit(`reset-confirm:${clientIP}`, 5, 900000))) {
         return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 });
     }
 
@@ -63,10 +65,12 @@ export async function POST(request: Request) {
         const hashedPassword = await bcrypt.hash(newPassword, 12);
         await prisma.adminUser.update({
             where: { id: userId },
-            data: { hashedPassword },
+            // Ends every existing session, including any an attacker holds.
+            data: { hashedPassword, sessionVersion: { increment: 1 } },
         });
 
         console.log(`Password reset successfully for user ${user.email}`);
+        await audit({ actor: { sub: user.id, email: user.email }, action: 'auth.password_reset', request });
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error('Password reset error:', err);

@@ -1,28 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateEmail, getClientIp } from "@/lib/adminAuth";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = 'force-dynamic';
-
-// Basic in-process rate limiter (best-effort on serverless — adds friction without relying on it)
-const subscribeRateLimit = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(ip: string): boolean {
-    const now = Date.now();
-    const entry = subscribeRateLimit.get(ip);
-    if (!entry || now > entry.resetAt) {
-        subscribeRateLimit.set(ip, { count: 1, resetAt: now + 60_000 });
-        return false;
-    }
-    if (entry.count >= 5) return true;
-    entry.count++;
-    return false;
-}
 
 export async function POST(req: NextRequest) {
     // Rate limit by IP
     const ip = getClientIp(req);
-    if (isRateLimited(ip)) {
+    if (!(await rateLimit(`subscribe:${ip}`, 5, 60_000))) {
         return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 

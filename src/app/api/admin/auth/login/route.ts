@@ -1,16 +1,26 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { checkRateLimit, sanitizeInput, validateEmail, getClientIp, ADMIN_SESSION_COOKIE } from '@/lib/adminAuth';
+import { sanitizeInput, validateEmail, getClientIp, getJwtSecret, signSession, setSessionCookie, sessionHours } from '@/lib/adminAuth';
+import { rateLimit } from '@/lib/rateLimit';
+import { verifySecondFactor } from '@/lib/adminMfa';
+import { audit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * POST /api/admin/auth/login  { email, password, code? }
+ *
+ * With 2FA on, the first call (no code) answers 401 { mfaRequired: true } once
+ * the password checks out, and the page asks for the authenticator code (or a
+ * recovery code) and sends all three again. Stateless: no half-logged-in
+ * session exists between the two calls.
+ */
 export async function POST(request: Request) {
     const clientIP = getClientIp(request);
 
-    // Rate limiting for login attempts
-    if (!checkRateLimit(`login-${clientIP}`, 5, 300000)) { // 5 attempts per 5 minutes
+    // Per IP. A 2FA login is two calls, so this allows five full attempts.
+    if (!(await rateLimit(`login:${clientIP}`, 10, 300000))) {
         return NextResponse.json({ error: 'Too many login attempts. Try again later.' }, { status: 429 });
     }
 
@@ -21,21 +31,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
     }
 
-    const { email, password } = body;
+    const { email, password, code } = body ?? {};
 
-    if (!email || !password) {
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
         return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    // Ensure JWT secret is configured. Allow a development fallback when not in production.
-    let jwtSecret = process.env.NEXTAUTH_SECRET;
-    if (!jwtSecret) {
-        if (process.env.NODE_ENV === 'production') {
-            console.error('CRITICAL: JWT secret not configured properly');
-            return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-        }
-        console.warn('Using development fallback JWT secret (dev-secret) for login');
-        jwtSecret = 'dev-secret';
+    try {
+        getJwtSecret();
+    } catch {
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
     try {
@@ -45,54 +50,48 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
+        // Per account, so rotating IPs does not buy unlimited guesses.
+        if (!(await rateLimit(`login-email:${sanitizedEmail}`, 10, 900000))) {
+            return NextResponse.json({ error: 'Too many login attempts. Try again later.' }, { status: 429 });
+        }
+
         const user = await prisma.adminUser.findUnique({ where: { email: sanitizedEmail } });
         if (!user) {
             // Simulate password check to prevent timing attacks
             await bcrypt.hash('dummy', 12);
+            await audit({ action: 'auth.login_failed', details: { email: sanitizedEmail, reason: 'unknown_account' }, request });
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
         const match = await bcrypt.compare(password, user.hashedPassword);
         if (!match) {
             console.warn(`Failed login attempt for ${sanitizedEmail} from ${clientIP}`);
+            await audit({ actor: { sub: user.id, email: user.email }, action: 'auth.login_failed', details: { reason: 'password' }, request });
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Session length. This previously read SESSION_TIMEOUT_HOURS but then
-        // hardcoded '8h' into the token, so the response advertised a lifetime
-        // the token did not actually have.
-        const parsedTimeout = parseInt(process.env.SESSION_TIMEOUT_HOURS || '', 10);
-        const sessionTimeout = Number.isFinite(parsedTimeout) && parsedTimeout > 0 && parsedTimeout <= 24
-            ? parsedTimeout
-            : 8;
+        let mfaMethod: string | undefined;
+        if (user.totpSecret) {
+            if (!code) {
+                return NextResponse.json({ mfaRequired: true, error: 'Enter the code from your authenticator app' }, { status: 401 });
+            }
+            const result = await verifySecondFactor(user.id, String(code));
+            if (!result.ok) {
+                await audit({ actor: { sub: user.id, email: user.email }, action: 'auth.login_failed', details: { reason: '2fa' }, request });
+                return NextResponse.json({ mfaRequired: true, error: 'That code did not work' }, { status: 401 });
+            }
+            mfaMethod = result.method;
+            if (result.method === 'recovery') {
+                await audit({ actor: { sub: user.id, email: user.email }, action: 'auth.recovery_code_used', details: { left: result.recoveryCodesLeft }, request });
+            }
+        }
 
-        const token = jwt.sign(
-            {
-                sub: user.id,
-                email: user.email,
-                role: user.role
-            },
-            jwtSecret,
-            { expiresIn: `${sessionTimeout}h` }
-        );
-
+        const token = signSession(user);
         console.log(`Successful login for ${sanitizedEmail} from ${clientIP}`);
+        await audit({ actor: { sub: user.id, email: user.email }, action: 'auth.login', details: mfaMethod ? { mfa: mfaMethod } : undefined, request });
 
-        // The session travels in an httpOnly cookie so page scripts cannot read
-        // it — a stored token was readable by any XSS on the admin origin.
-        // SameSite=Strict is the CSRF defence now that a cookie is sent
-        // automatically; combined with the middleware's JSON content-type
-        // requirement, a cross-site form post cannot reach a mutating endpoint.
-        const response = NextResponse.json({ expiresIn: `${sessionTimeout}h` });
-        response.cookies.set({
-            name: ADMIN_SESSION_COOKIE,
-            value: token,
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            path: '/',
-            maxAge: sessionTimeout * 60 * 60,
-        });
+        const response = NextResponse.json({ expiresIn: `${sessionHours()}h` });
+        setSessionCookie(response, token);
         return response;
     } catch (err) {
         console.error('Authentication error:', err);
