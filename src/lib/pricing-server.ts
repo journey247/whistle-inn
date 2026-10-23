@@ -1,8 +1,8 @@
 import { prisma } from './prisma';
 import { differenceInCalendarDays, eachDayOfInterval, isWithinInterval } from 'date-fns';
-import { getBookableRoomBySlug } from './rooms';
+import { getBookableRoomBySlug } from './property';
 import { calculateTax, parseTaxSettings, TAX_SETTING_KEYS, DEFAULT_TAX_SETTINGS, type TaxBreakdown, type TaxSettings } from './tax';
-import { PROPERTY } from '@/config/property';
+import { PROPERTY_DEFAULTS } from '@/config/property';
 
 // Cache for pricing data to enable real-time invalidation
 interface PricingCache {
@@ -100,11 +100,11 @@ async function getBasePricing() {
 
 /** The property's defaults; content blocks edited in the admin panel override them. */
 export const PRICING = {
-    WEEKDAY_NIGHT: PROPERTY.pricingDefaults.weekdayNight, // Mon-Thu
-    WEEKEND_NIGHT: PROPERTY.pricingDefaults.weekendNight, // Fri-Sun
-    CLEANING_FEE: PROPERTY.pricingDefaults.cleaningFee,
-    MINIMUM_NIGHTS: PROPERTY.pricingDefaults.minimumNights,
-    ROOM_MINIMUM_NIGHTS: PROPERTY.pricingDefaults.roomMinimumNights, // single-room stays
+    WEEKDAY_NIGHT: PROPERTY_DEFAULTS.pricingDefaults.weekdayNight, // Mon-Thu
+    WEEKEND_NIGHT: PROPERTY_DEFAULTS.pricingDefaults.weekendNight, // Fri-Sun
+    CLEANING_FEE: PROPERTY_DEFAULTS.pricingDefaults.cleaningFee,
+    MINIMUM_NIGHTS: PROPERTY_DEFAULTS.pricingDefaults.minimumNights,
+    ROOM_MINIMUM_NIGHTS: PROPERTY_DEFAULTS.pricingDefaults.roomMinimumNights, // single-room stays
 };
 
 /** Booking constraints that go with a quote, so callers need not re-read them. */
@@ -145,30 +145,31 @@ export interface QuoteOptions {
  * Resolve a bookable room by slug.
  *
  * The Room row is authoritative for price, capacity and whether the room is on
- * the market. The static list in `rooms.ts` is consulted only for its seed
- * prices, so a database that has not been seeded yet still returns a quote
- * instead of failing the guest at checkout.
+ * the market. A room still listed in the code config has seed prices, so a
+ * database that has not been seeded yet still returns a quote instead of
+ * failing the guest at checkout; a room the owner added has none, and cannot
+ * be sold until it has a row.
  */
 async function resolveRoomPricing(roomSlug: string) {
-    const staticRoom = getBookableRoomBySlug(roomSlug);
-    if (!staticRoom) {
+    const room = await getBookableRoomBySlug(roomSlug);
+    if (!room) {
         throw new Error('Unknown room');
     }
 
     const { rooms } = await getPricingData();
     const dbRoom = rooms.find(r => r.slug === roomSlug);
 
-    if (dbRoom && !dbRoom.isActive) {
+    if (dbRoom ? !dbRoom.isActive : !room.seedRate) {
         throw new Error('That room is not currently available to book');
     }
 
     return {
         id: (dbRoom?.id as string | undefined) ?? null,
         slug: roomSlug,
-        name: (dbRoom?.name as string | undefined) ?? staticRoom.defaultTitle,
-        weekdayPrice: dbRoom ? Number(dbRoom.weekdayPrice) : staticRoom.defaultWeekdayPrice,
-        weekendPrice: dbRoom ? Number(dbRoom.weekendPrice) : staticRoom.defaultWeekendPrice,
-        maxGuests: dbRoom ? Number(dbRoom.maxGuests) : staticRoom.defaultMaxGuests,
+        name: (dbRoom?.name as string | undefined) ?? room.title,
+        weekdayPrice: dbRoom ? Number(dbRoom.weekdayPrice) : room.seedRate!.weekdayPrice,
+        weekendPrice: dbRoom ? Number(dbRoom.weekendPrice) : room.seedRate!.weekendPrice,
+        maxGuests: dbRoom ? Number(dbRoom.maxGuests) : room.seedRate!.maxGuests,
     };
 }
 

@@ -1,14 +1,15 @@
 /**
- * Who this site is for: the property's name, contact details and address.
+ * The property's starting values, before its owner edits anything.
  *
- * Each owner's site is its own deployment of this codebase, so the property is
+ * Each owner's site is its own deployment of this codebase, so the defaults are
  * chosen at build time by NEXT_PUBLIC_PROPERTY_ID (default: the Whistle Inn).
- * Adding an owner means adding a file under ./properties and registering it
- * below — no other code should name a property directly.
  *
- * Values that owners change themselves (prices, room copy, the booking contact
- * shown in the modal) live in the database and the admin panel instead; this
- * file holds what is fixed when the site is set up.
+ * The live values come from the database: owners edit the name, contact
+ * details, stay rules, photos and rooms in Admin → Property setup, and pages
+ * read them through getProperty() (server) or useProperty() (client). Until an
+ * owner saves that profile, it is built from this file — see
+ * src/lib/property-schema.ts. Only `id`, `siteUrl`, `fromEmail` and
+ * `pricingDefaults` are read from here for good.
  *
  * Kept free of server-only imports so client components can use it too.
  */
@@ -94,12 +95,9 @@ function resolveProperty(): PropertyConfig {
     return config;
 }
 
-export const PROPERTY = resolveProperty();
+/** Code defaults only — read the live property with getProperty() or useProperty(). */
+export const PROPERTY_DEFAULTS = resolveProperty();
 
 /** Base URL for links in pages and emails; the env var wins so previews link to themselves. */
-export const SITE_URL = (process.env.NEXT_PUBLIC_BASE_URL || PROPERTY.siteUrl).replace(/\/+$/, '');
+export const SITE_URL = (process.env.NEXT_PUBLIC_BASE_URL || PROPERTY_DEFAULTS.siteUrl).replace(/\/+$/, '');
 
-/** "33800 Alta Bonny Nook Rd, Alta, CA 95701" */
-export function formatAddress(a: PropertyConfig['address'] = PROPERTY.address): string {
-    return `${a.street}, ${a.locality}, ${a.region} ${a.postalCode}`;
-}

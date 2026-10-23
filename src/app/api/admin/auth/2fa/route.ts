@@ -10,7 +10,7 @@ import {
     decryptSecret, encryptSecret, generateRecoveryCodes, generateTotpSecret,
     hashRecoveryCode, otpauthUri, verifyTotp,
 } from '@/lib/totp';
-import { PROPERTY } from '@/config/property';
+import { getProperty } from '@/lib/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
                     where: { id: user.id },
                     data: { totpPendingSecret: encryptSecret(secret) },
                 });
-                const uri = otpauthUri(secret, user.email, PROPERTY.name);
+                const uri = otpauthUri(secret, user.email, (await getProperty()).name);
                 const qrSvg = await QRCode.toString(uri, { type: 'svg', margin: 1, width: 200 });
                 return NextResponse.json({ secret, uri, qrSvg });
             }

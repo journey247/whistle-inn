@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/adminAuth';
+import { list } from '@vercel/blob';
+import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 import { readdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { existsSync } from 'fs';
@@ -35,9 +36,21 @@ export async function GET(request: Request) {
         // Clean up paths (remove double slashes if any)
         const cleanImages = images.map(img => img.startsWith('/') ? img : `/${img}`);
 
+        // Photos uploaded in production live in Vercel Blob, newest first.
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+            try {
+                const { blobs } = await list({ prefix: 'uploads/', limit: 500 });
+                blobs
+                    .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())
+                    .forEach(b => cleanImages.unshift(b.url));
+            } catch (err) {
+                console.error('Blob list error:', err);
+            }
+        }
+
         return NextResponse.json(cleanImages);
-    } catch (error: any) {
-        if (error.message === 'Authentication failed' || error.message === 'Invalid token' || error.message === 'Missing or invalid authorization header') {
+    } catch (error) {
+        if (error instanceof AdminAuthError) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
         console.error('Image list error:', error);

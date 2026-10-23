@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { CheckCircle, Calendar, Mail, Loader2, Home, XCircle } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { PROPERTY } from '@/config/property';
+import { useProperty } from '@/components/PropertyProvider';
 
 interface BookingDetails {
     id: string;
@@ -19,6 +19,7 @@ interface BookingDetails {
 }
 
 export default function SuccessContent() {
+    const property = useProperty();
     const searchParams = useSearchParams();
     const sessionId = searchParams.get("session_id");
     const bookingId = searchParams.get("booking_id");
@@ -120,7 +121,7 @@ export default function SuccessContent() {
                         </h1>
                         <p className="text-lg text-slate-600">
                             {isPaid
-                                ? `Your reservation at ${PROPERTY.name} has been confirmed`
+                                ? `Your reservation at ${property.name} has been confirmed`
                                 : "Your booking is being processed. We'll send you a confirmation email shortly."
                             }
                         </p>

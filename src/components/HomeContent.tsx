@@ -8,10 +8,10 @@ import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import clsx from "clsx";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { BookingModal } from "@/components/BookingModal";
-import { HeroImageSlider, useHeroSlider, images } from "@/components/HeroImageSlider";
+import { HeroImageSlider, useHeroSlider } from "@/components/HeroImageSlider";
 import { useContent } from "@/components/content/ContentProvider";
-import { ROOMS } from "@/lib/rooms";
-import { PROPERTY, formatAddress } from '@/config/property';
+import { useProperty } from "@/components/PropertyProvider";
+import { formatAddress } from "@/lib/property-schema";
 
 // Helper to render editable content
 const EditableText = ({ id, fallback, className = "" }: { id: string, fallback: string, className?: string }) => {
@@ -78,6 +78,8 @@ export default function Home() {
     const opacityHero = useTransform(scrollY, [0, 400], [1, 0]);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const { content } = useContent();
+    const property = useProperty();
+    const images = property.heroImages;
     const { currentImage } = useHeroSlider(images);
 
     return (
@@ -105,7 +107,7 @@ export default function Home() {
                         <EditableText id="hero_pill" fallback="The Ultimate Freedom" />
                     </div>
                     <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-serif font-bold text-white mb-4 sm:mb-6 tracking-tight drop-shadow-2xl leading-tight">
-                        <EditableText id="hero_title" fallback={PROPERTY.name} />
+                        <EditableText id="hero_title" fallback={property.name} />
                         <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl font-light mt-2 sm:mt-4 italic font-sans opacity-90">
                             <EditableText id="hero_subtitle" fallback="Live Your Sierra Dream" />
                         </span>
@@ -404,15 +406,15 @@ export default function Home() {
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {ROOMS.map((room, idx) => (
+                        {property.rooms.map((room, idx) => (
                             <FadeIn key={room.slug} delay={idx * 0.1}>
                                 {/* Links to the room's own page, where the long description lives */}
                                 <Link href={`/rooms/${room.slug}`} className="block h-full">
                                     <div className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-stone-100 h-full">
                                         <div className="relative h-64 overflow-hidden">
                                             <Image
-                                                src={content[room.imageKey] || room.defaultImage}
-                                                alt={content[room.titleKey] || room.defaultTitle}
+                                                src={room.image}
+                                                alt={room.title}
                                                 fill
                                                 className="object-cover transition-transform duration-700 group-hover:scale-105"
                                             />
@@ -420,12 +422,12 @@ export default function Home() {
                                         </div>
                                         <div className="p-6">
                                             <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-brand-gold transition-colors">
-                                                <EditableText id={room.titleKey} fallback={room.defaultTitle} />
+                                                {room.title}
                                             </h3>
                                             <div className="flex items-center mt-2 text-slate-500">
                                                 <Bed className="w-4 h-4 mr-2" />
                                                 <span className="text-sm font-medium">
-                                                    <EditableText id={room.bedsKey} fallback={room.defaultBeds} />
+                                                    {room.beds}
                                                 </span>
                                             </div>
                                             <span className="inline-block mt-3 text-sm font-semibold text-brand-gold opacity-0 group-hover:opacity-100 transition-opacity">
@@ -470,21 +472,24 @@ export default function Home() {
                         <address className="mt-12 not-italic text-slate-400 text-sm space-y-1">
                             <p>
                                 <a
-                                    href={`https://maps.google.com/?q=${encodeURIComponent(formatAddress())}`}
+                                    href={`https://maps.google.com/?q=${encodeURIComponent(formatAddress(property.address))}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="hover:text-brand-gold transition-colors"
                                 >
-                                    {formatAddress()}
+                                    {formatAddress(property.address)}
                                 </a>
                             </p>
                             <p>
-                                <a href={`tel:${PROPERTY.phoneE164}`} className="hover:text-brand-gold transition-colors">
-                                    {PROPERTY.phone}
+                                <a href={`tel:${property.phoneE164}`} className="hover:text-brand-gold transition-colors">
+                                    {property.phone}
                                 </a>
                             </p>
                         </address>
-                        <p className="mt-4 text-slate-500 text-sm">Hosted by {PROPERTY.hostName} • &copy; {new Date().getFullYear()} {PROPERTY.brandLine}</p>
+                        <p className="mt-4 text-slate-500 text-sm">Hosted by {property.hostName} • &copy; {new Date().getFullYear()} {property.brandLine}</p>
+                        {property.permits.strPermit && (
+                            <p className="mt-1 text-slate-500 text-xs">Short-term rental permit {property.permits.strPermit}</p>
+                        )}
                     </FadeIn>
                 </div>
             </section>

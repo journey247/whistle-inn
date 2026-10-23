@@ -8,7 +8,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { X, Calendar, Loader2, Users, Info, Tag, User, Home, BedDouble, Phone, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast-context";
-import { PROPERTY } from '@/config/property';
+import { useProperty } from '@/components/PropertyProvider';
 
 // Initialize Stripe (replace with your publishable key)
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder");
@@ -61,6 +61,7 @@ function money(n: number): string {
 }
 
 export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSlug = null }: BookingModalProps) {
+    const property = useProperty();
     const { addToast } = useToast();
     const [range, setRange] = useState<DateRange | undefined>();
     const [loading, setLoading] = useState(false);
@@ -79,7 +80,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
     // details are saved as a request and they are asked to call instead.
     // Starts paused to match the server, which treats a missing setting as off.
     const [onlineCheckoutEnabled, setOnlineCheckoutEnabled] = useState(false);
-    const [contact, setContact] = useState({ name: PROPERTY.hostName, phone: PROPERTY.phone });
+    const [contact, setContact] = useState({ name: property.hostName, phone: property.phone });
     const [requestSent, setRequestSent] = useState(false);
 
     // Which product the guest is buying: a room slug, or null for the whole house.
@@ -179,7 +180,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                 if (settings.roomMinimumNights) setRoomMinimumNights(settings.roomMinimumNights);
                 setOnlineCheckoutEnabled(settings.onlineCheckoutEnabled === true);
                 if (settings.contactPhone) {
-                    setContact({ name: settings.contactName || PROPERTY.hostName, phone: settings.contactPhone });
+                    setContact({ name: settings.contactName || property.hostName, phone: settings.contactPhone });
                 }
             }
         } catch (error) {
@@ -303,7 +304,7 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
             // approve, and the guest is shown who to call.
             if (data.requested) {
                 if (data.contactPhone) {
-                    setContact({ name: data.contactName || PROPERTY.hostName, phone: data.contactPhone });
+                    setContact({ name: data.contactName || property.hostName, phone: data.contactPhone });
                 }
                 setRequestSent(true);
                 return;

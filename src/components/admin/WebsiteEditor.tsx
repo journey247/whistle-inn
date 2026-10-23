@@ -23,16 +23,19 @@ const SECTIONS: { key: string; icon: string; desc: string }[] = [
     { key: "Skiing",         icon: "⛷️", desc: "Winter / ski resort content" },
     { key: "Fishing",        icon: "🎣", desc: "Fly fishing section content" },
     { key: "Serenity",       icon: "🚂", desc: "Train / railroad section" },
-    { key: "Rooms",          icon: "🛏️", desc: "Bedroom names and descriptions" },
+    { key: "Rooms",          icon: "🛏️", desc: "Rooms section heading (rooms themselves: Property setup)" },
     { key: "Footer",         icon: "📍", desc: "Bottom CTA and footer text" },
 ];
+
+// Per-room copy and photos moved to the property profile (Property setup);
+// their old blocks may still be in the database but no longer show anywhere.
+const RETIRED_KEY = /^room_(img_\d+|\d+_(title|beds|desc))$|^max_guests$/;
 
 // Image keys that exist in the database
 const IMAGE_KEYS = [
     "hero_image", "hero_slider_1", "hero_slider_2", "hero_slider_3",
     "adventure_img_0", "adventure_img_1", "adventure_img_2",
     "fishing_img", "resort_img",
-    "room_img_0", "room_img_1", "room_img_2", "room_img_3", "room_img_4",
     "footer_img",
 ];
 
@@ -181,7 +184,7 @@ export function WebsiteEditor({ addToast }: { addToast: AddToast }) {
         setLoading(true);
         fetch("/api/admin/content", { headers: headers() })
             .then(r => r.json())
-            .then(d => { if (Array.isArray(d)) setBlocks(d); })
+            .then(d => { if (Array.isArray(d)) setBlocks(d.filter((b: Block) => !RETIRED_KEY.test(b.key))); })
             .catch(() => addToast("Failed to load content", "error"))
             .finally(() => setLoading(false));
     }, [headers, addToast]);

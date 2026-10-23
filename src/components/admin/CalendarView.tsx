@@ -13,12 +13,13 @@ const SOURCE_STYLES: Record<string, string> = {
     'VRBO':         'bg-blue-100 text-blue-700 border-blue-200',
     'Booking.com':  'bg-indigo-100 text-indigo-700 border-indigo-200',
     'Hipcamp':      'bg-green-100 text-green-700 border-green-200',
-    // Direct bookings carry the property's own name as their source.
-    [PROPERTY.name]: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     'Blocked':      'bg-slate-100 text-slate-500 border-slate-200',
 };
+const DIRECT_STYLE = 'bg-emerald-100 text-emerald-700 border-emerald-200';
 function SourceBadge({ source }: { source: string }) {
-    const cls = SOURCE_STYLES[source] ?? 'bg-gray-100 text-gray-600 border-gray-200';
+    // Direct bookings carry the property's own name as their source.
+    const { name } = useProperty();
+    const cls = source === name ? DIRECT_STYLE : SOURCE_STYLES[source] ?? 'bg-gray-100 text-gray-600 border-gray-200';
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
             <Tag className="w-2.5 h-2.5" />{source}
@@ -26,7 +27,7 @@ function SourceBadge({ source }: { source: string }) {
     );
 }
 import { format } from 'date-fns';
-import { PROPERTY } from '@/config/property';
+import { useProperty } from '@/components/PropertyProvider';
 
 type CalendarEvent = {
     id: string;
@@ -40,6 +41,7 @@ type CalendarEvent = {
 };
 
 export function CalendarView() {
+    const property = useProperty();
     const { addToast } = useToast();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(true);
@@ -180,7 +182,7 @@ export function CalendarView() {
                 <div className="flex flex-wrap gap-4 mt-6 text-xs text-slate-500 justify-center border-t border-slate-100 pt-4">
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-600"></span>
-                        <span>{PROPERTY.name} Guests</span>
+                        <span>{property.name} Guests</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-sky-100 border border-sky-600"></span>

@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
-import { PROPERTY, SITE_URL } from '@/config/property';
+import { SITE_URL } from '@/config/property';
+import { getProperty } from '@/lib/property';
 import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
 import { adFeeFor } from '@/lib/attribution';
 
@@ -43,6 +44,7 @@ async function revertToRequested(bookingId: string) {
  */
 export async function POST(request: Request) {
     try {
+        const property = await getProperty();
         const admin = await requireAdmin(request);
 
         // /api/admin/bookings/<id>/approve
@@ -139,7 +141,7 @@ export async function POST(request: Request) {
                         price_data: {
                             currency: 'usd',
                             product_data: {
-                                name: `${PROPERTY.name} — ${booking.room ? booking.room.name : 'Whole House'}`,
+                                name: `${property.name} — ${booking.room ? booking.room.name : 'Whole House'}`,
                                 description: `${nights} night${nights !== 1 ? 's' : ''} · ${checkIn} to ${checkOut} · ${includes}`,
                             },
                             unit_amount: Math.round(booking.totalPrice * 100),
@@ -193,10 +195,10 @@ export async function POST(request: Request) {
                     bookingId: booking.id,
                 },
                 bookingId: booking.id,
-                fallbackSubject: `Your ${PROPERTY.name} booking is approved — complete your payment`,
+                fallbackSubject: `Your ${property.name} booking is approved — complete your payment`,
                 fallbackHtml: `
                     <p>Hi ${booking.guestName},</p>
-                    <p>Good news — your booking request at <strong>${PROPERTY.name}</strong> has been approved.</p>
+                    <p>Good news — your booking request at <strong>${property.name}</strong> has been approved.</p>
                     <ul>
                       <li><strong>Your booking:</strong> ${accommodation}</li>
                       <li><strong>Check-in:</strong> ${checkIn}</li>
@@ -205,7 +207,7 @@ export async function POST(request: Request) {
                     </ul>
                     <p><a href="${session.url}">Complete your payment here</a> to confirm your stay.</p>
                     <p>We're holding these dates for you for the next 23 hours. After that the link expires and the dates are released.</p>
-                    <p>See you soon!<br>${PROPERTY.hostName} &amp; the ${PROPERTY.name} team</p>
+                    <p>See you soon!<br>${property.hostName} &amp; the ${property.name} team</p>
                 `,
             });
             emailed = true;

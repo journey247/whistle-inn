@@ -6,6 +6,11 @@ const nextConfig = {
                 protocol: 'https',
                 hostname: 'images.unsplash.com',
             },
+            {
+                // Photos owners upload in Property setup (Vercel Blob).
+                protocol: 'https',
+                hostname: '*.public.blob.vercel-storage.com',
+            },
         ],
     },
 

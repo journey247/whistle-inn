@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { POLICY_SUMMARY, PARTIAL_REFUND_PERCENT } from '@/lib/cancellationPolicy';
-import { PROPERTY } from '@/config/property';
+import { policySummary } from '@/lib/cancellationPolicy';
+import { useProperty } from '@/components/PropertyProvider';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ function fmt(date: string) {
   });
 }
 
-function RefundBadge({ tier, amount }: { tier: RefundInfo['tier']; amount: number }) {
+function RefundBadge({ tier, amount, partialPercent }: { tier: RefundInfo['tier']; amount: number; partialPercent: number }) {
   if (tier === 'full') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800">
@@ -47,7 +47,7 @@ function RefundBadge({ tier, amount }: { tier: RefundInfo['tier']; amount: numbe
   if (tier === 'half') {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
-        ⚠️ {PARTIAL_REFUND_PERCENT}% refund — ${amount.toFixed(2)}
+        ⚠️ {partialPercent}% refund — ${amount.toFixed(2)}
       </span>
     );
   }
@@ -64,6 +64,7 @@ export default function CancelBookingPage() {
   const params = useParams();
   const router = useRouter();
   const token = params?.token as string;
+  const property = useProperty();
 
   const [state, setState] = useState<PageState>('loading');
   const [booking, setBooking] = useState<BookingPreview | null>(null);
@@ -137,10 +138,10 @@ export default function CancelBookingPage() {
           <h1 className="mb-2 text-xl font-bold text-stone-800">Something went wrong</h1>
           <p className="mb-6 text-stone-600">{errorMsg}</p>
           <a
-            href={`mailto:${PROPERTY.email}`}
+            href={`mailto:${property.email}`}
             className="inline-block rounded-lg bg-amber-500 px-6 py-3 font-semibold text-white hover:bg-amber-600 transition-colors"
           >
-            Email us at {PROPERTY.email}
+            Email us at {property.email}
           </a>
         </div>
       </div>
@@ -157,8 +158,8 @@ export default function CancelBookingPage() {
           <p className="text-sm text-stone-500">
             You'll receive a confirmation email shortly. If you have questions,
             email us at{' '}
-            <a href={`mailto:${PROPERTY.email}`} className="text-amber-600 underline">
-              {PROPERTY.email}
+            <a href={`mailto:${property.email}`} className="text-amber-600 underline">
+              {property.email}
             </a>
             .
           </p>
@@ -181,7 +182,7 @@ export default function CancelBookingPage() {
 
         {/* Header */}
         <div className="mb-8 text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">{PROPERTY.name}</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">{property.name}</p>
           <h1 className="mt-1 text-3xl font-bold text-stone-900">Cancel Your Booking</h1>
         </div>
 
@@ -218,7 +219,7 @@ export default function CancelBookingPage() {
               Refund Estimate
             </h2>
             <div className="mb-3">
-              <RefundBadge tier={refund.tier} amount={refund.refundAmount} />
+              <RefundBadge tier={refund.tier} amount={refund.refundAmount} partialPercent={property.cancellation.partialRefundPercent} />
             </div>
             <p className="text-sm text-stone-600">{refund.reason}</p>
             {refund.tier !== 'none' && (
@@ -241,7 +242,7 @@ export default function CancelBookingPage() {
 
           {showPolicy && (
             <div className="mt-4 space-y-2">
-              {POLICY_SUMMARY.map((row) => (
+              {policySummary(property.cancellation).map((row) => (
                 <div key={row.window} className="flex items-start gap-3 text-sm">
                   <span className="mt-0.5">{row.icon}</span>
                   <div>
@@ -273,8 +274,8 @@ export default function CancelBookingPage() {
 
         <p className="mt-6 text-center text-xs text-stone-400">
           Need help? Email{' '}
-          <a href={`mailto:${PROPERTY.email}`} className="underline">
-            {PROPERTY.email}
+          <a href={`mailto:${property.email}`} className="underline">
+            {property.email}
           </a>
         </p>
       </div>

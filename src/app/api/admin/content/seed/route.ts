@@ -57,23 +57,8 @@ const SEED_BLOCKS = [
     { key: 'accomm_small',  label: 'Rooms Tag',          type: 'text',     section: 'Rooms', value: 'Accommodations' },
     { key: 'accomm_title',  label: 'Rooms Headline',     type: 'text',     section: 'Rooms', value: 'Sweet Dreams' },
     { key: 'accomm_desc',   label: 'Rooms Description',  type: 'textarea', section: 'Rooms', value: 'Five beautifully curated bedrooms designed for rest and relaxation after a day of mountain adventures.' },
-    { key: 'room_img_0',    label: 'Room 1 Image',       type: 'image_url',section: 'Rooms', value: '/room1.webp' },
-    { key: 'room_img_1',    label: 'Room 2 Image',       type: 'image_url',section: 'Rooms', value: '/room2.webp' },
-    { key: 'room_img_2',    label: 'Room 3 Image',       type: 'image_url',section: 'Rooms', value: '/room3.webp' },
-    { key: 'room_img_3',    label: 'Room 4 Image',       type: 'image_url',section: 'Rooms', value: '/room4.webp' },
-    { key: 'room_img_4',    label: 'Room 5 Image',       type: 'image_url',section: 'Rooms', value: '/room5.webp' },
-
-    // ── Room descriptions ────────────────────────────────────────────────────
-    // Long-form copy for each room's own page at /rooms/<slug>. Kept in the
-    // same 'Accommodations' section as room_N_title / room_N_beds so they group
-    // together in the website editor. type 'textarea' gives a multi-line box.
-    // Blank lines in the value render as separate paragraphs on the page.
-    { key: 'room_1_desc', label: 'Conductors Suite — Description',   type: 'textarea', section: 'Accommodations', value: 'The largest of the bedrooms, with a king bed and a single — comfortable for a couple, a family, or a pair of friends.' },
-    { key: 'room_2_desc', label: 'Tree House Room — Description',    type: 'textarea', section: 'Accommodations', value: 'A quiet queen room set among the pines, with the feel of a tree house and the light to match.' },
-    { key: 'room_3_desc', label: 'Train Room — Description',         type: 'textarea', section: 'Accommodations', value: 'A queen and a full bed in a room that leans into the railroad history the inn is named for — a favourite with families.' },
-    { key: 'room_4_desc', label: 'Starlit Sky Room — Description',   type: 'textarea', section: 'Accommodations', value: 'A restful queen room named for the Sierra night sky, far enough from town that the stars actually show.' },
-    { key: 'room_5_desc', label: 'Breakmans Suite — Description',    type: 'textarea', section: 'Accommodations', value: 'A comfortable queen room with a warm, understated feel — an easy place to land at the end of a long day outdoors.' },
-    { key: 'room_6_desc', label: 'Living Space — Description',       type: 'textarea', section: 'Accommodations', value: 'The shared living room, with a sofa bed for extra guests and room for the whole group to gather.' },
+    // Each room's name, beds, photo and description are part of the property
+    // profile (Admin → Property setup), not content blocks.
 
     // ── Footer ───────────────────────────────────────────────────────────────
     { key: 'footer_title',  label: 'Footer CTA Headline', type: 'text',     section: 'Footer', value: 'Ready to create memories?' },
@@ -81,11 +66,7 @@ const SEED_BLOCKS = [
     { key: 'footer_img',    label: 'Footer Background',   type: 'image_url',section: 'Footer', value: '/patio.webp' },
 
     // ── Booking limits ───────────────────────────────────────────────────────
-    // Read by /api/settings/public (which the booking modal calls) and by
-    // /api/checkout_sessions. Seeded so the cap is visible and editable rather
-    // than living only as a hardcoded fallback in three separate files — which
-    // is how the site came to advertise 14 guests while rejecting 11 and over.
-    { key: 'max_guests',    label: 'Maximum Guests',      type: 'text',     section: 'Booking', value: '14' },
+    // The guest cap is the property's maxGuests (Admin → Property setup).
     // Single-room stays get their own, shorter minimum — see /api/settings/public.
     { key: 'room_minimum_nights', label: 'Minimum Nights (single room)', type: 'text', section: 'Booking', value: '2' },
 ];

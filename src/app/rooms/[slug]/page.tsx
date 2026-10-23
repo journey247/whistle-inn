@@ -4,17 +4,18 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Bed, ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { ROOMS, getRoomBySlug, resolveRoom } from '@/lib/rooms';
+import { getProperty } from '@/lib/property';
+import { absoluteImageUrl } from '@/lib/property-schema';
 import { RoomBookingCta } from '@/components/RoomBookingCta';
-import { PROPERTY, SITE_URL } from '@/config/property';
+import { SITE_URL } from '@/config/property';
 
 // Match the homepage: rebuild at most once a minute so edits made in the admin
 // panel appear without turning every visit into a server render.
 export const revalidate = 60;
 
-/** Prerender all six room pages at build time. */
-export function generateStaticParams() {
-    return ROOMS.map(room => ({ slug: room.slug }));
+/** Prerender the room pages known at build time; rooms added later render on first visit. */
+export async function generateStaticParams() {
+    return (await getProperty()).rooms.map(room => ({ slug: room.slug }));
 }
 
 /**
@@ -33,28 +34,17 @@ async function getRoomPricing(slug: string) {
     }
 }
 
-async function getContent(): Promise<Record<string, string>> {
-    try {
-        const blocks = await prisma.contentBlock.findMany();
-        return Object.fromEntries(blocks.map(b => [b.key, b.value]));
-    } catch (error) {
-        console.error('Failed to fetch room content:', error);
-        return {};
-    }
-}
-
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
     const { slug } = await params;
-    const base = getRoomBySlug(slug);
-    if (!base) return {};
-
-    const room = resolveRoom(base, await getContent());
+    const property = await getProperty();
+    const room = property.rooms.find(r => r.slug === slug);
+    if (!room) return {};
 
     // Trim long-form copy down to a usable meta description.
     const description = room.description.replace(/\s+/g, ' ').slice(0, 155).trim();
-    const title = `${room.title} — ${PROPERTY.name}`;
+    const title = `${room.title} — ${property.name}`;
 
     return {
         title,
@@ -62,11 +52,11 @@ export async function generateMetadata(
         alternates: { canonical: `/rooms/${room.slug}` },
         openGraph: {
             type: 'website',
-            siteName: PROPERTY.name,
+            siteName: property.name,
             title,
             description,
             url: `/rooms/${room.slug}`,
-            images: [{ url: room.ogImage, width: 1200, height: 630, alt: `${room.title} at ${PROPERTY.name}` }],
+            images: [{ url: room.ogImage, width: 1200, height: 630, alt: `${room.title} at ${property.name}` }],
         },
         twitter: {
             card: 'summary_large_image',
@@ -79,17 +69,17 @@ export async function generateMetadata(
 
 export default async function RoomPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    const base = getRoomBySlug(slug);
-    if (!base) notFound();
+    const property = await getProperty();
+    const rooms = property.rooms;
+    const position = rooms.findIndex(r => r.slug === slug);
+    if (position === -1) notFound();
 
-    const content = await getContent();
-    const room = resolveRoom(base, content);
-    const pricing = base.bookable ? await getRoomPricing(base.slug) : null;
+    const room = rooms[position];
+    const pricing = room.bookable ? await getRoomPricing(room.slug) : null;
 
     // Previous / next for walking through the rooms without going back to the index
-    const position = ROOMS.findIndex(r => r.slug === room.slug);
-    const prev = resolveRoom(ROOMS[(position - 1 + ROOMS.length) % ROOMS.length], content);
-    const next = resolveRoom(ROOMS[(position + 1) % ROOMS.length], content);
+    const prev = rooms[(position - 1 + rooms.length) % rooms.length];
+    const next = rooms[(position + 1) % rooms.length];
 
     // Long descriptions are authored as plain text; treat blank lines as paragraphs.
     const paragraphs = room.description.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
@@ -100,7 +90,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
         name: room.title,
         description: room.description.replace(/\s+/g, ' ').trim(),
         url: `${SITE_URL}/rooms/${room.slug}`,
-        image: `${SITE_URL}${room.image}`,
+        image: absoluteImageUrl(room.image, SITE_URL),
         bed: room.beds,
         ...(pricing
             ? {
@@ -116,7 +106,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             : {}),
         containedInPlace: {
             '@type': 'LodgingBusiness',
-            name: PROPERTY.name,
+            name: property.name,
             url: SITE_URL,
         },
     };
@@ -132,7 +122,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             <section className="relative h-[45vh] min-h-[320px] md:h-[60vh]">
                 <Image
                     src={room.image}
-                    alt={`${room.title} at ${PROPERTY.name}`}
+                    alt={`${room.title} at ${property.name}`}
                     fill
                     priority
                     sizes="100vw"

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { calculateQuote } from '@/lib/pricing-server';
-import { getBookableRoomBySlug } from '@/lib/rooms';
+import { getBookableRoomBySlug } from '@/lib/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         // Validate the room. An unknown slug is rejected rather than quietly
         // quoting the whole house, which would badly under- or over-charge.
         if (roomSlug !== undefined && roomSlug !== null && roomSlug !== '') {
-            if (typeof roomSlug !== 'string' || !getBookableRoomBySlug(roomSlug)) {
+            if (typeof roomSlug !== 'string' || !(await getBookableRoomBySlug(roomSlug))) {
                 return NextResponse.json({ error: 'Unknown room' }, { status: 400 });
             }
         }

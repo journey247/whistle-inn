@@ -5,10 +5,11 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { calculateQuote } from '@/lib/pricing-server';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
-import { getBookableRoomBySlug } from '@/lib/rooms';
+import { getBookableRoomBySlug } from '@/lib/property';
 import { conflictingBookingWhere, conflictingExternalWhere } from '@/lib/availability';
 import { getCheckoutSettings } from '@/lib/checkout-settings';
-import { PROPERTY } from '@/config/property';
+import { PROPERTY_DEFAULTS } from '@/config/property';
+import { getProperty } from '@/lib/property';
 import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
 import { attributionFromCookieHeader, adFeeFor } from '@/lib/attribution';
 
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 const stripe = getStripe();
 
-const MINIMUM_NIGHTS = PROPERTY.pricingDefaults.minimumNights;
+const MINIMUM_NIGHTS = PROPERTY_DEFAULTS.pricingDefaults.minimumNights;
 
 /**
  * Release a pending booking that never made it to Stripe.
@@ -70,20 +71,16 @@ export async function POST(request: Request) {
         // its own minimum stay and its own nightly price, so most of the
         // validation below depends on which of the two products this is.
         if (roomSlug !== undefined && roomSlug !== null && roomSlug !== '') {
-            if (typeof roomSlug !== 'string' || !getBookableRoomBySlug(roomSlug)) {
+            if (typeof roomSlug !== 'string' || !(await getBookableRoomBySlug(roomSlug))) {
                 return NextResponse.json({ error: 'Unknown room' }, { status: 400 });
             }
         }
         const requestedRoomSlug: string | null = roomSlug || null;
 
         // Validate and sanitize guestCount against the same limit the booking
-        // modal enforces (see /api/settings/public), so raising max_guests in
-        // the admin panel doesn't leave the server rejecting valid bookings.
-        const maxGuestsBlock = await prisma.contentBlock.findUnique({
-            where: { key: 'max_guests' }
-        });
-        const parsedMaxGuests = maxGuestsBlock ? parseInt(maxGuestsBlock.value, 10) : NaN;
-        const maxGuests = Number.isFinite(parsedMaxGuests) && parsedMaxGuests > 0 ? parsedMaxGuests : PROPERTY.maxGuests;
+        // modal enforces (see /api/settings/public): the property's capacity.
+        const property = await getProperty();
+        const maxGuests = property.maxGuests;
 
         const guestCount = parseInt(String(rawGuestCount ?? 1), 10);
         if (isNaN(guestCount) || guestCount < 1 || guestCount > maxGuests) {
@@ -290,8 +287,8 @@ export async function POST(request: Request) {
                             currency: 'usd',
                             product_data: {
                                 name: quote.roomName
-                                    ? `${PROPERTY.name} — ${quote.roomName}`
-                                    : `${PROPERTY.name} — Whole House`,
+                                    ? `${property.name} — ${quote.roomName}`
+                                    : `${property.name} — Whole House`,
                                 description: accommodationDescription,
                             },
                             unit_amount: Math.round(finalAccommodationPrice * 100),

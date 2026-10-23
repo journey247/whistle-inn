@@ -1,7 +1,9 @@
 // src/app/page.tsx - Server Component
 import { prisma } from "@/lib/prisma";
 import PageClient from "@/components/PageClient";
-import { PROPERTY, SITE_URL } from '@/config/property';
+import { SITE_URL } from '@/config/property';
+import { getProperty } from '@/lib/property';
+import type { Property } from '@/lib/property-schema';
 
 // ISR: rebuild the page at most once a minute so admin content edits appear
 // without making every visit a server render. Previously this was overridden
@@ -32,39 +34,41 @@ async function getContent() {
  *
  * `geo` is still omitted rather than guessed; add the real lat/long when known.
  */
-const lodgingJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'LodgingBusiness',
-    name: PROPERTY.name,
-    description: PROPERTY.description,
-    url: SITE_URL,
-    image: `${SITE_URL}/og-image.jpg`,
-    telephone: PROPERTY.phoneE164,
-    address: {
-        '@type': 'PostalAddress',
-        streetAddress: PROPERTY.address.street,
-        addressLocality: PROPERTY.address.locality,
-        addressRegion: PROPERTY.address.region,
-        postalCode: PROPERTY.address.postalCode,
-        addressCountry: PROPERTY.address.country,
-    },
-    checkinTime: PROPERTY.checkinTime,
-    checkoutTime: PROPERTY.checkoutTime,
-    // Add `petsAllowed` once confirmed.
-    numberOfRooms: PROPERTY.bedrooms,
-    amenityFeature: PROPERTY.amenities.map(name => (
-        { '@type': 'LocationFeatureSpecification', name, value: true }
-    )),
-};
+function lodgingJsonLd(property: Property) {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'LodgingBusiness',
+        name: property.name,
+        description: property.description,
+        url: SITE_URL,
+        image: `${SITE_URL}/og-image.jpg`,
+        telephone: property.phoneE164,
+        address: {
+            '@type': 'PostalAddress',
+            streetAddress: property.address.street,
+            addressLocality: property.address.locality,
+            addressRegion: property.address.region,
+            postalCode: property.address.postalCode,
+            addressCountry: property.address.country,
+        },
+        checkinTime: property.checkinTime,
+        checkoutTime: property.checkoutTime,
+        // Add `petsAllowed` once confirmed.
+        numberOfRooms: property.bedrooms,
+        amenityFeature: property.amenities.map(name => (
+            { '@type': 'LocationFeatureSpecification', name, value: true }
+        )),
+    };
+}
 
 export default async function Page() {
-    const content = await getContent();
+    const [content, property] = await Promise.all([getContent(), getProperty()]);
 
     return (
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(lodgingJsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(lodgingJsonLd(property)) }}
             />
             <PageClient content={content} />
         </>

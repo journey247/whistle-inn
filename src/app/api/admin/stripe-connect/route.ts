@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 import { getStripe, getConnectState, saveConnectAccountId, saveChargesEnabled } from '@/lib/stripe';
-import { PROPERTY, SITE_URL } from '@/config/property';
+import { SITE_URL } from '@/config/property';
+import { getProperty } from '@/lib/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
     try {
+        const property = await getProperty();
         await requireAdmin(request);
         const stripe = getStripe();
         if (!stripe) {
@@ -75,8 +77,8 @@ export async function POST(request: Request) {
         if (!accountId) {
             const account = await stripe.accounts.create({
                 country: 'US',
-                email: PROPERTY.email,
-                business_profile: { name: PROPERTY.name, url: SITE_URL },
+                email: property.email,
+                business_profile: { name: property.name, url: SITE_URL },
                 controller: {
                     stripe_dashboard: { type: 'full' },
                     fees: { payer: 'account' },

@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 import { requireAdmin } from '@/lib/adminAuth';
 import { sendEmail } from '@/lib/email';
-import { PROPERTY, SITE_URL } from '@/config/property';
+import { SITE_URL } from '@/config/property';
+import { getProperty } from '@/lib/property';
 import { getStripe, onAccount } from '@/lib/stripe';
 import { policySentence } from '@/lib/cancellationPolicy';
 
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
 // ── PATCH /api/admin/bookings/[id] ────────────────────────────────────────────
 export async function PATCH(request: Request) {
     try {
+        const property = await getProperty();
         await requireAdmin(request);
         const url = new URL(request.url);
         const id = url.pathname.split('/').pop();
@@ -99,10 +101,10 @@ export async function PATCH(request: Request) {
                     },
                     bookingId: existing.id,
                     // Fallback subject + body used when the DB template doesn't exist
-                    fallbackSubject: `Your ${PROPERTY.name} booking has been cancelled`,
+                    fallbackSubject: `Your ${property.name} booking has been cancelled`,
                     fallbackHtml: `
                         <p>Hi ${existing.guestName},</p>
-                        <p>Your booking at <strong>${PROPERTY.name}</strong> has been cancelled.</p>
+                        <p>Your booking at <strong>${property.name}</strong> has been cancelled.</p>
                         <ul>
                           <li>Check-in: ${checkIn}</li>
                           <li>Check-out: ${checkOut}</li>
@@ -175,10 +177,10 @@ export async function PATCH(request: Request) {
                         cancelUrl,
                     },
                     bookingId: updated.id,
-                    fallbackSubject: `Your ${PROPERTY.name} booking is confirmed! 🎉`,
+                    fallbackSubject: `Your ${property.name} booking is confirmed! 🎉`,
                     fallbackHtml: `
                         <p>Hi ${updated.guestName},</p>
-                        <p>Your stay at <strong>${PROPERTY.name}</strong> is confirmed!</p>
+                        <p>Your stay at <strong>${property.name}</strong> is confirmed!</p>
                         <ul>
                           <li><strong>Check-in:</strong> ${checkIn}</li>
                           <li><strong>Check-out:</strong> ${checkOut}</li>
@@ -186,7 +188,7 @@ export async function PATCH(request: Request) {
                           <li><strong>Booking ID:</strong> ${updated.id}</li>
                         </ul>
                         <p>Need to cancel? <a href="${cancelUrl}">Click here</a></p>
-                        <p><em>Policy: ${policySentence()}</em></p>
+                        <p><em>Policy: ${policySentence(property.cancellation)}</em></p>
                     `,
                 });
             } catch (e) {

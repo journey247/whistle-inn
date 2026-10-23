@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { getAdminToken } from "@/lib/adminToken";
 import { SharedProps, Booking } from "@/app/admin/page";
 import { Search, X, ChevronDown, Mail, Calendar, DollarSign, FileText, RefreshCw, Check, Inbox, Copy, Loader2, Power } from "lucide-react";
-import { PROPERTY } from '@/config/property';
+import { useProperty } from '@/components/PropertyProvider';
 import { SOURCE_LABELS, type BookingSource } from "@/lib/attribution";
 
 function nightsBetween(a: string, b: string) {
@@ -186,6 +186,7 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
     busyId: string | null;
     addToast: SharedProps["addToast"];
 }) {
+    const property = useProperty();
     const nights = nightsBetween(booking.startDate, booking.endDate);
     const [updating, setUpdating] = useState(false);
     const [status, setStatus]    = useState(booking.status);
@@ -317,7 +318,7 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
                         </>
                     )}
                     <a
-                        href={`mailto:${booking.email}?subject=${encodeURIComponent(`Your Booking at ${PROPERTY.name}`)}`}
+                        href={`mailto:${booking.email}?subject=${encodeURIComponent(`Your Booking at ${property.name}`)}`}
                         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition mt-2"
                     >
                         <Mail className="w-4 h-4" /> Email Guest

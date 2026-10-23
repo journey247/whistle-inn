@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { PROPERTY } from '@/config/property';
+import { getProperty } from '@/lib/property';
 
 /**
  * Whether guests can pay online, and who to call when they can't.
@@ -10,9 +10,6 @@ import { PROPERTY } from '@/config/property';
  * request for the owner to approve instead of sending them to Stripe.
  */
 
-export const DEFAULT_CONTACT_PHONE = PROPERTY.phone;
-export const DEFAULT_CONTACT_NAME = PROPERTY.hostName;
-
 export type CheckoutSettings = {
     onlineCheckoutEnabled: boolean;
     contactName: string;
@@ -20,6 +17,11 @@ export type CheckoutSettings = {
 };
 
 export async function getCheckoutSettings(): Promise<CheckoutSettings> {
+    // The property's host and phone, unless the owner set a separate booking contact.
+    const property = await getProperty();
+    const DEFAULT_CONTACT_NAME = property.hostName;
+    const DEFAULT_CONTACT_PHONE = property.phone;
+
     try {
         const blocks = await prisma.contentBlock.findMany({
             where: { key: { in: ['online_checkout_enabled', 'booking_contact_phone', 'booking_contact_name'] } },
