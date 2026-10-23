@@ -758,6 +758,11 @@ export function BookingModal({ isOpen, onClose, title = "Book Your Stay", roomSl
                                                         Cards won't be charged until booking is confirmed
                                                     </p>
                                                 )}
+                                                {property.permits.strPermit && (
+                                                    <p className="text-center text-xs text-slate-400">
+                                                        Short-term rental permit {property.permits.strPermit}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

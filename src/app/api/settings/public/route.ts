@@ -35,7 +35,8 @@ export async function GET() {
         ]);
 
         const byKey = Object.fromEntries(blocks.map(b => [b.key, b.value]));
-        const checkout = await getCheckoutSettings();
+        // The owner's raw switch is admin-only; guests only need the outcome.
+        const { onlineCheckoutSwitchedOn: _switch, ...checkout } = await getCheckoutSettings();
 
         const minimumNights = parseInt(byKey.minimum_nights ?? '', 10);
         const roomMinimumNights = parseInt(byKey.room_minimum_nights ?? '', 10);
@@ -59,7 +60,7 @@ export async function GET() {
             minimumNights: DEFAULT_MINIMUM_NIGHTS,
             maxGuests: (await getProperty()).maxGuests,
             roomMinimumNights: DEFAULT_ROOM_MINIMUM_NIGHTS,
-            ...(await getCheckoutSettings()),
+            ...(({ onlineCheckoutSwitchedOn: _switch, ...checkout }) => checkout)(await getCheckoutSettings()),
         });
     }
 }

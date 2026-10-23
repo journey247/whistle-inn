@@ -94,22 +94,31 @@ function PaymentLinkNotice({ result, onDismiss, addToast }: {
 }
 
 /** Online checkout on/off switch. Off = the booking modal takes requests instead. */
-function CheckoutSwitch({ addToast }: { addToast: SharedProps["addToast"] }) {
-    const [enabled, setEnabled] = useState<boolean | null>(null);
-    const [phone, setPhone]     = useState("");
-    const [saving, setSaving]   = useState(false);
+type GateState = {
+    ready: boolean;
+    items: { id: string; label: string; ok: boolean; fix: string }[];
+    switchedOn: boolean;
+    live: boolean;
+    contactPhone: string;
+};
 
-    useEffect(() => {
-        fetch("/api/settings/public")
-            .then(r => r.json())
-            .then(s => { setEnabled(s.onlineCheckoutEnabled === true); setPhone(s.contactPhone ?? ""); })
-            .catch(() => setEnabled(false));
-    }, []);
+function CheckoutSwitch({ addToast }: { addToast: SharedProps["addToast"] }) {
+    const [gate, setGate]     = useState<GateState | null>(null);
+    const [failed, setFailed] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    const load = () =>
+        fetch("/api/admin/launch-gate")
+            .then(r => (r.ok ? r.json() : Promise.reject()))
+            .then(setGate)
+            .catch(() => setFailed(true));
+
+    useEffect(() => { load(); }, []);
 
     const toggle = async () => {
-        if (enabled === null) return;
-        const next = !enabled;
-        if (next && !window.confirm("Turn online checkout back on? Guests will be able to pay with Stripe immediately.")) return;
+        if (!gate) return;
+        const next = !gate.switchedOn;
+        if (next && !window.confirm("Turn online checkout on? Guests will be able to pay with Stripe immediately.")) return;
         setSaving(true);
         try {
             const res = await fetch("/api/admin/content", {
@@ -120,35 +129,66 @@ function CheckoutSwitch({ addToast }: { addToast: SharedProps["addToast"] }) {
                     label: "Online Checkout Enabled", type: "text", section: "booking", category: "settings",
                 }),
             });
-            if (!res.ok) throw new Error();
-            setEnabled(next);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || "Failed to update checkout setting");
             addToast(next ? "Online checkout is live" : "Online checkout paused", "success");
-        } catch {
-            addToast("Failed to update checkout setting", "error");
+        } catch (err: any) {
+            addToast(err?.message || "Failed to update checkout setting", "error");
         } finally {
             setSaving(false);
+            load();
         }
     };
 
+    const live = gate?.live ?? false;
+    const missing = gate?.items.filter(i => !i.ok) ?? [];
+    // Switched on but held by the gate, e.g. the Stripe account lost the ability to take charges.
+    const held = Boolean(gate?.switchedOn && !gate.ready);
+
     return (
-        <div className={`rounded-2xl border p-4 flex items-center gap-3 ${enabled ? "bg-white border-gray-100" : "bg-amber-50 border-amber-200"}`}>
-            <Power className={`w-5 h-5 shrink-0 ${enabled ? "text-green-600" : "text-amber-600"}`} />
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900">
-                    Online checkout: {enabled === null ? "…" : enabled ? "Live" : "Paused"}
-                </p>
-                <p className="text-xs text-gray-500">
-                    {enabled
-                        ? "Guests pay with Stripe when they book."
-                        : `Guests see a maintenance message with ${phone || "your phone number"}. Their requests appear below for you to approve.`}
-                </p>
+        <div className={`rounded-2xl border p-4 space-y-3 ${live ? "bg-white border-gray-100" : "bg-amber-50 border-amber-200"}`}>
+            <div className="flex items-center gap-3">
+                <Power className={`w-5 h-5 shrink-0 ${live ? "text-green-600" : "text-amber-600"}`} aria-hidden />
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">
+                        Online checkout: {failed ? "unknown" : !gate ? "…" : live ? "Live" : held ? "Paused until setup is complete" : "Paused"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        {live
+                            ? "Guests pay with Stripe when they book."
+                            : `Guests see a maintenance message with ${gate?.contactPhone || "your phone number"}. Their requests appear below for you to approve.`}
+                    </p>
+                </div>
+                {gate && (gate.switchedOn || gate.ready) && (
+                    <button onClick={toggle} disabled={saving}
+                        className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition disabled:opacity-50 ${
+                            gate.switchedOn ? "border border-gray-200 text-gray-700 hover:bg-gray-50" : "bg-brand-gold text-white hover:bg-yellow-600"
+                        }`}>
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" aria-label="Saving" /> : gate.switchedOn ? "Pause" : "Turn on"}
+                    </button>
+                )}
             </div>
-            <button onClick={toggle} disabled={saving || enabled === null}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition disabled:opacity-50 ${
-                    enabled ? "border border-gray-200 text-gray-700 hover:bg-gray-50" : "bg-brand-gold text-white hover:bg-yellow-600"
-                }`}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : enabled ? "Pause" : "Turn on"}
-            </button>
+
+            {gate && !gate.ready && (
+                <div className="border-t border-amber-200 pt-3 space-y-2">
+                    <p className="text-xs font-semibold text-amber-900">Before guests can pay online:</p>
+                    <ul className="space-y-1.5">
+                        {gate.items.map(item => (
+                            <li key={item.id} className="flex items-start gap-2 text-xs">
+                                <span className={`mt-0.5 w-4 h-4 shrink-0 rounded-full flex items-center justify-center ${item.ok ? "bg-emerald-100 text-emerald-700" : "bg-white border border-amber-300 text-amber-700"}`} aria-hidden>
+                                    {item.ok ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+                                </span>
+                                <span className={item.ok ? "text-gray-500" : "text-gray-800"}>
+                                    {item.label}
+                                    <span className="sr-only">{item.ok ? " — done" : " — missing"}</span>
+                                    {!item.ok && <span className="text-gray-500"> — {item.fix}</span>}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="text-xs text-amber-800">{missing.length} step{missing.length === 1 ? "" : "s"} left. You can keep approving requests meanwhile.</p>
+                </div>
+            )}
         </div>
     );
 }
