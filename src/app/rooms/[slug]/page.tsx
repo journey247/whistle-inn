@@ -181,7 +181,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
                     </h2>
                     <p className="text-slate-600 mb-6">
                         {pricing
-                            ? `Book this room on its own from ${pricing.weekdayPrice} a night, or take the whole house.`
+                            ? `Book this room on its own from $${pricing.weekdayPrice} a night, or take the whole house.`
                             : 'Rooms are booked together as the whole house — check which dates are open.'}
                     </p>
                     <RoomBookingCta roomSlug={pricing ? room.slug : null} />
