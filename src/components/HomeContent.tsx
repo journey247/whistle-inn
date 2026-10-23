@@ -11,6 +11,7 @@ import { BookingModal } from "@/components/BookingModal";
 import { HeroImageSlider, useHeroSlider } from "@/components/HeroImageSlider";
 import { useContent } from "@/components/content/ContentProvider";
 import { useProperty } from "@/components/PropertyProvider";
+import { BookingContactBanner } from "@/components/BookingContactBanner";
 import { formatAddress } from "@/lib/property-schema";
 
 // Helper to render editable content
@@ -115,6 +116,9 @@ export default function Home() {
                     <p className="text-base sm:text-lg md:text-xl text-white/90 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-lg font-light px-2">
                         <EditableText id="hero_desc" fallback="A thrilling sanctuary nestled in the Alta mountains. Where gold rushes meet powder days, and pure luxury meets the rhythmic pulse of passing trains. Vibrant, private, picture-perfect." />
                     </p>
+                    <div className="mb-5 flex justify-center">
+                        <BookingContactBanner tone="dark" className="max-w-xl" />
+                    </div>
                     <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -456,6 +460,9 @@ export default function Home() {
                             <EditableText id="footer_title" fallback="Ready to create memories?" />
                         </h2>
                         <NewsletterSignup />
+                        <div className="mt-6 flex justify-center px-4">
+                            <BookingContactBanner tone="dark" className="max-w-xl" />
+                        </div>
                         <button
                             onClick={() => setIsBookingOpen(true)}
                             className="inline-block bg-brand-gold text-slate-900 font-bold py-5 px-10 rounded-full text-lg hover:bg-white transition-all transform hover:scale-105 shadow-2xl mt-6"
