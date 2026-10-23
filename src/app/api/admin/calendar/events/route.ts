@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/adminAuth';
-import { PROPERTY } from '@/config/property';
+import { getProperty } from '@/lib/property';
 
 // Prevent caching for admin data
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
+        const property = await getProperty();
         await requireAdmin(request);
 
         const [bookings, externalBookings] = await Promise.all([
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
                 end: b.endDate,
                 status: b.status,
                 notes: b.notes,
-                source: PROPERTY.name
+                source: property.name
             })),
             ...externalBookings.map(b => ({
                 id: b.id,

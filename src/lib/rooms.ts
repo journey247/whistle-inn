@@ -1,18 +1,11 @@
-import { PROPERTY } from '@/config/property';
-
 /**
- * The property's rooms, and helpers for reading them.
+ * Room shapes for the code config (src/config/properties/).
  *
- * Single source of truth for the homepage grid, the /rooms pages and the
- * sitemap, so a room cannot appear in one place and be missing from another.
- *
- * `slug` is deliberately hardcoded rather than derived from the title: titles
- * are editable from the admin panel, and a slug that shifted when the owner
- * renamed a room would break every existing link and lose its search ranking.
- *
- * `defaultX` values are fallbacks only. The live values come from ContentBlock
- * rows keyed by `titleKey` / `bedsKey` / `imageKey` / `descKey`, which is what
- * the admin panel edits.
+ * These are seed values only. The live room list — copy, photos, order and
+ * which rooms are sold separately — is the property profile (getRooms() in
+ * src/lib/property.ts); prices and capacity are the Room table. The ContentBlock
+ * keys below are read once, to carry copy edited before the profile existed
+ * into the owner's first save.
  */
 
 type RoomContent = {
@@ -56,39 +49,3 @@ export type BookableRoom = RoomContent & {
 export type SharedSpace = RoomContent & { bookable: false };
 
 export type Room = BookableRoom | SharedSpace;
-
-/**
- * The rooms, in display order. Each owner's list lives in their property
- * config (src/config/properties/), so no property's rooms are named here.
- */
-export const ROOMS: Room[] = PROPERTY.rooms;
-
-/** The rooms that can be booked individually, in display order. */
-export const BOOKABLE_ROOMS: BookableRoom[] = ROOMS.filter(
-    (r): r is BookableRoom => r.bookable
-);
-
-export function getBookableRoomBySlug(slug: string): BookableRoom | undefined {
-    return BOOKABLE_ROOMS.find(r => r.slug === slug);
-}
-
-export function getRoomBySlug(slug: string): Room | undefined {
-    return ROOMS.find(r => r.slug === slug);
-}
-
-/**
- * Resolve a room's live content from a ContentBlock map, falling back to the
- * defaults above so a page still renders correctly before anything is seeded.
- */
-export function resolveRoom(room: Room, content: Record<string, string>) {
-    const description = content[room.descKey]?.trim();
-    return {
-        ...room,
-        title: content[room.titleKey]?.trim() || room.defaultTitle,
-        beds: content[room.bedsKey]?.trim() || room.defaultBeds,
-        image: content[room.imageKey]?.trim() || room.defaultImage,
-        // Long-form copy is optional; the short summary stands in until written.
-        description: description || room.defaultSummary,
-        hasLongDescription: Boolean(description),
-    };
-}

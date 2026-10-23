@@ -4,11 +4,12 @@ import React, { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { ToastProvider, useToast } from "@/components/ui/toast-context";
 import { logout as endSession, clearLegacyTokens } from "@/lib/adminToken";
-import { PROPERTY } from '@/config/property';
+import { useProperty } from '@/components/PropertyProvider';
 import {
     LayoutDashboard, CalendarDays, DollarSign, Settings, List,
     LogOut, RefreshCw, Home
 } from "lucide-react";
+import type { SettingsTab } from '@/components/admin/SettingsView';
 
 // ─── View components (lazy-loaded) ───────────────────────────────────────────
 const TodayView       = dynamic(() => import('@/components/admin/TodayView').then(m => m.TodayView), { ssr: false });
@@ -83,6 +84,7 @@ export default function AdminPanel() {
 
 // ─── Login screen ─────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
+    const property = useProperty();
     const { addToast } = useToast();
     const [email, setEmail]       = useState("");
     const [password, setPassword] = useState("");
@@ -127,7 +129,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-gold mb-4">
                         <Home className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-white">{PROPERTY.name}</h1>
+                    <h1 className="text-2xl font-bold text-white">{property.name}</h1>
                     <p className="text-slate-400 mt-1 text-sm">Host Dashboard</p>
                 </div>
 
@@ -193,10 +195,13 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 function AdminPanelContent() {
+    const property = useProperty();
     const { addToast } = useToast();
     const [signedIn, setSignedIn]         = useState(false);
     const [authChecked, setAuthChecked]   = useState(false);
     const [activeTab, setActiveTab]       = useState<TabId>("today");
+    // Which Settings sub-tab opens; bumping the key re-mounts it there.
+    const [settingsEntry, setSettingsEntry] = useState<{ tab: SettingsTab; key: number }>({ tab: "pricing", key: 0 });
     const [bookings, setBookings]         = useState<Booking[]>([]);
     const [analytics, setAnalytics]       = useState<Analytics | null>(null);
     const [dataLoading, setDataLoading]   = useState(false);
@@ -278,7 +283,7 @@ function AdminPanelContent() {
                     <div className="w-8 h-8 rounded-lg bg-brand-gold flex items-center justify-center">
                         <Home className="w-4 h-4 text-white" />
                     </div>
-                    <span className="font-bold text-gray-900 text-sm">{PROPERTY.name}</span>
+                    <span className="font-bold text-gray-900 text-sm">{property.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     {dataLoading && (
@@ -321,6 +326,19 @@ function AdminPanelContent() {
 
                 {/* Tab content */}
                 <div className="flex-1 p-4 md:p-6 max-w-3xl mx-auto w-full">
+                    {!property.onboardingCompletedAt && !(activeTab === "settings" && settingsEntry.tab === "property") && (
+                        <div className="mb-4 flex flex-wrap items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                            <p className="flex-1 min-w-[12rem] text-sm text-amber-900">
+                                <strong>Finish setting up your property.</strong> Add your details, rooms, photos and permits so the site is yours.
+                            </p>
+                            <button
+                                onClick={() => { setSettingsEntry(e => ({ tab: "property", key: e.key + 1 })); setActiveTab("settings"); }}
+                                className="shrink-0 bg-brand-gold text-white px-3 py-2 rounded-xl text-xs font-semibold hover:bg-yellow-500 transition"
+                            >
+                                Continue setup
+                            </button>
+                        </div>
+                    )}
                     {activeTab === "today" && (
                         <TodayView {...sharedProps} setTab={setActiveTab} />
                     )}
@@ -334,7 +352,7 @@ function AdminPanelContent() {
                         <EarningsView {...sharedProps} />
                     )}
                     {activeTab === "settings" && (
-                        <SettingsView addToast={addToast} />
+                        <SettingsView key={settingsEntry.key} addToast={addToast} initialTab={settingsEntry.tab} />
                     )}
                 </div>
             </main>

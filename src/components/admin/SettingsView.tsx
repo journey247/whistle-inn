@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { getAdminToken } from "@/lib/adminToken";
-import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles, MessageSquare, Mail, Inbox, Shield, BedDouble } from "lucide-react";
+import { DollarSign, Tag, Globe, Plus, Trash2, Save, RefreshCw, Check, FileText, Link2, Loader2, Clock, Sparkles, MessageSquare, Mail, Inbox, Shield, BedDouble, Home } from "lucide-react";
 import { WebsiteEditor } from "./WebsiteEditor";
 import { AmenityRequestsPanel } from "./AmenityRequestsPanel";
 import { SmsPanel } from "./SmsPanel";
@@ -12,9 +12,10 @@ import { TaxSettingsCard } from "./TaxSettings";
 import { StripeConnectCard } from "./StripeConnectCard";
 import { GuestFollowupsCard } from "./GuestFollowupsCard";
 import { SecurityPanel } from "./SecurityPanel";
+import { PropertySetup } from "./PropertySetup";
 
 type AddToast = (msg: string, type?: "success" | "error" | "info") => void;
-type SettingsTab = "pricing" | "rooms" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users" | "security";
+export type SettingsTab = "property" | "pricing" | "rooms" | "coupons" | "content" | "channels" | "amenities" | "sms" | "email" | "emaillog" | "users" | "security";
 
 type SpecialRate = {
     id: string;
@@ -887,10 +888,11 @@ function ChannelsTab({ addToast }: { addToast: AddToast }) {
 }
 
 // ── Main SettingsView ────────────────────────────────────────────────────────
-export function SettingsView({ addToast }: { addToast: AddToast }) {
-    const [tab, setTab] = useState<SettingsTab>("pricing");
+export function SettingsView({ addToast, initialTab = "pricing" }: { addToast: AddToast; initialTab?: SettingsTab }) {
+    const [tab, setTab] = useState<SettingsTab>(initialTab);
 
     const TABS: { id: SettingsTab; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+        { id: "property", label: "Property",  Icon: Home },
         { id: "pricing",  label: "Pricing",   Icon: DollarSign },
         { id: "rooms",    label: "Rooms",     Icon: BedDouble },
         { id: "coupons",  label: "Coupons",   Icon: Tag },
@@ -920,6 +922,7 @@ export function SettingsView({ addToast }: { addToast: AddToast }) {
                 ))}
             </div>
 
+            {tab === "property" && <PropertySetup addToast={addToast} />}
             {tab === "pricing"  && <PricingTab  addToast={addToast} />}
             {tab === "rooms"    && <RoomsTab    addToast={addToast} />}
             {tab === "coupons"  && <CouponsTab  addToast={addToast} />}

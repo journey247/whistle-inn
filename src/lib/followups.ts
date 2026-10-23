@@ -1,7 +1,9 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
-import { PROPERTY, SITE_URL, formatAddress } from '@/config/property';
+import { SITE_URL } from '@/config/property';
+import { getProperty } from '@/lib/property';
+import { formatAddress } from '@/lib/property-schema';
 
 /**
  * Post-stay follow-up: the day after checkout, thank the guest, ask for a
@@ -99,6 +101,7 @@ export async function sendDueFollowups(now = new Date()): Promise<FollowupRun> {
     const settings = await getFollowupSettings();
     if (!settings.enabled) return { enabled: false, sent: 0, skipped: 0, failed: 0 };
 
+    const property = await getProperty();
     const due = await prisma.booking.findMany({
         where: {
             status: 'paid',
@@ -149,15 +152,15 @@ export async function sendDueFollowups(now = new Date()): Promise<FollowupRun> {
                     bookUrl: SITE_URL,
                     unsubscribeUrl: link,
                 },
-                fallbackSubject: `Thank you for staying at ${PROPERTY.name}`,
+                fallbackSubject: `Thank you for staying at ${property.name}`,
                 fallbackHtml: `
                     <p>Hi ${firstName},</p>
-                    <p>Thank you for staying with us at <strong>${escapeHtml(PROPERTY.name)}</strong>. We hope you had a wonderful time.</p>
+                    <p>Thank you for staying with us at <strong>${escapeHtml(property.name)}</strong>. We hope you had a wonderful time.</p>
                     ${settings.reviewUrl ? `<p>If you have a minute, a short review helps other guests find us: <a href="${escapeHtml(settings.reviewUrl)}">leave a review</a>.</p>` : ''}
                     ${coupon ? `<p>Come back any time — book direct at <a href="${SITE_URL}">${SITE_URL.replace(/^https?:\/\//, '')}</a> with code <strong>${coupon}</strong> for ${settings.couponPercent}% off your next stay. It's good for one booking in the next 12 months.</p>` : `<p>We'd love to host you again — book direct at <a href="${SITE_URL}">${SITE_URL.replace(/^https?:\/\//, '')}</a>.</p>`}
-                    <p>Warmly,<br>${escapeHtml(PROPERTY.hostName)} &amp; the ${escapeHtml(PROPERTY.name)} team</p>
+                    <p>Warmly,<br>${escapeHtml(property.hostName)} &amp; the ${escapeHtml(property.name)} team</p>
                     <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
-                    <p style="color:#94a3b8;font-size:12px">${escapeHtml(PROPERTY.name)} · ${escapeHtml(formatAddress())}<br>
+                    <p style="color:#94a3b8;font-size:12px">${escapeHtml(property.name)} · ${escapeHtml(formatAddress(property.address))}<br>
                     You're receiving this because you stayed with us. <a href="${link}" style="color:#94a3b8">Unsubscribe</a> from offers like this.</p>
                 `,
             });

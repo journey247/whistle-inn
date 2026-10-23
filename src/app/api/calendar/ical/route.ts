@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
-import { PROPERTY } from '@/config/property';
+import { getProperty } from '@/lib/property';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const property = await getProperty();
         // Fetch all confirmed bookings
         const bookings = await prisma.booking.findMany({
             where: {
@@ -29,7 +30,7 @@ export async function GET() {
         let icsContent = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            `PRODID:-//${PROPERTY.name}//Website Booking System//EN`,
+            `PRODID:-//${property.name}//Website Booking System//EN`,
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
         ].join('\r\n');
@@ -50,8 +51,8 @@ export async function GET() {
             // does make those listings unsellable for those nights. The room
             // name is included so the block is explicable on the other side.
             const summary = booking.room
-                ? `Reserved — ${booking.room.name} (${PROPERTY.name})`
-                : `Reserved (${PROPERTY.name})`;
+                ? `Reserved — ${booking.room.name} (${property.name})`
+                : `Reserved (${property.name})`;
 
             const event = [
                 'BEGIN:VEVENT',

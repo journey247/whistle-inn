@@ -2,17 +2,18 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 import { invalidatePricingCache } from '@/lib/pricing-server';
-import { BOOKABLE_ROOMS, getBookableRoomBySlug } from '@/lib/rooms';
+import { getBookableRoomBySlug, getProperty } from '@/lib/property';
+import { bookableRooms } from '@/lib/property-schema';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Per-room pricing and capacity.
  *
- * The set of rooms is fixed by `src/lib/rooms.ts` — rooms are not created or
- * deleted here, because each one also needs copy, photography and a page. This
- * endpoint owns what the owner actually changes: price, capacity and whether
- * the room is on the market.
+ * The set of rooms is the property profile — rooms are added and removed in
+ * Property setup, where they get their copy and photos. This endpoint owns
+ * what changes most often: price, capacity and whether the room is on the
+ * market.
  */
 
 function unauthorized(error: unknown) {
@@ -24,17 +25,17 @@ export async function GET(request: Request) {
     try {
         await requireAdmin(request);
 
-        const rows = await prisma.room.findMany();
+        const [rows, property] = await Promise.all([prisma.room.findMany(), getProperty()]);
         const bySlug = new Map(rows.map(r => [r.slug, r]));
 
-        const rooms = BOOKABLE_ROOMS.map(room => {
+        const rooms = bookableRooms(property).map(room => {
             const row = bySlug.get(room.slug);
             return {
                 slug: room.slug,
-                name: row?.name ?? room.defaultTitle,
-                weekdayPrice: row?.weekdayPrice ?? room.defaultWeekdayPrice,
-                weekendPrice: row?.weekendPrice ?? room.defaultWeekendPrice,
-                maxGuests: row?.maxGuests ?? room.defaultMaxGuests,
+                name: row?.name ?? room.title,
+                weekdayPrice: row?.weekdayPrice ?? room.seedRate?.weekdayPrice ?? 0,
+                weekendPrice: row?.weekendPrice ?? room.seedRate?.weekendPrice ?? 0,
+                maxGuests: row?.maxGuests ?? room.seedRate?.maxGuests ?? 2,
                 isActive: row?.isActive ?? true,
                 // False means the room has no Room row yet, so these are the
                 // code defaults and the room cannot be booked online.
@@ -54,7 +55,8 @@ export async function GET(request: Request) {
 
 /**
  * POST — create the Room rows for any room that does not have one yet, using
- * the seed prices from `rooms.ts`. Existing rows are left alone, so this is
+ * the seed prices from the code config. Rooms the owner added have their row
+ * from the moment they are saved. Existing rows are left alone, so this is
  * safe to run more than once.
  */
 export async function POST(request: Request) {
@@ -63,17 +65,18 @@ export async function POST(request: Request) {
 
         const existing = await prisma.room.findMany({ select: { slug: true } });
         const have = new Set(existing.map(r => r.slug));
-        const missing = BOOKABLE_ROOMS.filter(r => !have.has(r.slug));
+        const rooms = bookableRooms(await getProperty());
+        const missing = rooms.filter(r => !have.has(r.slug) && r.seedRate);
 
         if (missing.length > 0) {
             await prisma.room.createMany({
                 data: missing.map(room => ({
                     slug: room.slug,
-                    name: room.defaultTitle,
-                    weekdayPrice: room.defaultWeekdayPrice,
-                    weekendPrice: room.defaultWeekendPrice,
-                    maxGuests: room.defaultMaxGuests,
-                    sortOrder: room.index,
+                    name: room.title,
+                    weekdayPrice: room.seedRate!.weekdayPrice,
+                    weekendPrice: room.seedRate!.weekendPrice,
+                    maxGuests: room.seedRate!.maxGuests,
+                    sortOrder: rooms.indexOf(room),
                 })),
             });
             invalidatePricingCache();
@@ -97,8 +100,8 @@ export async function PUT(request: Request) {
         const body = await request.json();
         const { slug, weekdayPrice, weekendPrice, maxGuests, isActive, name } = body;
 
-        const staticRoom = typeof slug === 'string' ? getBookableRoomBySlug(slug) : undefined;
-        if (!staticRoom) {
+        const room = typeof slug === 'string' ? await getBookableRoomBySlug(slug) : undefined;
+        if (!room) {
             return NextResponse.json({ error: 'Unknown room' }, { status: 400 });
         }
 
@@ -120,7 +123,7 @@ export async function PUT(request: Request) {
 
         const trimmedName = typeof name === 'string' && name.trim() ? name.trim() : undefined;
 
-        const room = await prisma.room.upsert({
+        const saved = await prisma.room.upsert({
             where: { slug },
             update: {
                 ...numbers,
@@ -129,12 +132,12 @@ export async function PUT(request: Request) {
             },
             create: {
                 slug,
-                name: trimmedName ?? staticRoom.defaultTitle,
-                weekdayPrice: numbers.weekdayPrice ?? staticRoom.defaultWeekdayPrice,
-                weekendPrice: numbers.weekendPrice ?? staticRoom.defaultWeekendPrice,
-                maxGuests: numbers.maxGuests ?? staticRoom.defaultMaxGuests,
+                name: trimmedName ?? room.title,
+                weekdayPrice: numbers.weekdayPrice ?? room.seedRate?.weekdayPrice ?? 0,
+                weekendPrice: numbers.weekendPrice ?? room.seedRate?.weekendPrice ?? 0,
+                maxGuests: numbers.maxGuests ?? room.seedRate?.maxGuests ?? 2,
                 isActive: typeof isActive === 'boolean' ? isActive : true,
-                sortOrder: staticRoom.index,
+                sortOrder: (await getProperty()).rooms.findIndex(r => r.slug === room.slug),
             },
         });
 
@@ -144,7 +147,7 @@ export async function PUT(request: Request) {
 
         console.log(`Room ${slug} updated by admin ${admin.email}`);
 
-        return NextResponse.json(room);
+        return NextResponse.json(saved);
     } catch (error) {
         if (unauthorized(error)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

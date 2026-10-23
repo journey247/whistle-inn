@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { calculateRefund } from '@/lib/cancellationPolicy';
 import { sendEmail } from '@/lib/email';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
-import { PROPERTY } from '@/config/property';
+import { getProperty } from '@/lib/property';
 import { getStripe, onAccount } from '@/lib/stripe';
 
 export const dynamic = 'force-dynamic';
@@ -36,10 +36,13 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Only confirmed (paid) bookings can be cancelled via this link.' }, { status: 400 });
         }
 
+        const property = await getProperty();
         const refund = calculateRefund(
             booking.totalPrice,
             booking.startDate,
             booking.createdAt,
+            new Date(),
+            property.cancellation,
         );
 
         return NextResponse.json({
@@ -88,10 +91,13 @@ export async function POST(request: Request) {
         }
 
         // Calculate refund BEFORE making any changes
+        const property = await getProperty();
         const refund = calculateRefund(
             booking.totalPrice,
             booking.startDate,
             booking.createdAt,
+            new Date(),
+            property.cancellation,
         );
 
         // ── Stripe refund ────────────────────────────────────────────────────
@@ -161,10 +167,10 @@ export async function POST(request: Request) {
                     refunded: refund.tier !== 'none' ? 'yes' : 'no',
                 },
                 bookingId: booking.id,
-                fallbackSubject: `Your ${PROPERTY.name} booking has been cancelled`,
+                fallbackSubject: `Your ${property.name} booking has been cancelled`,
                 fallbackHtml: `
                     <p>Hi ${booking.guestName},</p>
-                    <p>Your booking at <strong>${PROPERTY.name}</strong> has been cancelled.</p>
+                    <p>Your booking at <strong>${property.name}</strong> has been cancelled.</p>
                     <ul>
                       <li>Check-in: ${checkIn}</li>
                       <li>Check-out: ${checkOut}</li>

@@ -305,3 +305,14 @@ model AmenityRequest {
   updatedAt DateTime @updatedAt
 }
 
+
+// The owner-edited property profile: name, contact details, stay rules,
+// permits, photos and rooms (see src/lib/property-schema.ts). One row per
+// deployment. Until it exists the site renders the code config; once it does,
+// it is authoritative. Prices and capacity stay in Room.
+model PropertyProfile {
+  id                    String    @id @default("default")
+  data                  Json
+  onboardingCompletedAt DateTime?
+  updatedAt             DateTime  @updatedAt
+}

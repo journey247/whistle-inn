@@ -4,7 +4,8 @@ import { randomBytes } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
-import { PROPERTY, SITE_URL } from '@/config/property';
+import { SITE_URL } from '@/config/property';
+import { getProperty } from '@/lib/property';
 import { getStripe, getConnectState, saveChargesEnabled } from '@/lib/stripe';
 import { policySentence } from '@/lib/cancellationPolicy';
 
@@ -170,6 +171,7 @@ export async function POST(request: Request) {
                         console.log(`Confirmation email already sent for booking ${bookingId} — skipping duplicate`);
                     } else {
                         try {
+                            const property = await getProperty();
                             const baseUrl = SITE_URL;
                             const cancelUrl = `${baseUrl}/cancel/${cancellationToken}`;
                             const guestName = session.customer_details?.name || existingBooking.guestName;
@@ -197,10 +199,10 @@ export async function POST(request: Request) {
                                     cancelUrl,
                                 },
                                 bookingId,
-                                fallbackSubject: `Your ${PROPERTY.name} booking is confirmed! 🎉`,
+                                fallbackSubject: `Your ${property.name} booking is confirmed! 🎉`,
                                 fallbackHtml: `
                                     <p>Hi ${guestName},</p>
-                                    <p>Your stay at <strong>${PROPERTY.name}</strong> is confirmed!</p>
+                                    <p>Your stay at <strong>${property.name}</strong> is confirmed!</p>
                                     <ul>
                                       <li><strong>Your booking:</strong> ${accommodation}</li>
                                       <li><strong>Check-in:</strong> ${checkIn}</li>
@@ -210,8 +212,8 @@ export async function POST(request: Request) {
                                     </ul>
                                     <p>We look forward to hosting you. If you need to cancel, you can do so here:<br>
                                     <a href="${cancelUrl}">${cancelUrl}</a></p>
-                                    <p><em>Cancellation policy: ${policySentence()}</em></p>
-                                    <p>See you soon!<br>${PROPERTY.hostName} &amp; the ${PROPERTY.name} team</p>
+                                    <p><em>Cancellation policy: ${policySentence(property.cancellation)}</em></p>
+                                    <p>See you soon!<br>${property.hostName} &amp; the ${property.name} team</p>
                                 `,
                             });
                             console.log(`Confirmation email sent to ${recipientEmail} for booking ${bookingId}`);

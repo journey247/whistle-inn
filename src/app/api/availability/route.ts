@@ -1,6 +1,6 @@
 import { NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getBookableRoomBySlug } from '@/lib/rooms';
+import { getBookableRoomBySlug } from '@/lib/property';
 import { syncStaleFeeds } from '@/lib/ical-sync';
 
 export const dynamic = 'force-dynamic';
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
         const roomSlug = new URL(request.url).searchParams.get('room');
 
-        if (roomSlug && !getBookableRoomBySlug(roomSlug)) {
+        if (roomSlug && !(await getBookableRoomBySlug(roomSlug))) {
             return NextResponse.json({ error: 'Unknown room' }, { status: 400 });
         }
 

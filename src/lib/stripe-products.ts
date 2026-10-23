@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { PROPERTY } from '../config/property';
+import { getProperty } from './property';
 
 // Initialize Stripe with proper validation
 function initializeStripe() {
@@ -41,19 +41,20 @@ export async function createOrUpdateStripeProduct(
     }
 
     try {
+        const { name: propertyName } = await getProperty();
         let product: Stripe.Product;
 
         if (productId) {
             // Update existing product
             product = await stripe.products.update(productId, {
                 name,
-                description: description || `${name} for ${PROPERTY.name}`,
+                description: description || `${name} for ${propertyName}`,
             });
         } else {
             // Create new product
             product = await stripe.products.create({
                 name,
-                description: description || `${name} for ${PROPERTY.name}`,
+                description: description || `${name} for ${propertyName}`,
                 type: 'service',
             });
         }
@@ -139,6 +140,7 @@ export async function updatePricingAndStripe(
     const { prisma } = await import('@/lib/prisma');
 
     try {
+        const { name: propertyName } = await getProperty();
         // Get current Stripe cleaning product IDs from content blocks
         const cleaningProductBlock = await prisma.contentBlock.findUnique({
             where: { key: 'stripe_cleaning_product_id' }
@@ -151,7 +153,7 @@ export async function updatePricingAndStripe(
         const cleaningInfo = await createOrUpdateStripeProduct(
             cleaningProductBlock?.value || null,
             cleaningPriceBlock?.value || null,
-            `${PROPERTY.name} Cleaning Fee`,
+            `${propertyName} Cleaning Fee`,
             cleaningFee,
             'One-time cleaning fee'
         );
@@ -197,7 +199,7 @@ export async function updatePricingAndStripe(
             weekdayInfo = await createOrUpdateStripeProduct(
                 weekdayProductBlock?.value || null,
                 weekdayPriceBlock?.value || null,
-                `${PROPERTY.name} Weekday Night`,
+                `${propertyName} Weekday Night`,
                 weekdayPrice,
                 'Nightly rate for weekday nights'
             );
@@ -233,7 +235,7 @@ export async function updatePricingAndStripe(
             weekendInfo = await createOrUpdateStripeProduct(
                 weekendProductBlock?.value || null,
                 weekendPriceBlock?.value || null,
-                `${PROPERTY.name} Weekend Night`,
+                `${propertyName} Weekend Night`,
                 weekendPrice,
                 'Nightly rate for weekend nights'
             );

@@ -1,8 +1,8 @@
 /**
  * Cancellation policy.
  *
- * The tiers come from the property's config (PROPERTY.cancellation). For the
- * Whistle Inn they mirror Airbnb's "Moderate" policy with a 24-hour booking
+ * The tiers are part of the property profile (Property setup → Stay rules).
+ * For the Whistle Inn they mirror Airbnb's "Moderate" policy with a 24-hour booking
  * grace period:
  *
  *  • Grace period:   Full refund if cancelled within 24 h of *booking*
@@ -12,9 +12,7 @@
  *  • < 24 h to check-in: No refund (0%).
  */
 
-import { PROPERTY, type PropertyConfig } from '@/config/property';
-
-type Policy = PropertyConfig['cancellation'];
+import type { CancellationPolicy as Policy } from '@/lib/property-schema';
 
 /** 'half' is the partial tier, whatever its percentage — the name is kept for stored data. */
 export type RefundTier = 'full' | 'half' | 'none';
@@ -40,8 +38,6 @@ function partialWindow(p: Policy): string {
   return last > p.partialRefundDays ? `${p.partialRefundDays}–${last} days` : `${p.partialRefundDays} day${p.partialRefundDays !== 1 ? 's' : ''}`;
 }
 
-export const PARTIAL_REFUND_PERCENT = PROPERTY.cancellation.partialRefundPercent;
-
 /**
  * Calculate the refund a guest is entitled to under the cancellation policy.
  *
@@ -49,14 +45,14 @@ export const PARTIAL_REFUND_PERCENT = PROPERTY.cancellation.partialRefundPercent
  * @param checkInDate       Booking check-in date
  * @param bookingCreatedAt  When the booking was originally created (for grace period)
  * @param now               Current time (default: new Date()) — injectable for testing
- * @param policy            Refund tiers (default: this property's)
+ * @param policy            The property's refund tiers
  */
 export function calculateRefund(
   totalPaid: number,
   checkInDate: Date,
   bookingCreatedAt: Date,
-  now: Date = new Date(),
-  policy: Policy = PROPERTY.cancellation,
+  now: Date,
+  policy: Policy,
 ): RefundResult {
   const msPerDay = 24 * 60 * 60 * 1000;
 
@@ -106,7 +102,8 @@ export function calculateRefund(
   };
 }
 
-function policySummary(p: Policy) {
+/** Human-readable policy summary for display on the booking/cancel pages */
+export function policySummary(p: Policy) {
   return [
     {
       window: `Within ${p.graceHours} h of booking (check-in ≥${p.graceMinDaysBeforeCheckIn} days away)`,
@@ -131,11 +128,8 @@ function policySummary(p: Policy) {
   ];
 }
 
-/** Human-readable policy summary for display on the booking/cancel pages */
-export const POLICY_SUMMARY = policySummary(PROPERTY.cancellation);
-
 /** One sentence for confirmation emails. */
-export function policySentence(p: Policy = PROPERTY.cancellation): string {
+export function policySentence(p: Policy): string {
   return `Full refund if cancelled ${p.fullRefundDays}+ days before check-in. ` +
     `${p.partialRefundPercent}% refund if cancelled ${partialWindow(p)} before. ` +
     `No refund within ${span(p.partialRefundDays)} of check-in.`;

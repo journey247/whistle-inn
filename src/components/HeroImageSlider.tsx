@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { PROPERTY, type PropertyConfig } from '@/config/property';
-
-type HeroImage = PropertyConfig['heroImages'][number];
-
-export const images: HeroImage[] = PROPERTY.heroImages;
+import type { HeroImage } from '@/lib/property-schema';
 
 // Custom hook to share slider state
 export const useHeroSlider = (images: HeroImage[]) => {

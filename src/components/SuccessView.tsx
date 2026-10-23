@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { CheckCircle, Home, Printer } from 'lucide-react';
-import { PROPERTY } from '@/config/property';
+import { useProperty } from '@/components/PropertyProvider';
 
 interface SuccessViewProps {
     booking: {
@@ -17,6 +17,7 @@ interface SuccessViewProps {
 }
 
 export function SuccessView({ booking }: SuccessViewProps) {
+    const property = useProperty();
     return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-xl mx-auto">
@@ -27,7 +28,7 @@ export function SuccessView({ booking }: SuccessViewProps) {
                             <CheckCircle className="w-8 h-8 text-white" />
                         </div>
                         <h1 className="text-3xl font-serif font-bold mb-2">Booking Confirmed!</h1>
-                        <p className="text-green-100">Thank you for choosing {PROPERTY.name}.</p>
+                        <p className="text-green-100">Thank you for choosing {property.name}.</p>
                     </div>
 
                     {/* Booking Details */}

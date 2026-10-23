@@ -5,15 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { PROPERTY, type PropertyConfig } from '@/config/property';
-
-type GalleryImage = PropertyConfig['galleryImages'][number];
-
-const GALLERY_IMAGES: GalleryImage[] = PROPERTY.galleryImages;
-
-const CATEGORIES = ["All", ...Array.from(new Set(GALLERY_IMAGES.map(img => img.category)))];
+import { useProperty } from '@/components/PropertyProvider';
 
 export default function GalleryPage() {
+    const property = useProperty();
+    const GALLERY_IMAGES = property.galleryImages;
+    const CATEGORIES = ["All", ...Array.from(new Set(GALLERY_IMAGES.map(img => img.category)))];
     const [activeCategory, setActiveCategory] = useState("All");
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -43,7 +40,7 @@ export default function GalleryPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition font-medium text-sm">
                         <Home className="w-4 h-4" />
-                        Back to {PROPERTY.name}
+                        Back to {property.name}
                     </Link>
                     <h1 className="text-xl font-bold text-slate-900 font-serif">Photo Gallery</h1>
                     <div className="w-24" />
@@ -54,10 +51,10 @@ export default function GalleryPage() {
                 {/* Hero text */}
                 <div className="text-center mb-8">
                     <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 font-serif mb-2">
-                        Experience {PROPERTY.name}
+                        Experience {property.name}
                     </h2>
                     <p className="text-slate-500 max-w-lg mx-auto">
-                        A Victorian Farmhouse retreat in the Sierra Nevada — explore every room, every view.
+                        A {property.propertyType.toLowerCase()} retreat in {property.locationLabel} — explore every room, every view.
                     </p>
                 </div>
 
@@ -120,7 +117,7 @@ export default function GalleryPage() {
                 {/* CTA */}
                 <div className="text-center mt-16 py-12 border-t border-slate-200">
                     <h3 className="text-2xl font-bold text-slate-900 font-serif mb-3">Ready to book your stay?</h3>
-                    <p className="text-slate-500 mb-6">Up to {PROPERTY.maxGuests} guests · {PROPERTY.bedrooms} bedrooms · {PROPERTY.locationLabel}</p>
+                    <p className="text-slate-500 mb-6">Up to {property.maxGuests} guests · {property.bedrooms} bedrooms · {property.locationLabel}</p>
                     <Link
                         href="/"
                         className="inline-flex items-center px-8 py-4 bg-brand-gold hover:bg-yellow-500 text-white font-semibold rounded-full transition-all shadow-lg hover:shadow-brand-gold/30 hover:scale-[1.02]"

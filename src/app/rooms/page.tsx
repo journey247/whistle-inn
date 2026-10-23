@@ -3,34 +3,36 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Bed, Home } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { ROOMS, resolveRoom } from '@/lib/rooms';
+import { getProperty } from '@/lib/property';
 import { RoomBookingCta } from '@/components/RoomBookingCta';
-import { PROPERTY } from '@/config/property';
 
 export const revalidate = 60;
 
-const TITLE = `Rooms — ${PROPERTY.name}`;
-const DESCRIPTION = PROPERTY.roomsDescription;
+export async function generateMetadata(): Promise<Metadata> {
+    const property = await getProperty();
+    const TITLE = `Rooms — ${property.name}`;
+    const DESCRIPTION = property.roomsDescription;
 
-export const metadata: Metadata = {
-    title: TITLE,
-    description: DESCRIPTION,
-    alternates: { canonical: '/rooms' },
-    openGraph: {
-        type: 'website',
-        siteName: PROPERTY.name,
+    return {
         title: TITLE,
         description: DESCRIPTION,
-        url: '/rooms',
-        images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: PROPERTY.name }],
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: TITLE,
-        description: DESCRIPTION,
-        images: ['/og-image.jpg'],
-    },
-};
+        alternates: { canonical: '/rooms' },
+        openGraph: {
+            type: 'website',
+            siteName: property.name,
+            title: TITLE,
+            description: DESCRIPTION,
+            url: '/rooms',
+            images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: property.name }],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: TITLE,
+            description: DESCRIPTION,
+            images: ['/og-image.jpg'],
+        },
+    };
+}
 
 /** Nightly prices by slug, for the rooms that are currently sold separately. */
 async function getRoomPrices(): Promise<Record<string, number>> {
@@ -43,19 +45,9 @@ async function getRoomPrices(): Promise<Record<string, number>> {
     }
 }
 
-async function getContent(): Promise<Record<string, string>> {
-    try {
-        const blocks = await prisma.contentBlock.findMany();
-        return Object.fromEntries(blocks.map(b => [b.key, b.value]));
-    } catch (error) {
-        console.error('Failed to fetch room content:', error);
-        return {};
-    }
-}
-
 export default async function RoomsIndexPage() {
-    const [content, prices] = await Promise.all([getContent(), getRoomPrices()]);
-    const rooms = ROOMS.map(room => resolveRoom(room, content));
+    const [property, prices] = await Promise.all([getProperty(), getRoomPrices()]);
+    const rooms = property.rooms;
 
     return (
         <main className="min-h-screen bg-slate-50">
@@ -65,7 +57,7 @@ export default async function RoomsIndexPage() {
                         href="/"
                         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-gold transition-colors"
                     >
-                        <Home className="w-3.5 h-3.5" /> Back to {PROPERTY.name}
+                        <Home className="w-3.5 h-3.5" /> Back to {property.name}
                     </Link>
                 </div>
             </header>

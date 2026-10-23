@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import { sendEmail } from './email';
 import { sendSMS } from './sms';
-import { PROPERTY } from '../config/property';
+import { getProperty } from './property';
 
 export enum NotificationType {
   BOOKING_CREATED = 'booking_created',
@@ -94,7 +94,8 @@ async function sendEmailNotification(
   recipient: NotificationRecipient,
   data: NotificationData
 ) {
-  const { subject, html, text } = generateEmailContent(type, recipient, data);
+  const { name: propertyName } = await getProperty();
+  const { subject, html, text } = generateEmailContent(type, recipient, data, propertyName);
 
   await sendEmail({
     to: recipient.email!,
@@ -175,7 +176,8 @@ async function logNotificationEvent(
 function generateEmailContent(
   type: NotificationType,
   recipient: NotificationRecipient,
-  data: NotificationData
+  data: NotificationData,
+  propertyName: string
 ): { subject: string; html: string; text: string } {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -186,7 +188,7 @@ function generateEmailContent(
         html: `
           <h2>New Booking Received!</h2>
           <p>Dear ${recipient.name || 'Property Owner'},</p>
-          <p>You have received a new booking for ${PROPERTY.name}:</p>
+          <p>You have received a new booking for ${propertyName}:</p>
           <ul>
             <li><strong>Guest:</strong> ${data.customerName}</li>
             <li><strong>Email:</strong> ${data.customerEmail}</li>
@@ -295,7 +297,7 @@ function generateEmailContent(
 
     default:
       return {
-        subject: `${PROPERTY.name} Notification`,
+        subject: `${propertyName} Notification`,
         html: `<p>${data.message || 'You have a new notification.'}</p>`,
         text: data.message || 'You have a new notification.'
       };

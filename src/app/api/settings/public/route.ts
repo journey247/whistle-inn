@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCheckoutSettings } from '@/lib/checkout-settings';
-import { PROPERTY } from '@/config/property';
+import { PROPERTY_DEFAULTS } from '@/config/property';
+import { getProperty } from '@/lib/property';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,35 +21,32 @@ export const dynamic = 'force-dynamic';
  * Only expose values that are safe for anyone to read.
  */
 
-const DEFAULT_MINIMUM_NIGHTS = PROPERTY.pricingDefaults.minimumNights;
-// The property's actual capacity, as advertised on the homepage and gallery.
-// There is no `max_guests` content block editable from the admin panel, so in
-// practice this fallback is the live value — it must match what the site
-// advertises or large groups are rejected at checkout.
-const DEFAULT_MAX_GUESTS = PROPERTY.maxGuests;
-const DEFAULT_ROOM_MINIMUM_NIGHTS = PROPERTY.pricingDefaults.roomMinimumNights;
+const DEFAULT_MINIMUM_NIGHTS = PROPERTY_DEFAULTS.pricingDefaults.minimumNights;
+const DEFAULT_ROOM_MINIMUM_NIGHTS = PROPERTY_DEFAULTS.pricingDefaults.roomMinimumNights;
 
 export async function GET() {
     try {
-        const blocks = await prisma.contentBlock.findMany({
-            where: { key: { in: ['minimum_nights', 'max_guests', 'room_minimum_nights'] } },
-            select: { key: true, value: true },
-        });
+        const [blocks, property] = await Promise.all([
+            prisma.contentBlock.findMany({
+                where: { key: { in: ['minimum_nights', 'room_minimum_nights'] } },
+                select: { key: true, value: true },
+            }),
+            getProperty(),
+        ]);
 
         const byKey = Object.fromEntries(blocks.map(b => [b.key, b.value]));
         const checkout = await getCheckoutSettings();
 
         const minimumNights = parseInt(byKey.minimum_nights ?? '', 10);
-        const maxGuests = parseInt(byKey.max_guests ?? '', 10);
         const roomMinimumNights = parseInt(byKey.room_minimum_nights ?? '', 10);
 
         return NextResponse.json({
             minimumNights: Number.isFinite(minimumNights) && minimumNights > 0
                 ? minimumNights
                 : DEFAULT_MINIMUM_NIGHTS,
-            maxGuests: Number.isFinite(maxGuests) && maxGuests > 0
-                ? maxGuests
-                : DEFAULT_MAX_GUESTS,
+            // The property's capacity, as advertised on the homepage and
+            // gallery — the same limit checkout enforces.
+            maxGuests: property.maxGuests,
             roomMinimumNights: Number.isFinite(roomMinimumNights) && roomMinimumNights > 0
                 ? roomMinimumNights
                 : DEFAULT_ROOM_MINIMUM_NIGHTS,
@@ -59,7 +57,7 @@ export async function GET() {
         // Never fail the booking modal over this — serve safe defaults.
         return NextResponse.json({
             minimumNights: DEFAULT_MINIMUM_NIGHTS,
-            maxGuests: DEFAULT_MAX_GUESTS,
+            maxGuests: (await getProperty()).maxGuests,
             roomMinimumNights: DEFAULT_ROOM_MINIMUM_NIGHTS,
             ...(await getCheckoutSettings()),
         });
