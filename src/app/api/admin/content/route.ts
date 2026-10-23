@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/adminAuth';
 import { invalidatePricingCache } from '@/lib/pricing-server';
 import { updatePricingAndStripe } from '@/lib/stripe-products';
 import { notifyAdminOfChange, NotificationType } from '@/lib/notifications';
+import { getLaunchGate } from '@/lib/checkout-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,19 @@ export async function PUT(request: Request) {
         const { key, value, label, type, section, category } = body;
 
         if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
+
+        // Checkout stays paused until the launch gate opens; say what is missing
+        // rather than saving a switch that would silently do nothing.
+        if (key === 'online_checkout_enabled' && String(value).trim() === 'true') {
+            const gate = await getLaunchGate();
+            if (!gate.ready) {
+                const missing = gate.items.filter(i => !i.ok);
+                return NextResponse.json(
+                    { error: `Finish these first: ${missing.map(i => i.label).join('; ')}`, missing },
+                    { status: 409 }
+                );
+            }
+        }
 
         // Upsert allows creating if not exists, or updating value
         const block = await prisma.contentBlock.upsert({
