@@ -15,7 +15,9 @@
     "security:audit": "node scripts/security-setup.js --audit",
     "security:generate": "node scripts/security-setup.js --generate",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.test.json"
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "provision": "tsx scripts/provision-owner.ts",
+    "fleet": "tsx scripts/fleet.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
@@ -64,6 +66,7 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "puppeteer": "^24.37.3",
+    "tsx": "4.23.15",
     "vitest": "^3.2.4"
   },
   "engines": {
