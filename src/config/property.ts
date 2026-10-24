@@ -16,6 +16,7 @@
 
 import type { Room } from '@/lib/rooms';
 import { whistleInn } from './properties/whistle-inn';
+import { template } from './properties/template';
 
 export type PropertyConfig = {
     id: string;
@@ -83,6 +84,7 @@ export type PropertyConfig = {
 
 const PROPERTIES: Record<string, PropertyConfig> = {
     [whistleInn.id]: whistleInn,
+    [template.id]: template,
 };
 
 function resolveProperty(): PropertyConfig {
