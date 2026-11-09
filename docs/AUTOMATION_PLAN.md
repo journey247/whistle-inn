@@ -43,7 +43,7 @@ admin account.
    monthly), customer portal, and checkout paused after failed-payment
    retries run out.
 
-### Stage 3 — Reliability
+### Stage 3 — Reliability (done: see `src/lib/alerts.ts`, `src/lib/conflicts.ts`, `scheduled-sync.yml`)
 9. **Sync every 15 minutes** from a free external scheduler (GitHub Actions
    or Upstash QStash) calling the cron routes with `CRON_SECRET`, plus an
    email to the owner when a channel booking overlaps a direct one.

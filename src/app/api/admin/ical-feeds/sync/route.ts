@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import { syncAllFeeds } from "@/lib/ical-sync";
+import { checkChannelConflicts } from "@/lib/conflicts";
 
 export const dynamic = 'force-dynamic';
 
@@ -19,10 +20,12 @@ export async function POST(request: NextRequest) {
 
     try {
         const results = await syncAllFeeds();
+        const conflicts = await checkChannelConflicts();
 
         return NextResponse.json({
             success: true,
             message: "Sync complete",
+            conflicts,
             results,
         });
     } catch (error) {

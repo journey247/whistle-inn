@@ -39,6 +39,8 @@ export type PlatformConfig = {
     defaultFromEmail?: string;
     stripeSecretKey?: string;
     stripePublishableKey?: string;
+    /** Where every site sends its failure alerts (src/lib/alerts.ts). */
+    opsAlertEmail?: string;
 };
 
 export function projectName(input: Pick<OwnerInput, 'id'>, platform: Pick<PlatformConfig, 'projectPrefix'>): string {
@@ -119,6 +121,7 @@ export function buildEnv(input: OwnerInput, platform: PlatformConfig, url: strin
         ...plain('ADMIN_EMAIL', input.ownerEmail),
         ...plain('ADMIN_NAME', input.ownerName),
         ...plain('ADMIN_PHONE', input.phone),
+        ...plain('OPS_ALERT_EMAIL', platform.opsAlertEmail),
         ...secret('RESEND_API_KEY', platform.resendApiKey),
         ...plain('RESEND_FROM_EMAIL', input.fromEmail ?? platform.defaultFromEmail),
         ...plain('RESEND_REPLY_TO', input.ownerEmail),

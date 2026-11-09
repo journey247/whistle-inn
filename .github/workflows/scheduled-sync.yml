@@ -1,0 +1,59 @@
+name: Scheduled sync
+
+# Every 15 minutes, call each site's /api/cron/ical-sync: it imports the
+# Airbnb/VRBO calendars, cancels abandoned checkouts and alerts the owner
+# about double bookings. Vercel's Hobby plan only runs crons daily, which left
+# up to a day for a channel booking to stay invisible.
+#
+# Sites come from the SYNC_TARGETS secret, a JSON list of
+# {"name","url","secret"} kept up to date by `npm run fleet -- sync-targets --apply`.
+# A failed site fails the run, and GitHub emails the repo owner — that is the
+# "a site is down" alert.
+#
+# GitHub may start scheduled runs a few minutes late, and pauses schedules on a
+# repository with no activity for 60 days (re-enable from the Actions tab).
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Sync every site
+        env:
+          SYNC_TARGETS: ${{ secrets.SYNC_TARGETS }}
+        run: |
+          if [ -z "$SYNC_TARGETS" ]; then
+            echo "::warning::SYNC_TARGETS is not set. Run: npm run fleet -- sync-targets --apply"
+            exit 0
+          fi
+          # Mask every secret before anything could print it.
+          echo "$SYNC_TARGETS" | jq -r '.[].secret' | while read -r s; do echo "::add-mask::$s"; done
+
+          failed=0
+          count=$(echo "$SYNC_TARGETS" | jq 'length')
+          for i in $(seq 0 $((count - 1))); do
+            name=$(echo "$SYNC_TARGETS" | jq -r ".[$i].name")
+            url=$(echo "$SYNC_TARGETS" | jq -r ".[$i].url")
+            secret=$(echo "$SYNC_TARGETS" | jq -r ".[$i].secret")
+            body=$(curl -sS --max-time 90 -w '\n%{http_code}' -H "Authorization: Bearer $secret" "$url/api/cron/ical-sync" || echo $'\n000')
+            code=$(echo "$body" | tail -1)
+            if [ "$code" = "200" ]; then
+              summary=$(echo "$body" | sed '$d' | jq -c '{synced: ([.results[]?.synced] | add // 0), expiredCancelled, conflicts, feedErrors: [.results[]? | select(.error) | .source]}' 2>/dev/null || echo '{}')
+              echo "✓ $name $summary"
+            else
+              echo "::error::$name ($url) answered $code"
+              failed=$((failed + 1))
+            fi
+          done
+          [ "$failed" -eq 0 ] || { echo "$failed site(s) failed"; exit 1; }
