@@ -61,7 +61,7 @@ model Booking {
   taxExempt        Boolean @default(false)  // long stay
   couponId   String?
   coupon     Coupon?       @relation(fields: [couponId], references: [id])
-  expiresAt         DateTime?   // set on pending creation; cleared on paid; null = no expiry
+  expiresAt         DateTime?   @db.Timestamptz(6) // set on pending creation; cleared on paid; null = no expiry
   cancellationToken String?     @unique  // secure token for guest self-service cancellation
   amenityRequests AmenityRequest[]
   createdAt  DateTime      @default(now())
@@ -233,7 +233,7 @@ model SpecialRate {
   // whole-house price, so it is NOT applied to single-room bookings; a
   // property-wide multiplier is relative and does apply to both.
   roomId      String?
-  room        Room?    @relation(fields: [roomId], references: [id])
+  room        Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade) // rates go with their room
   label       String?   // e.g. 'Peak Season'
   startDate   DateTime
   endDate     DateTime
