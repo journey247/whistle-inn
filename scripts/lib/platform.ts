@@ -40,6 +40,7 @@ export function platformConfig(): PlatformConfig {
         defaultFromEmail: env('PROVISION_FROM_EMAIL'),
         stripeSecretKey: env('PROVISION_STRIPE_SECRET_KEY'),
         stripePublishableKey: env('PROVISION_STRIPE_PUBLISHABLE_KEY'),
+        opsAlertEmail: env('PROVISION_OPS_ALERT_EMAIL'),
     };
 }
 

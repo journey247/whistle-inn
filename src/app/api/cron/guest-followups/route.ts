@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendDueFollowups } from '@/lib/followups';
+import { reportFailure } from '@/lib/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
         console.log('[Follow-up Cron]', result);
         return NextResponse.json({ success: true, ...result });
     } catch (error) {
-        console.error('[Follow-up Cron] Failed:', error);
+        await reportFailure('Guest follow-up cron', error);
         return NextResponse.json({ error: 'Follow-up run failed' }, { status: 500 });
     }
 }
