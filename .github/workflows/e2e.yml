@@ -54,8 +54,11 @@ jobs:
       - name: Install
         run: npm ci
 
+      # db push, not migrate deploy: the migration history cannot build an
+      # empty database yet (20260212212439 and 20260213041120 both add
+      # Booking.couponId). Switch back once that history is repaired.
       - name: Create the database schema
-        run: npx prisma migrate deploy
+        run: npx prisma db push --skip-generate
 
       - name: Seed an admin
         run: |
