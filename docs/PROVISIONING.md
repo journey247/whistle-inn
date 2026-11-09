@@ -47,8 +47,10 @@ Then run the same command without `--dry-run`. In order, it:
 
 To try an unmerged change, add `--ref <branch>` and it deploys that branch instead of `main`.
 
-It refuses to run if the Vercel project already exists. If a step fails, it stops and
-lists what it had created, so you can delete those and run it again.
+It refuses to run if the Vercel project already exists. If a step fails, it deletes what
+it had created (newest first) and says so, so you can fix the cause and run it again.
+Anything it could not delete is listed. Add `--keep-on-failure` to leave everything in
+place for inspection instead.
 
 ### After provisioning
 

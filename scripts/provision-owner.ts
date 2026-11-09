@@ -5,14 +5,16 @@
  *     --owner-name "Sam Rivera" --owner-email sam@example.com --phone "(530) 555-0142" \
  *     [--domain pinelodge.com] [--from-email bookings@pinelodge.com] [--dry-run] [--skip-invite]
  *     [--ref <branch>]   deploy a branch instead of main, to try an unmerged change
+ *     [--keep-on-failure]
  *
  * Steps, in order: Neon project → migrations → seed (profile + admin) →
  * Stripe webhook endpoints → Vercel project with env vars → domain → Blob
  * store → production deployment → health check → admin invite email.
  *
  * Nothing is reused: the script refuses to run if the Vercel project already
- * exists. If a step fails, it stops and lists what it had created, so the
- * operator can delete those and run it again.
+ * exists. If a step fails, it deletes what it had created, newest first, so it
+ * can simply be run again. --keep-on-failure leaves it all in place instead,
+ * for inspecting what went wrong.
  *
  * See docs/PROVISIONING.md for the credentials it needs.
  */
@@ -39,10 +41,13 @@ const { values: args } = parseArgs({
         'dry-run': { type: 'boolean', default: false },
         'skip-invite': { type: 'boolean', default: false },
         ref: { type: 'string', default: 'main' },
+        'keep-on-failure': { type: 'boolean', default: false },
     },
 });
 
-const created: string[] = [];
+/** Everything made so far, with how to undo it; rolled back newest first on failure. */
+const created: { label: string; undo: () => Promise<unknown> }[] = [];
+const made = (label: string, undo: () => Promise<unknown>) => created.push({ label, undo });
 const log = (msg: string) => console.log(`• ${msg}`);
 
 async function main() {
@@ -113,7 +118,7 @@ async function main() {
         method: 'POST',
         body: JSON.stringify({ project: { name: project, region_id: platform.neonRegion, pg_version: 17, ...(neonOrg ? { org_id: neonOrg } : {}) } }),
     });
-    created.push(`Neon project ${neonProject.id}`);
+    made(`Neon project ${project} (${neonProject.id})`, () => neon(`/projects/${neonProject.id}`, { method: 'DELETE' }));
     const role = roles.find(r => r.name.endsWith('_owner'))?.name ?? roles[0].name;
     const database = databases[0].name;
     const uri = (pooled: boolean) =>
@@ -151,11 +156,11 @@ async function main() {
         const own = await stripe.webhookEndpoints.create({
             url: endpoint, enabled_events: [...STRIPE_WEBHOOK_EVENTS], description: `${input.name} (${project})`,
         });
-        created.push(`Stripe webhook ${own.id}`);
+        made(`Stripe webhook ${own.id}`, () => stripe.webhookEndpoints.del(own.id));
         const connect = await stripe.webhookEndpoints.create({
             url: endpoint, enabled_events: [...STRIPE_CONNECT_WEBHOOK_EVENTS], connect: true, description: `${input.name} (${project}) — Connect`,
         });
-        created.push(`Stripe webhook ${connect.id}`);
+        made(`Stripe webhook ${connect.id}`, () => stripe.webhookEndpoints.del(connect.id));
         stripeWebhookSecret = own.secret;
         stripeConnectWebhookSecret = connect.secret;
     }
@@ -173,7 +178,8 @@ async function main() {
             environmentVariables: env,
         }),
     });
-    created.push(`Vercel project ${vercelProject.id}`);
+    // Deleting the project also deletes its deployments, domains and env vars.
+    made(`Vercel project ${project} (${vercelProject.id})`, () => vercel(`/v9/projects/${vercelProject.id}`, { method: 'DELETE' }));
 
     // 6. Domain
     if (input.domain) {
@@ -191,10 +197,12 @@ async function main() {
 
     // 7. Photo storage, connected to the project (adds BLOB_READ_WRITE_TOKEN)
     log('Creating the Blob store for photo uploads');
-    await vercel('/v1/storage/stores/blob', {
+    await vercel<{ store: { id: string } }>('/v1/storage/stores/blob', {
         method: 'POST',
         body: JSON.stringify({ name: `${project}-photos`.slice(0, 70), access: 'public', projectId: vercelProject.id }),
-    }).then(() => created.push('Blob store')).catch(e => console.warn(`  Could not create the Blob store (${e.message}). Connect one in the Vercel dashboard; uploads fail until then.`));
+    }).then(({ store }) => {
+        made(`Blob store ${project}-photos (${store.id})`, () => vercel(`/v1/storage/stores/blob/${store.id}`, { method: 'DELETE' }));
+    }).catch(e => console.warn(`  Could not create the Blob store (${e.message}). Connect one in the Vercel dashboard; uploads fail until then.`));
 
     // 8. First production deployment
     log('Deploying');
@@ -228,10 +236,30 @@ async function main() {
   Next:   the owner finishes Property setup; online checkout stays paused until the launch gate is met.`);
 }
 
-main().catch(err => {
+main().catch(async err => {
     console.error(`\nProvisioning stopped: ${err.message}`);
-    if (created.length) {
-        console.error(`Created before stopping — delete these before running again:\n  ${created.join('\n  ')}`);
+    if (!created.length) process.exit(1);
+
+    if (args['keep-on-failure']) {
+        console.error(`Kept, as asked — delete these before running again:\n  ${created.map(c => c.label).join('\n  ')}`);
+        process.exit(1);
+    }
+
+    console.error('Rolling back what was created:');
+    const leftover: string[] = [];
+    for (const item of [...created].reverse()) {
+        try {
+            await item.undo();
+            console.error(`  deleted ${item.label}`);
+        } catch (undoErr) {
+            leftover.push(item.label);
+            console.error(`  could not delete ${item.label}: ${(undoErr as Error).message}`);
+        }
+    }
+    if (leftover.length) {
+        console.error(`Delete these by hand before running again:\n  ${leftover.join('\n  ')}`);
+    } else {
+        console.error('Nothing was left behind; fix the cause and run it again.');
     }
     process.exit(1);
 });
