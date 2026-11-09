@@ -4,6 +4,7 @@
  *   npm run provision -- --id pine-lodge --name "Pine Lodge" \
  *     --owner-name "Sam Rivera" --owner-email sam@example.com --phone "(530) 555-0142" \
  *     [--domain pinelodge.com] [--from-email bookings@pinelodge.com] [--dry-run] [--skip-invite]
+ *     [--ref <branch>]   deploy a branch instead of main, to try an unmerged change
  *
  * Steps, in order: Neon project → migrations → seed (profile + admin) →
  * Stripe webhook endpoints → Vercel project with env vars → domain → Blob
@@ -37,6 +38,7 @@ const { values: args } = parseArgs({
         'from-email': { type: 'string' },
         'dry-run': { type: 'boolean', default: false },
         'skip-invite': { type: 'boolean', default: false },
+        ref: { type: 'string', default: 'main' },
     },
 });
 
@@ -83,7 +85,7 @@ async function main() {
         console.log(`Dry run — nothing will be created.\n`);
         console.log(`Owner:            ${input.name} (${input.ownerName} <${input.ownerEmail}>)`);
         console.log(`Neon project:     ${project} in ${platform.neonRegion}`);
-        console.log(`Vercel project:   ${project}, deploying ${platform.gitRepo}@main`);
+        console.log(`Vercel project:   ${project}, deploying ${platform.gitRepo}@${args.ref}`);
         console.log(`Site URL:         ${url}${input.domain ? ` (until DNS is set: ${vercelUrl})` : ''}`);
         console.log(`Stripe webhooks:  ${platform.stripeSecretKey ? `${url}/api/stripe/webhook (platform + Connect)` : 'skipped — PROVISION_STRIPE_SECRET_KEY not set'}`);
         console.log(`Admin invite:     ${args['skip-invite'] ? 'skipped' : `password-setup email to ${input.ownerEmail}`}`);
@@ -198,7 +200,7 @@ async function main() {
     log('Deploying');
     const deployment = await vercel<{ id: string }>('/v13/deployments', {
         method: 'POST',
-        body: JSON.stringify({ name: project, project: vercelProject.id, target: 'production', gitSource: { type: 'github', org: gitOrg, repo: gitRepo, ref: 'main' } }),
+        body: JSON.stringify({ name: project, project: vercelProject.id, target: 'production', gitSource: { type: 'github', org: gitOrg, repo: gitRepo, ref: args.ref } }),
     });
     let state = 'QUEUED';
     for (let i = 0; i < 90 && !['READY', 'ERROR', 'CANCELED'].includes(state); i++) {

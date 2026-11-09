@@ -45,6 +45,8 @@ Then run the same command without `--dry-run`. In order, it:
 8. emails the owner a password-setup link. This is the password-reset email, and the
    link is valid for 1 hour.
 
+To try an unmerged change, add `--ref <branch>` and it deploys that branch instead of `main`.
+
 It refuses to run if the Vercel project already exists. If a step fails, it stops and
 lists what it had created, so you can delete those and run it again.
 
