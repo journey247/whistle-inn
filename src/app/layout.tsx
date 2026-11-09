@@ -55,10 +55,11 @@ export async function generateMetadata(): Promise<Metadata> {
             description: SITE_DESCRIPTION,
             images: ['/og-image.jpg'],
         },
-        robots: {
-            index: true,
-            follow: true,
-        },
+        // A newly provisioned site shows placeholder content until its owner
+        // finishes Property setup; keep that out of search results.
+        robots: property.id === 'template' && !property.onboardingCompletedAt
+            ? { index: false, follow: false }
+            : { index: true, follow: true },
         // Google Search Console ownership check. The HTML-tag method is used rather
         // than the DNS TXT record because the domain's DNS is not managed here, and
         // a meta tag survives redeploys without anyone touching a registrar.
