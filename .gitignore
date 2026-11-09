@@ -67,3 +67,6 @@ private/
 
 # TypeScript incremental build artifact
 tsconfig.tsbuildinfo
+
+# E2E failure screenshots
+tests/e2e/*.png

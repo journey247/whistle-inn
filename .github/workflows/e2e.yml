@@ -1,0 +1,95 @@
+name: E2E
+
+# Builds the site, runs it against a throwaway Postgres seeded with one admin,
+# and drives the admin sign-in and two-factor login in a real browser
+# (tests/e2e/admin-2fa.e2e.js). Nothing here touches Neon, Stripe or Vercel.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: whistle_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/whistle_e2e
+      # CI-only values for a database that is thrown away after the job.
+      NEXTAUTH_SECRET: ci-e2e-session-secret-not-used-anywhere-else
+      TOTP_ENCRYPTION_KEY: ci-e2e-totp-key-not-used-anywhere-else
+      CRON_SECRET: ci-e2e-cron-secret
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      E2E_ADMIN_EMAIL: e2e-admin@example.test
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # db push, not migrate deploy: the migration history cannot build an
+      # empty database yet (20260212212439 and 20260213041120 both add
+      # Booking.couponId). Switch back once that history is repaired.
+      - name: Create the database schema
+        run: npx prisma db push --skip-generate
+
+      - name: Seed an admin
+        run: |
+          PASSWORD=$(openssl rand -hex 16)
+          echo "::add-mask::$PASSWORD"
+          echo "E2E_ADMIN_PASSWORD=$PASSWORD" >> "$GITHUB_ENV"
+          ADMIN_EMAIL="$E2E_ADMIN_EMAIL" ADMIN_PASSWORD="$PASSWORD" node scripts/create_admin.js > /dev/null
+
+      - name: Build
+        run: npm run build
+
+      - name: Start the site
+        run: |
+          npx next start -p 3000 > next.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000 > /dev/null && echo "ready" && exit 0
+            sleep 1
+          done
+          echo "site did not start"; cat next.log; exit 1
+
+      - name: Admin sign-in and 2FA
+        run: npm run test:e2e
+
+      - name: Server log
+        if: failure()
+        run: tail -100 next.log
+
+      - name: Screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure
+          path: tests/e2e/*.png
+          if-no-files-found: ignore
