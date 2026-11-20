@@ -42,9 +42,56 @@ export function getStripe(): Stripe | null {
 export type ConnectState = {
     accountId: string | null;
     chargesEnabled: boolean;
+    /** STRIPE_SECRET_KEY is the owner's own account; there is nothing to connect. */
+    ownAccount?: boolean;
 };
 
+/**
+ * Own-account mode: the site's STRIPE_SECRET_KEY belongs to the owner's own
+ * Stripe account (no platform in between). Payments are created on that
+ * account directly, no platform fee is taken, and Connect onboarding is off,
+ * so it can never redirect payments to a newly created account.
+ */
+export function isOwnAccountMode(): boolean {
+    return process.env.STRIPE_KEY_IS_OWNER_ACCOUNT?.trim().toLowerCase() === 'true';
+}
+
+const OWN_ACCOUNT_TTL_MS = 5 * 60 * 1000;
+let ownAccountCache: { at: number; account: Stripe.Account } | null = null;
+
+/**
+ * The key's own account, cached briefly so every page view doesn't call
+ * Stripe. Null when Stripe is unreachable or the key is missing.
+ */
+export async function getOwnAccount(fresh = false): Promise<Stripe.Account | null> {
+    const stripe = getStripe();
+    if (!stripe) return null;
+    if (!fresh && ownAccountCache && Date.now() - ownAccountCache.at < OWN_ACCOUNT_TTL_MS) {
+        return ownAccountCache.account;
+    }
+    try {
+        const account = await stripe.accounts.retrieve();
+        ownAccountCache = { at: Date.now(), account };
+        return account;
+    } catch (error) {
+        console.error('Could not load the Stripe account for this key:', error);
+        return null;
+    }
+}
+
+/** For tests. */
+export function resetOwnAccountCache() {
+    ownAccountCache = null;
+}
+
 export async function getConnectState(): Promise<ConnectState> {
+    if (isOwnAccountMode()) {
+        // accountId stays null: payments go on the key's own account, with no
+        // Stripe-Account header. Fails closed if Stripe can't be reached.
+        const account = await getOwnAccount();
+        return { accountId: null, chargesEnabled: !!account?.charges_enabled, ownAccount: true };
+    }
+
     // An env override lets an operator pin an account that is already live,
     // without the admin onboarding flow; it is trusted to take charges.
     const envAccount = readKey('STRIPE_CONNECTED_ACCOUNT_ID');

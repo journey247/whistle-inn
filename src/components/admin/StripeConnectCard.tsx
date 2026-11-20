@@ -12,6 +12,8 @@ type Status = {
     payoutsEnabled?: boolean;
     detailsSubmitted: boolean;
     requirementsDue?: number;
+    /** The site's key is the owner's own Stripe account; nothing to connect. */
+    ownAccount?: boolean;
 };
 
 /**
@@ -72,6 +74,20 @@ export function StripeConnectCard({ addToast }: { addToast: AddToast }) {
                 <p className="text-sm text-gray-500">Payment status is unavailable right now.</p>
             ) : !status.configured ? (
                 <p className="text-sm text-gray-500">Stripe isn&apos;t set up on this site yet.</p>
+            ) : status.ownAccount && !connected ? (
+                <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 rounded-xl p-3">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="font-medium">Stripe has paused card payments on your account.</p>
+                        <p className="text-xs mt-1">
+                            Guests can still send booking requests. Sign in to your Stripe Dashboard to see what Stripe needs, then refresh this card.
+                        </p>
+                        <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold underline mt-2">
+                            Open Stripe Dashboard <ExternalLink className="w-3 h-3" />
+                        </a>
+                    </div>
+                </div>
             ) : connected ? (
                 <div className="flex items-start gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-xl p-3">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
