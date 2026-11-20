@@ -879,7 +879,7 @@ function ChannelsTab({ addToast }: { addToast: AddToast }) {
             {/* Help callout */}
             {feeds.length > 0 && (
                 <div className="bg-sky-50 border border-sky-100 rounded-xl px-4 py-3 text-xs text-sky-700 space-y-1">
-                    <p className="font-semibold">Bookings sync automatically every day at 2 AM UTC.</p>
+                    <p className="font-semibold">Bookings sync automatically every 15 minutes. You'll get an email if one overlaps a website booking.</p>
                     <p className="text-sky-600">Use <span className="font-medium">Sync All</span> to pull in the latest reservations right now. They'll appear as sky-blue blocks on the Calendar tab.</p>
                 </div>
             )}

@@ -233,7 +233,8 @@ async function main() {
     console.log(`\nDone. ${input.name} is provisioned.
   Site:   ${url}${input.domain ? `  (works at ${vercelUrl} until DNS is set)` : ''}
   Admin:  ${url}/admin — ${input.ownerEmail} sets a password from the email, then 2FA on first sign-in.
-  Next:   the owner finishes Property setup; online checkout stays paused until the launch gate is met.`);
+  Next:   the owner finishes Property setup; online checkout stays paused until the launch gate is met.
+  Sync:   add it to the 15-minute calendar sync: npm run fleet -- sync-targets --apply`);
 }
 
 main().catch(async err => {

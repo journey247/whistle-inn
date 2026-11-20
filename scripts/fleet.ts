@@ -5,6 +5,8 @@
  *   npm run fleet -- health
  *   npm run fleet -- migrate [--dry-run]    pending migrations on every database
  *   npm run fleet -- invite <id>            resend an owner's password-setup email
+ *   npm run fleet -- sync-targets [--apply] the sites the 15-minute sync calls; --apply
+ *                                           stores them as the SYNC_TARGETS GitHub secret
  *
  * Sites are the Vercel projects named with PROVISION_PROJECT_PREFIX, plus any
  * in FLEET_EXTRA_PROJECTS (the original site, e.g. "whistle-inn"). Each
@@ -13,12 +15,13 @@
  */
 
 import { parseArgs } from 'util';
+import { spawn } from 'child_process';
 import { unpooledUrl } from '../src/lib/provisioning';
 import { envValue, fleetProjects, platformConfig, prisma, vercel, type VercelProject } from './lib/platform';
 
 const { positionals, values: flags } = parseArgs({
     allowPositionals: true,
-    options: { 'dry-run': { type: 'boolean', default: false } },
+    options: { 'dry-run': { type: 'boolean', default: false }, apply: { type: 'boolean', default: false } },
 });
 const [command, target] = positionals;
 
@@ -100,6 +103,41 @@ async function invite(projects: VercelProject[], id: string | undefined) {
     if (!res.ok) process.exitCode = 1;
 }
 
+/**
+ * The list .github/workflows/scheduled-sync.yml works through every 15
+ * minutes: each site's URL and its own CRON_SECRET.
+ *
+ * With --apply it is written straight into the repository's SYNC_TARGETS
+ * secret through `gh` (stdin, never printed or written to disk). Run it after
+ * provisioning an owner or rotating a CRON_SECRET.
+ */
+async function syncTargets(projects: VercelProject[], apply: boolean) {
+    const targets: { name: string; url: string; secret: string }[] = [];
+    for (const p of projects) {
+        const secret = await envValue(p.id, 'CRON_SECRET');
+        const url = await siteUrlFor(p);
+        if (!secret) {
+            console.log(`- ${p.name}: no CRON_SECRET, left out`);
+            continue;
+        }
+        targets.push({ name: p.name, url, secret });
+        console.log(`✓ ${p.name.padEnd(28)} ${url}`);
+    }
+    if (!apply) {
+        console.log(`
+${targets.length} site(s). Run again with --apply to store them as the SYNC_TARGETS secret.`);
+        return;
+    }
+    const repo = platformConfig().gitRepo;
+    await new Promise<void>((resolve, reject) => {
+        const child = spawn('gh', ['secret', 'set', 'SYNC_TARGETS', '--repo', repo], { stdio: ['pipe', 'inherit', 'inherit'], shell: process.platform === 'win32' });
+        child.on('error', reject);
+        child.on('close', code => (code === 0 ? resolve() : reject(new Error(`gh secret set exited ${code}`))));
+        child.stdin.end(JSON.stringify(targets));
+    });
+    console.log(`Stored ${targets.length} site(s) in ${repo}'s SYNC_TARGETS secret.`);
+}
+
 async function main() {
     const projects = await fleetProjects(platformConfig().projectPrefix);
     switch (command) {
@@ -115,8 +153,11 @@ async function main() {
         case 'invite':
             await invite(projects, target);
             break;
+        case 'sync-targets':
+            await syncTargets(projects, flags.apply ?? false);
+            break;
         default:
-            console.error('Usage: npm run fleet -- <list | health | migrate [--dry-run] | invite <id>>');
+            console.error('Usage: npm run fleet -- <list | health | migrate [--dry-run] | invite <id> | sync-targets [--apply]>');
             process.exit(2);
     }
 }

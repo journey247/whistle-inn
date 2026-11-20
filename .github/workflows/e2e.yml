@@ -84,6 +84,9 @@ jobs:
       - name: Admin sign-in and 2FA
         run: npm run test:e2e
 
+      - name: Scheduled sync and double-booking alert
+        run: node tests/e2e/sync-conflict.e2e.js
+
       - name: Server log
         if: failure()
         run: tail -100 next.log

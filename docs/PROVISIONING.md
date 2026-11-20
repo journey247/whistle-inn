@@ -85,6 +85,19 @@ Sites are the Vercel projects named with `PROVISION_PROJECT_PREFIX`, plus those 
 in `FLEET_EXTRA_PROJECTS`. Each site's database URL is read from its own Vercel
 environment, so there's no separate list of owners to keep up to date.
 
+## Calendar sync every 15 minutes
+
+`.github/workflows/scheduled-sync.yml` calls every site's `/api/cron/ical-sync` every 15
+minutes, using the list in the repository's `SYNC_TARGETS` secret. After provisioning an
+owner (or changing a site's `CRON_SECRET`), refresh it:
+
+```bash
+npm run fleet -- sync-targets          # show the list
+npm run fleet -- sync-targets --apply  # store it (needs the GitHub CLI signed in)
+```
+
+A site that fails the call fails the run, and GitHub emails the repository owner.
+
 ## Known gaps
 
 - **Homepage copy** still has the Whistle Inn's text as fallbacks: the hero, the

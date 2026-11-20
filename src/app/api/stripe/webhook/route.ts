@@ -8,6 +8,7 @@ import { SITE_URL } from '@/config/property';
 import { getProperty } from '@/lib/property';
 import { getStripe, getConnectState, saveChargesEnabled } from '@/lib/stripe';
 import { policySentence } from '@/lib/cancellationPolicy';
+import { reportFailure } from '@/lib/alerts';
 
 /** Generate a cryptographically secure, URL-safe cancellation token */
 function generateCancellationToken(): string {
@@ -225,8 +226,13 @@ export async function POST(request: Request) {
 
                     console.log(`Booking ${bookingId} successfully confirmed via webhook`);
                 } catch (dbErr) {
-                    console.error('Database error processing booking confirmation:', dbErr);
-                    // Don't return error - Stripe will retry
+                    // Rethrown so the outer handler answers 500 and Stripe
+                    // redelivers. Answering 200 here (as this used to) told
+                    // Stripe the event was handled, so a paid booking whose
+                    // update failed stayed pending, expired, and released its
+                    // dates. A redelivery is safe: the paid check above makes
+                    // the confirmation run once.
+                    throw dbErr;
                 }
                 break;
             }
@@ -266,7 +272,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ received: true });
     } catch (err: any) {
-        console.error('Webhook handler error:', err);
+        await reportFailure('Stripe webhook', err);
         return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
     }
 }
