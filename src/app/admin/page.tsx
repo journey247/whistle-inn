@@ -214,8 +214,14 @@ function AdminPanelContent() {
         clearLegacyTokens(); // drop tokens left behind by the old localStorage scheme
         fetch("/api/admin/auth/me")
             .then(async res => {
+                // Read the body before setting either flag. Setting signedIn
+                // first rendered one pass as "signed in, no setup owed", which
+                // loaded bookings, got 401 "Two-factor setup required" and
+                // signed the account straight back out — so an account
+                // without 2FA could never reach the setup screen.
+                const setup = res.ok ? Boolean((await res.json()).twoFactorSetupRequired) : false;
+                setSetupRequired(setup);
                 setSignedIn(res.ok);
-                if (res.ok) setSetupRequired(Boolean((await res.json()).twoFactorSetupRequired));
             })
             .catch(() => setSignedIn(false))
             .finally(() => setAuthChecked(true));
