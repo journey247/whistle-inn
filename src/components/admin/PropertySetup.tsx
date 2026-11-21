@@ -398,7 +398,8 @@ function RoomsStep({ profile, update, errors, addToast, roomRates, setRoomRates,
                         <TextArea label="Summary" value={room.summary} onChange={v => setRoom(i, { summary: v })} error={e("summary")} rows={2}
                             hint="One or two sentences for the room card and search results" />
                         <TextArea label="Full description (optional)" value={room.description} onChange={v => setRoom(i, { description: v })}
-                            error={e("description")} rows={4} hint="Shown on the room’s page. Leave a blank line between paragraphs." />
+                            error={e("description")} rows={4}
+                            hint="Shown on the room’s page. Leave a blank line between paragraphs. You can also edit this any time on the Rooms tab, without coming back through setup." />
 
                         <label className="flex items-center gap-2 text-sm text-gray-700">
                             <input type="checkbox" checked={room.bookable}
