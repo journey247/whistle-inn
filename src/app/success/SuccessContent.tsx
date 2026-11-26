@@ -5,8 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { CheckCircle, Calendar, Mail, Loader2, Home, XCircle } from "lucide-react";
 import Link from "next/link";
-import { format } from "date-fns";
 import { useProperty } from '@/components/PropertyProvider';
+import { formatStayDate } from "@/lib/stay-dates";
 
 interface BookingDetails {
     id: string;
@@ -151,8 +151,8 @@ export default function SuccessContent() {
                         <div>
                             <h3 className="font-medium text-slate-700 mb-2">Stay Details</h3>
                             <div className="space-y-2 text-slate-600">
-                                <p><strong>Check-in:</strong> {format(startDate, "MMMM d, yyyy")}</p>
-                                <p><strong>Check-out:</strong> {format(endDate, "MMMM d, yyyy")}</p>
+                                <p><strong>Check-in:</strong> {formatStayDate(startDate, "long")}</p>
+                                <p><strong>Check-out:</strong> {formatStayDate(endDate, "long")}</p>
                                 <p><strong>Booking ID:</strong> {booking.id}</p>
                             </div>
                         </div>
@@ -246,7 +246,7 @@ export default function SuccessContent() {
                             <div>
                                 <h3 className="font-medium text-slate-800">Prepare for Your Stay</h3>
                                 <p className="text-slate-600 text-sm">
-                                    Check-in is at 4 PM · Check-out is at 11 AM · {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
+                                    Check-in is at 4 PM · Check-out is at 11 AM · {formatStayDate(startDate, "long")} to {formatStayDate(endDate, "long")}
                                 </p>
                             </div>
                         </div>

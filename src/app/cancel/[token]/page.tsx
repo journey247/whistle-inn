@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { policySummary } from '@/lib/cancellationPolicy';
 import { useProperty } from '@/components/PropertyProvider';
+import { formatStayDate } from '@/lib/stay-dates';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,12 +29,7 @@ type PageState = 'loading' | 'preview' | 'confirming' | 'done' | 'error';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(date: string) {
-  return new Date(date).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatStayDate(date, 'full');
 }
 
 function RefundBadge({ tier, amount, partialPercent }: { tier: RefundInfo['tier']; amount: number; partialPercent: number }) {

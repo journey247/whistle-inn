@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { SharedProps } from "@/app/admin/page";
 import { DollarSign, TrendingUp, Calendar, RefreshCw } from "lucide-react";
+import { formatStayDate } from "@/lib/stay-dates";
 
 export function EarningsView({ bookings, analytics, refreshData, dataLoading }: SharedProps) {
     const paid = useMemo(() => bookings.filter(b => b.status === "paid"), [bookings]);
@@ -162,8 +163,8 @@ export function EarningsView({ bookings, analytics, refreshData, dataLoading }: 
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-900 truncate">{b.guestName}</p>
                                     <p className="text-xs text-gray-400">
-                                        {new Date(b.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} →{" "}
-                                        {new Date(b.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                        {formatStayDate(b.startDate, "short")} →{" "}
+                                        {formatStayDate(b.endDate, "short")}
                                     </p>
                                 </div>
                                 <p className="text-sm font-semibold text-green-600 shrink-0">

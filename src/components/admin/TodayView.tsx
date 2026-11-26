@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { SharedProps, Booking } from "@/app/admin/page";
+import { formatStayDate } from "@/lib/stay-dates";
 import {
     ArrowRight, LogOut as CheckOutIcon, LogIn as CheckInIcon,
     CalendarDays, DollarSign, Home, TrendingUp, RefreshCw,
@@ -14,7 +15,7 @@ function nightsBetween(a: string, b: string) {
 }
 
 function fmt(d: string) {
-    return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return formatStayDate(d, "short");
 }
 
 function StatusPill({ status }: { status: string }) {

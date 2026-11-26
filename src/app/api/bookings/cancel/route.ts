@@ -5,6 +5,7 @@ import { sendEmail } from '@/lib/email';
 import { notifyAdminOfBooking, NotificationType } from '@/lib/notifications';
 import { getProperty } from '@/lib/property';
 import { getStripe, onAccount } from '@/lib/stripe';
+import { formatStayDate } from '@/lib/stay-dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -142,12 +143,8 @@ export async function POST(request: Request) {
 
         // ── Send cancellation email to guest ─────────────────────────────────
         try {
-            const checkIn = new Date(booking.startDate).toLocaleDateString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-            });
-            const checkOut = new Date(booking.endDate).toLocaleDateString('en-US', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-            });
+            const checkIn = formatStayDate(booking.startDate, 'full');
+            const checkOut = formatStayDate(booking.endDate, 'full');
 
             const refundLine =
                 refund.tier === 'full'
