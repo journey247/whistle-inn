@@ -7,6 +7,7 @@ import { SITE_URL } from '@/config/property';
 import { getProperty } from '@/lib/property';
 import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
 import { adFeeFor } from '@/lib/attribution';
+import { cardOnFileParams, CARD_ON_FILE_NOTICE } from '@/lib/damage-charge';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,7 +137,9 @@ export async function POST(request: Request) {
                 session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
                     mode: 'payment',
-                    ...feeParams(chargeAccountId, platformFee),
+                    // Saves the card so the owner can charge it for damage later.
+                    ...cardOnFileParams(feeParams(chargeAccountId, platformFee)),
+                    custom_text: { submit: { message: CARD_ON_FILE_NOTICE } },
                     line_items: [{
                         price_data: {
                             currency: 'usd',

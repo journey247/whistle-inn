@@ -308,6 +308,8 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
                         )}
                     </Card>
 
+                    {status === "paid" && <DamageChargeCard booking={booking} addToast={addToast} />}
+
                     {/* Contact */}
                     <Card>
                         <Row icon={<Mail className="w-4 h-4 text-gray-400" />} label="Email"
@@ -366,6 +368,143 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
                 </div>
             </div>
         </>
+    );
+}
+
+// ── Damage charge ────────────────────────────────────────────────────────────
+// The guest's card is saved at checkout. After the stay the owner can charge
+// it for damage; the guest is emailed the amount and the description.
+type DamageCharge = {
+    id: string; amount: number; note: string; status: string;
+    failureMessage: string | null; createdBy: string; createdAt: string;
+};
+
+function DamageChargeCard({ booking, addToast }: { booking: Booking; addToast: SharedProps["addToast"] }) {
+    const [state, setState] = useState<{ cardOnFile: boolean; charges: DamageCharge[] } | null>(null);
+    const [open, setOpen] = useState(false);
+    const [confirming, setConfirming] = useState(false);
+    const [amount, setAmount] = useState("");
+    const [note, setNote] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
+    // One id per submission so a double click charges once.
+    const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+    const stayStarted = new Date(booking.startDate) <= new Date();
+
+    const load = async () => {
+        const res = await fetch(`/api/admin/bookings/${booking.id}/damage-charge`, {
+            headers: { Authorization: `Bearer ${getAdminToken() ?? ""}` },
+        });
+        if (res.ok) setState(await res.json());
+    };
+    useEffect(() => { load(); }, [booking.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const submit = async () => {
+        setBusy(true);
+        setError(null);
+        try {
+            const res = await fetch(`/api/admin/bookings/${booking.id}/damage-charge`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAdminToken() ?? ""}` },
+                body: JSON.stringify({ amount: parseFloat(amount), note, requestId }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                addToast(
+                    data.emailed
+                        ? `Charged $${parseFloat(amount).toFixed(2)} — the guest has been emailed`
+                        : `Charged $${parseFloat(amount).toFixed(2)}. The email to the guest didn't send — please let them know.`,
+                    "success",
+                );
+                setOpen(false); setAmount(""); setNote("");
+            } else {
+                setError(data.error || "The charge failed.");
+            }
+            setConfirming(false);
+            setRequestId(crypto.randomUUID());
+            await load();
+        } catch {
+            setError("Network error — check the charge history before trying again.");
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    if (!state) return null;
+    const parsed = parseFloat(amount);
+    const canReview = Number.isFinite(parsed) && parsed > 0 && note.trim().length >= 10;
+
+    return (
+        <Card>
+            <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-700">Damage charge</p>
+                {state.cardOnFile && stayStarted && !open && (
+                    <button onClick={() => setOpen(true)} className="text-xs font-semibold text-brand-gold hover:underline">
+                        Charge card
+                    </button>
+                )}
+            </div>
+            {!state.cardOnFile && (
+                <p className="text-xs text-gray-500">No card on file — this booking was paid before cards were saved, or outside online checkout.</p>
+            )}
+            {state.cardOnFile && !stayStarted && (
+                <p className="text-xs text-gray-500">Card on file. You can charge it for damage once the stay starts.</p>
+            )}
+
+            {open && (
+                <div className="space-y-2">
+                    <label className="block text-xs text-gray-600">
+                        Amount (USD)
+                        <input type="number" min="1" step="0.01" inputMode="decimal" value={amount}
+                            onChange={e => { setAmount(e.target.value); setConfirming(false); }}
+                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+                    </label>
+                    <label className="block text-xs text-gray-600">
+                        What was damaged or missing (the guest sees this)
+                        <textarea rows={3} maxLength={500} value={note}
+                            onChange={e => { setNote(e.target.value); setConfirming(false); }}
+                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+                    </label>
+                    {note.trim().length > 0 && note.trim().length < 10 && (
+                        <p className="text-xs text-gray-500">Add a few more words so the guest knows what it&apos;s for.</p>
+                    )}
+                    {error &&<p role="alert" className="text-xs text-red-600">{error}</p>}
+                    {confirming ? (
+                        <div className="flex gap-2">
+                            <button onClick={submit} disabled={busy}
+                                className="flex-1 py-2 rounded-xl bg-red-600 text-white text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1">
+                                {busy && <Loader2 className="w-3 h-3 animate-spin" />} Charge ${parsed.toFixed(2)} now
+                            </button>
+                            <button onClick={() => setConfirming(false)} disabled={busy}
+                                className="py-2 px-3 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600">Back</button>
+                        </div>
+                    ) : (
+                        <div className="flex gap-2">
+                            <button onClick={() => setConfirming(true)} disabled={!canReview}
+                                className="flex-1 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                                Review charge
+                            </button>
+                            <button onClick={() => { setOpen(false); setError(null); }}
+                                className="py-2 px-3 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600">Cancel</button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {state.charges.length > 0 && (
+                <ul className="space-y-1.5 pt-1">
+                    {state.charges.map(c => (
+                        <li key={c.id} className="text-xs text-gray-600">
+                            <span className={c.status === "succeeded" ? "text-green-700 font-semibold" : "text-red-600 font-semibold"}>
+                                {c.status === "succeeded" ? "Charged" : "Failed"} ${c.amount.toFixed(2)}
+                            </span>{" "}
+                            · {fmt(c.createdAt)} — {c.note}
+                            {c.failureMessage && <span className="block text-red-600">{c.failureMessage}</span>}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </Card>
     );
 }
 

@@ -33,6 +33,11 @@ model Booking {
   // charge). NULL = the platform's own account, as before Connect. Refunds
   // must be made on the same account.
   stripeAccountId String?
+  // Card saved at checkout for damage charges (on stripeAccountId's account).
+  // NULL on bookings paid before cards were saved or outside online checkout.
+  stripeCustomerId      String?
+  stripePaymentMethodId String?
+  damageCharges DamageCharge[]
   // Where the guest came from (see src/lib/attribution.ts): direct,
   // google_ads, meta_ads, paid_other or campaign, plus the raw UTM tags.
   source      String  @default("direct")
@@ -71,6 +76,24 @@ model Booking {
   @@index([status, expiresAt])           // fast expired-pending cleanup queries
   @@index([roomId, startDate, endDate])  // per-room conflict-range queries
   @@index([source])
+}
+
+// A charge to the guest's saved card for damage or missing items, made by the
+// owner after the stay. Failed attempts are kept so the owner sees why.
+model DamageCharge {
+  id        String   @id @default(uuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount    Float    // dollars
+  note      String   // what was damaged; shown to the guest
+  // succeeded | failed | requires_action
+  status    String
+  failureMessage        String?
+  stripePaymentIntentId String?
+  createdBy String   // admin email
+  createdAt DateTime @default(now())
+
+  @@index([bookingId])
 }
 
 // Guests who unsubscribed from marketing email (post-stay offers). Booking

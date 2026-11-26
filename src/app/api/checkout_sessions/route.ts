@@ -12,6 +12,7 @@ import { PROPERTY_DEFAULTS } from '@/config/property';
 import { getProperty } from '@/lib/property';
 import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
 import { attributionFromCookieHeader, adFeeFor } from '@/lib/attribution';
+import { cardOnFileParams, CARD_ON_FILE_NOTICE } from '@/lib/damage-charge';
 
 export const dynamic = 'force-dynamic';
 
@@ -336,7 +337,8 @@ export async function POST(request: Request) {
 
                 session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],
-                    ...feeParams(chargeAccountId, platformFee),
+                    // Saves the card so the owner can charge it for damage later.
+                    ...cardOnFileParams(feeParams(chargeAccountId, platformFee)),
                     line_items: lineItems,
                     mode: 'payment',
                     customer_email: guestEmail.trim().toLowerCase(),
@@ -344,7 +346,7 @@ export async function POST(request: Request) {
                     cancel_url: `${origin}/?canceled=true`,
                     phone_number_collection: { enabled: true },
                     custom_text: {
-                        submit: { message: `Check-in: ${checkInDate} · Check-out: ${checkOutDate} · ${nights} night${nights !== 1 ? 's' : ''}` },
+                        submit: { message: `Check-in: ${checkInDate} · Check-out: ${checkOutDate} · ${nights} night${nights !== 1 ? 's' : ''}. ${CARD_ON_FILE_NOTICE}` },
                     },
                     metadata: {
                         bookingId: booking.id,

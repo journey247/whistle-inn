@@ -6,7 +6,8 @@ import { sendEmail } from '@/lib/email';
 import { notifyAdminOfPayment, NotificationType } from '@/lib/notifications';
 import { SITE_URL } from '@/config/property';
 import { getProperty } from '@/lib/property';
-import { getStripe, getConnectState, saveChargesEnabled } from '@/lib/stripe';
+import { getStripe, getConnectState, saveChargesEnabled, onAccount } from '@/lib/stripe';
+import { CARD_ON_FILE_NOTICE } from '@/lib/damage-charge';
 import { policySentence } from '@/lib/cancellationPolicy';
 import { reportFailure } from '@/lib/alerts';
 
@@ -124,6 +125,28 @@ export async function POST(request: Request) {
                     // Generate a secure cancellation token (one-time, stored on booking)
                     const cancellationToken = generateCancellationToken();
 
+                    const paymentIntentId = typeof session.payment_intent === 'string'
+                        ? session.payment_intent
+                        : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+
+                    // The card saved for damage charges (see lib/damage-charge).
+                    // Best-effort: a booking without a saved card is still paid,
+                    // the owner just can't charge it from the admin panel.
+                    const stripeCustomerId = typeof session.customer === 'string'
+                        ? session.customer
+                        : session.customer?.id ?? null;
+                    let stripePaymentMethodId: string | null = null;
+                    if (paymentIntentId && stripeCustomerId) {
+                        try {
+                            const pi = await stripe!.paymentIntents.retrieve(paymentIntentId, undefined, onAccount(event.account));
+                            stripePaymentMethodId = typeof pi.payment_method === 'string'
+                                ? pi.payment_method
+                                : pi.payment_method?.id ?? null;
+                        } catch (pmErr) {
+                            console.error(`Could not read the saved card for booking ${bookingId}:`, pmErr);
+                        }
+                    }
+
                     // Update booking as paid, capturing all guest details from Stripe
                     // Clear expiresAt — paid bookings hold dates permanently
                     const updatedBooking = await prisma.booking.update({
@@ -134,9 +157,9 @@ export async function POST(request: Request) {
                             cancellationToken,
                             guestName: session.customer_details?.name || existingBooking.guestName,
                             email: session.customer_details?.email || existingBooking.email,
-                            stripePaymentIntentId: typeof session.payment_intent === 'string'
-                                ? session.payment_intent
-                                : (session.payment_intent as Stripe.PaymentIntent)?.id,
+                            stripePaymentIntentId: paymentIntentId,
+                            stripeCustomerId,
+                            stripePaymentMethodId,
                         },
                     });
 
@@ -214,6 +237,7 @@ export async function POST(request: Request) {
                                     <p>We look forward to hosting you. If you need to cancel, you can do so here:<br>
                                     <a href="${cancelUrl}">${cancelUrl}</a></p>
                                     <p><em>Cancellation policy: ${policySentence(property.cancellation)}</em></p>
+                                    <p><em>${CARD_ON_FILE_NOTICE}</em></p>
                                     <p>See you soon!<br>${property.hostName} &amp; the ${property.name} team</p>
                                 `,
                             });

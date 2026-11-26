@@ -1,23 +1,27 @@
 // One-off script to create or update an AdminUser
 // Usage: node scripts/create_admin.js
 
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
-// Load environment variables. Prefer .env.local (used by Next.js) when present.
+// Load environment variables BEFORE requiring Prisma, the same way Next.js
+// does (.env.local wins over .env). Requiring @prisma/client first lets it
+// load .env on its own, which once sent a dev-only admin to production.
 const dotenv = require('dotenv');
 const fs = require('fs');
-if (fs.existsSync('.env.local')) {
-    dotenv.config({ path: '.env.local' });
-} else {
-    dotenv.config();
-}
+if (fs.existsSync('.env.local')) dotenv.config({ path: '.env.local', override: true });
+dotenv.config();
+
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
+const dbHost = (() => {
+    try { return new URL(process.env.DATABASE_URL).hostname; } catch { return 'unknown'; }
+})();
 
 async function main() {
     const email = process.env.ADMIN_EMAIL || 'admin@example.com';
     const password = process.env.ADMIN_PASSWORD || 'password123';
 
+    console.log(`Database: ${dbHost}`);
     const hashed = await bcrypt.hash(password, 10);
 
     const existing = await prisma.adminUser.findUnique({ where: { email } });
@@ -29,9 +33,9 @@ async function main() {
         console.log('Created admin user:', user.email);
     }
 
-    console.log('Admin credentials:');
-    console.log('  email:', email);
-    console.log('  password:', password);
+    // The password is not printed: it came from ADMIN_PASSWORD (or is the
+    // documented default), and terminal output ends up in logs.
+    console.log('Admin email:', email);
     console.log('You can change these by setting ADMIN_EMAIL and ADMIN_PASSWORD in your .env and re-running this script.');
 }
 
