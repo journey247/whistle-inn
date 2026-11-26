@@ -117,34 +117,49 @@ export async function POST(request: Request) {
                         break;
                     }
 
+                    const paymentIntentId = typeof session.payment_intent === 'string'
+                        ? session.payment_intent
+                        : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+
+                    // The card saved for damage charges (see lib/damage-charge).
+                    // A booking without it is still paid; if Stripe can't be
+                    // read now, the event is answered 500 once everything else
+                    // is done, and the redelivery fills the card in below.
+                    const stripeCustomerId = typeof session.customer === 'string'
+                        ? session.customer
+                        : session.customer?.id ?? null;
+                    const readSavedCard = async (): Promise<string | null> => {
+                        if (!paymentIntentId || !stripeCustomerId) return null;
+                        const pi = await stripe!.paymentIntents.retrieve(paymentIntentId, undefined, onAccount(event.account));
+                        return typeof pi.payment_method === 'string' ? pi.payment_method : pi.payment_method?.id ?? null;
+                    };
+
                     if (existingBooking.status === 'paid') {
-                        console.log(`Booking ${bookingId} already marked as paid`);
+                        if (stripeCustomerId && !existingBooking.stripePaymentMethodId) {
+                            // Redelivery after the card couldn't be read: throws
+                            // again (500, another redelivery) if Stripe is still down.
+                            const pm = await readSavedCard();
+                            await prisma.booking.update({
+                                where: { id: bookingId },
+                                data: { stripeCustomerId, stripePaymentMethodId: pm },
+                            });
+                            console.log(`Booking ${bookingId}: saved card filled in on redelivery`);
+                        } else {
+                            console.log(`Booking ${bookingId} already marked as paid`);
+                        }
                         break;
                     }
 
                     // Generate a secure cancellation token (one-time, stored on booking)
                     const cancellationToken = generateCancellationToken();
 
-                    const paymentIntentId = typeof session.payment_intent === 'string'
-                        ? session.payment_intent
-                        : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
-
-                    // The card saved for damage charges (see lib/damage-charge).
-                    // Best-effort: a booking without a saved card is still paid,
-                    // the owner just can't charge it from the admin panel.
-                    const stripeCustomerId = typeof session.customer === 'string'
-                        ? session.customer
-                        : session.customer?.id ?? null;
                     let stripePaymentMethodId: string | null = null;
-                    if (paymentIntentId && stripeCustomerId) {
-                        try {
-                            const pi = await stripe!.paymentIntents.retrieve(paymentIntentId, undefined, onAccount(event.account));
-                            stripePaymentMethodId = typeof pi.payment_method === 'string'
-                                ? pi.payment_method
-                                : pi.payment_method?.id ?? null;
-                        } catch (pmErr) {
-                            console.error(`Could not read the saved card for booking ${bookingId}:`, pmErr);
-                        }
+                    let cardReadError: unknown = null;
+                    try {
+                        stripePaymentMethodId = await readSavedCard();
+                    } catch (pmErr) {
+                        cardReadError = pmErr;
+                        console.error(`Could not read the saved card for booking ${bookingId}:`, pmErr);
                     }
 
                     // Update booking as paid, capturing all guest details from Stripe
@@ -249,6 +264,10 @@ export async function POST(request: Request) {
                     }
 
                     console.log(`Booking ${bookingId} successfully confirmed via webhook`);
+
+                    // Everything else is done; ask Stripe to redeliver so the
+                    // saved card gets filled in (the paid branch above).
+                    if (cardReadError) throw cardReadError;
                 } catch (dbErr) {
                     // Rethrown so the outer handler answers 500 and Stripe
                     // redelivers. Answering 200 here (as this used to) told

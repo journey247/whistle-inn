@@ -6,7 +6,8 @@
 // load .env on its own, which once sent a dev-only admin to production.
 const dotenv = require('dotenv');
 const fs = require('fs');
-if (fs.existsSync('.env.local')) dotenv.config({ path: '.env.local', override: true });
+// No override: values set in the shell win, then .env.local, then .env.
+if (fs.existsSync('.env.local')) dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 const { PrismaClient } = require('@prisma/client');

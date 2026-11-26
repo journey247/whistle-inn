@@ -375,117 +375,180 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
 // The guest's card is saved at checkout. After the stay the owner can charge
 // it for damage; the guest is emailed the amount and the description.
 type DamageCharge = {
-    id: string; amount: number; note: string; status: string;
-    failureMessage: string | null; createdBy: string; createdAt: string;
+    id: string; requestId: string; amount: number; note: string; status: string;
+    failureMessage: string | null; guestEmailed: boolean; createdBy: string; createdAt: string;
+};
+type DamageState = { cardOnFile: boolean; inWindow: boolean; remaining: number; charges: DamageCharge[] };
+
+/** crypto.randomUUID needs a secure context; fall back for plain-http LAN testing. */
+function newRequestId(): string {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+}
+
+const CHARGE_LABEL: Record<string, { text: string; cls: string }> = {
+    succeeded:       { text: "Charged",                    cls: "text-green-700" },
+    failed:          { text: "Not charged",                cls: "text-red-700" },
+    requires_action: { text: "Needs the guest's approval", cls: "text-red-700" },
+    pending:         { text: "Not confirmed",              cls: "text-amber-800" },
+    unknown:         { text: "Not confirmed",              cls: "text-amber-800" },
 };
 
 function DamageChargeCard({ booking, addToast }: { booking: Booking; addToast: SharedProps["addToast"] }) {
-    const [state, setState] = useState<{ cardOnFile: boolean; charges: DamageCharge[] } | null>(null);
+    const [state, setState] = useState<DamageState | null>(null);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [open, setOpen] = useState(false);
     const [confirming, setConfirming] = useState(false);
     const [amount, setAmount] = useState("");
     const [note, setNote] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
-    // One id per submission so a double click charges once.
-    const [requestId, setRequestId] = useState(() => crypto.randomUUID());
-    const stayStarted = new Date(booking.startDate) <= new Date();
+    // One id per charge. It changes only after Stripe gives a definite answer,
+    // so pressing again after a timeout re-checks the same charge instead of
+    // starting a second one.
+    const [requestId, setRequestId] = useState(newRequestId);
+    const [unconfirmed, setUnconfirmed] = useState(false);
 
     const load = async () => {
-        const res = await fetch(`/api/admin/bookings/${booking.id}/damage-charge`, {
-            headers: { Authorization: `Bearer ${getAdminToken() ?? ""}` },
-        });
-        if (res.ok) setState(await res.json());
+        try {
+            const res = await fetch(`/api/admin/bookings/${booking.id}/damage-charge`, {
+                headers: { Authorization: `Bearer ${getAdminToken() ?? ""}` },
+            });
+            if (!res.ok) throw new Error(String(res.status));
+            setState(await res.json());
+            setLoadFailed(false);
+        } catch {
+            setLoadFailed(true);
+        }
     };
     useEffect(() => { load(); }, [booking.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const submit = async () => {
+    /** Sends a charge. With `retryId`, re-checks an earlier unconfirmed one (its amount and note are kept). */
+    const submit = async (retryId?: string) => {
+        const id = retryId ?? requestId;
         setBusy(true);
         setError(null);
+        setNotice(null);
         try {
             const res = await fetch(`/api/admin/bookings/${booking.id}/damage-charge`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAdminToken() ?? ""}` },
-                body: JSON.stringify({ amount: parseFloat(amount), note, requestId }),
+                body: JSON.stringify({ amount: parseFloat(amount), note, requestId: id }),
             });
             const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-                addToast(
-                    data.emailed
-                        ? `Charged $${parseFloat(amount).toFixed(2)} — the guest has been emailed`
-                        : `Charged $${parseFloat(amount).toFixed(2)}. The email to the guest didn't send — please let them know.`,
-                    "success",
-                );
-                setOpen(false); setAmount(""); setNote("");
+            const charged = typeof data.charge?.amount === "number" ? data.charge.amount.toFixed(2) : parseFloat(amount).toFixed(2);
+
+            if (res.status === 200) {
+                if (data.emailed) {
+                    addToast(`Charged $${charged} — the guest has been emailed`, "success");
+                } else {
+                    setNotice(`Charged $${charged}. The email to the guest didn't send — please let them know about this charge.`);
+                }
+                if (!retryId) { setOpen(false); setAmount(""); setNote(""); setRequestId(newRequestId()); setUnconfirmed(false); }
+            } else if (res.status === 402 || res.status === 400 || res.status === 409) {
+                // A definite answer (declined, needs approval, or refused before charging).
+                setError(data.error || "The charge didn't go through.");
+                if (!retryId && res.status === 402) { setRequestId(newRequestId()); setUnconfirmed(false); }
             } else {
-                setError(data.error || "The charge failed.");
+                // 202, 5xx, timeout: the charge may or may not have gone through.
+                setError(data.error || "We couldn't confirm the charge. Press \"Check again\" — the guest won't be charged twice.");
+                if (!retryId) setUnconfirmed(true);
             }
-            setConfirming(false);
-            setRequestId(crypto.randomUUID());
-            await load();
         } catch {
-            setError("Network error — check the charge history before trying again.");
+            setError("We couldn't reach the site. Press \"Check again\" — the guest won't be charged twice.");
+            if (!retryId) setUnconfirmed(true);
         } finally {
+            setConfirming(false);
             setBusy(false);
+            await load();
         }
     };
 
-    if (!state) return null;
+    if (!state) {
+        return loadFailed ? (
+            <Card>
+                <p className="text-sm font-medium text-gray-700">Damage charge</p>
+                <p className="text-xs text-gray-600">Couldn&apos;t load the card on file.</p>
+                <button onClick={load} className="text-xs font-semibold text-amber-800 underline">Try again</button>
+            </Card>
+        ) : null;
+    }
+
     const parsed = parseFloat(amount);
-    const canReview = Number.isFinite(parsed) && parsed > 0 && note.trim().length >= 10;
+    const canReview = Number.isFinite(parsed) && parsed >= 1 && parsed <= state.remaining && note.trim().length >= 10;
+    const canCharge = state.cardOnFile && state.inWindow && state.remaining >= 1;
+    const stayStarted = new Date(booking.startDate) <= new Date();
 
     return (
         <Card>
             <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-700">Damage charge</p>
-                {state.cardOnFile && stayStarted && !open && (
-                    <button onClick={() => setOpen(true)} className="text-xs font-semibold text-brand-gold hover:underline">
+                {canCharge && !open && (
+                    <button onClick={() => setOpen(true)} className="text-xs font-semibold text-amber-800 underline hover:text-amber-900">
                         Charge card
                     </button>
                 )}
             </div>
             {!state.cardOnFile && (
-                <p className="text-xs text-gray-500">No card on file — this booking was paid before cards were saved, or outside online checkout.</p>
+                <p className="text-xs text-gray-600">No card on file — this booking was paid before cards were saved, or outside online checkout.</p>
             )}
             {state.cardOnFile && !stayStarted && (
-                <p className="text-xs text-gray-500">Card on file. You can charge it for damage once the stay starts.</p>
+                <p className="text-xs text-gray-600">Card on file. You can charge it for damage once the stay starts.</p>
             )}
+            {state.cardOnFile && stayStarted && !state.inWindow && (
+                <p className="text-xs text-gray-600">The 60 days after check-out for damage charges have passed.</p>
+            )}
+            {state.cardOnFile && state.inWindow && state.remaining < 1 && (
+                <p className="text-xs text-gray-600">This stay has reached the $5,000 limit for damage charges.</p>
+            )}
+
+            {notice && <p role="status" className="text-xs font-medium text-amber-900 bg-amber-50 rounded-lg p-2">{notice}</p>}
 
             {open && (
                 <div className="space-y-2">
                     <label className="block text-xs text-gray-600">
-                        Amount (USD)
-                        <input type="number" min="1" step="0.01" inputMode="decimal" value={amount}
+                        Amount (USD){state.remaining < 5000 ? ` — up to $${state.remaining.toFixed(2)}` : ""}
+                        <input type="number" min="1" max={state.remaining} step="0.01" inputMode="decimal" value={amount}
+                            readOnly={unconfirmed}
                             onChange={e => { setAmount(e.target.value); setConfirming(false); }}
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm read-only:bg-gray-100" />
                     </label>
                     <label className="block text-xs text-gray-600">
                         What was damaged or missing (the guest sees this)
                         <textarea rows={3} maxLength={500} value={note}
+                            readOnly={unconfirmed}
                             onChange={e => { setNote(e.target.value); setConfirming(false); }}
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm read-only:bg-gray-100" />
                     </label>
                     {note.trim().length > 0 && note.trim().length < 10 && (
-                        <p className="text-xs text-gray-500">Add a few more words so the guest knows what it&apos;s for.</p>
+                        <p className="text-xs text-gray-600">Add a few more words so the guest knows what it&apos;s for.</p>
                     )}
-                    {error &&<p role="alert" className="text-xs text-red-600">{error}</p>}
-                    {confirming ? (
+                    {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
+                    {unconfirmed ? (
+                        <button onClick={() => submit()} disabled={busy}
+                            className="w-full py-2 rounded-xl bg-amber-700 text-white text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1">
+                            {busy && <Loader2 className="w-3 h-3 animate-spin" />} Check again
+                        </button>
+                    ) : confirming ? (
                         <div className="flex gap-2">
-                            <button onClick={submit} disabled={busy}
-                                className="flex-1 py-2 rounded-xl bg-red-600 text-white text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1">
+                            <button onClick={() => submit()} disabled={busy}
+                                className="flex-1 py-2 rounded-xl bg-red-700 text-white text-xs font-semibold disabled:opacity-50 flex items-center justify-center gap-1">
                                 {busy && <Loader2 className="w-3 h-3 animate-spin" />} Charge ${parsed.toFixed(2)} now
                             </button>
                             <button onClick={() => setConfirming(false)} disabled={busy}
-                                className="py-2 px-3 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600">Back</button>
+                                className="py-2 px-3 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700">Back</button>
                         </div>
                     ) : (
                         <div className="flex gap-2">
                             <button onClick={() => setConfirming(true)} disabled={!canReview}
-                                className="flex-1 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                                className="flex-1 py-2 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
                                 Review charge
                             </button>
                             <button onClick={() => { setOpen(false); setError(null); }}
-                                className="py-2 px-3 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600">Cancel</button>
+                                className="py-2 px-3 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700">Cancel</button>
                         </div>
                     )}
                 </div>
@@ -493,15 +556,28 @@ function DamageChargeCard({ booking, addToast }: { booking: Booking; addToast: S
 
             {state.charges.length > 0 && (
                 <ul className="space-y-1.5 pt-1">
-                    {state.charges.map(c => (
-                        <li key={c.id} className="text-xs text-gray-600">
-                            <span className={c.status === "succeeded" ? "text-green-700 font-semibold" : "text-red-600 font-semibold"}>
-                                {c.status === "succeeded" ? "Charged" : "Failed"} ${c.amount.toFixed(2)}
-                            </span>{" "}
-                            · {fmt(c.createdAt)} — {c.note}
-                            {c.failureMessage && <span className="block text-red-600">{c.failureMessage}</span>}
-                        </li>
-                    ))}
+                    {state.charges.map(c => {
+                        const label = CHARGE_LABEL[c.status] ?? { text: c.status, cls: "text-gray-700" };
+                        const notConfirmed = c.status === "pending" || c.status === "unknown";
+                        return (
+                            <li key={c.id} className="text-xs text-gray-600">
+                                <span className={`${label.cls} font-semibold`}>{label.text} ${c.amount.toFixed(2)}</span>{" "}
+                                · {fmt(c.createdAt)} — {c.note}
+                                {c.status === "succeeded" && !c.guestEmailed && (
+                                    <span className="block text-amber-900">Guest wasn&apos;t emailed — please let them know.</span>
+                                )}
+                                {c.failureMessage && c.status !== "succeeded" && (
+                                    <span className={`block ${notConfirmed ? "text-amber-900" : "text-red-700"}`}>{c.failureMessage}</span>
+                                )}
+                                {notConfirmed && (
+                                    <button onClick={() => submit(c.requestId)} disabled={busy}
+                                        className="mt-1 text-xs font-semibold text-amber-800 underline disabled:opacity-50">
+                                        Check again
+                                    </button>
+                                )}
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
         </Card>

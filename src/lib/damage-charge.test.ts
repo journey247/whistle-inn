@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-    cardOnFileParams, describeChargeFailure, validateDamageClaim,
+    cardOnFileParams, describeChargeFailure, validateDamageClaim, statusFromIntent, countsTowardCap,
+    remainingCap, inClaimWindow, damageIdempotencyKey,
     MAX_DAMAGE_CHARGE, CLAIM_WINDOW_DAYS, type DamageClaimBooking,
 } from './damage-charge';
 
@@ -80,5 +81,62 @@ describe('describeChargeFailure', () => {
     it('reports a decline with the reason', () => {
         const r = describeChargeFailure({ type: 'StripeCardError', code: 'card_declined', message: 'Your card has insufficient funds.' });
         expect(r).toEqual({ status: 'failed', message: 'The card was declined: Your card has insufficient funds.' });
+    });
+});
+
+describe('unknown outcomes are never treated as declines', () => {
+    it.each([
+        ['connection error', { type: 'StripeConnectionError', message: 'socket hang up' }],
+        ['Stripe outage', { type: 'StripeAPIError', message: 'Internal error' }],
+        ['rate limit', { type: 'StripeRateLimitError', message: 'Too many requests' }],
+        ['anything else', new Error('boom')],
+    ])('%s is unknown, so a retry reuses the same key', (_l, err) => {
+        expect(describeChargeFailure(err).status).toBe('unknown');
+    });
+
+    it('treats a refused request as a definite failure', () => {
+        expect(describeChargeFailure({ type: 'StripeInvalidRequestError', message: 'No such PaymentMethod' }).status).toBe('failed');
+    });
+
+    it('maps PaymentIntent states', () => {
+        expect(statusFromIntent('succeeded')).toBe('succeeded');
+        expect(statusFromIntent('requires_action')).toBe('requires_action');
+        expect(statusFromIntent('processing')).toBe('unknown');
+        expect(statusFromIntent('requires_payment_method')).toBe('failed');
+    });
+
+    it('counts unconfirmed charges toward the cap', () => {
+        expect(countsTowardCap('pending')).toBe(true);
+        expect(countsTowardCap('unknown')).toBe(true);
+        expect(countsTowardCap('succeeded')).toBe(true);
+        expect(countsTowardCap('failed')).toBe(false);
+        expect(countsTowardCap('requires_action')).toBe(false);
+    });
+});
+
+describe('cap and window helpers', () => {
+    it('allows a total of exactly the cap despite floating point', () => {
+        // 4999.99 + 0.01 !== 5000 in floating point
+        const r = validateDamageClaim({ ...booking, alreadyCharged: 4999.99 - 99.99 }, { ...claim, amount: 100 }, afterStay);
+        expect(r.ok).toBe(true);
+        expect(validateDamageClaim({ ...booking, alreadyCharged: 4900.1 }, { ...claim, amount: 99.9 }, afterStay).ok).toBe(true);
+    });
+
+    it('reports what is left to charge', () => {
+        expect(remainingCap(0)).toBe(MAX_DAMAGE_CHARGE);
+        expect(remainingCap(4999.99)).toBe(0.01);
+        expect(remainingCap(6000)).toBe(0);
+    });
+
+    it('opens the window at check-in and closes it after the claim period', () => {
+        expect(inClaimWindow(booking.startDate, booking.endDate, new Date(booking.startDate.getTime() - 1))).toBe(false);
+        expect(inClaimWindow(booking.startDate, booking.endDate, booking.startDate)).toBe(true);
+        expect(inClaimWindow(booking.startDate, booking.endDate, new Date(booking.endDate.getTime() + CLAIM_WINDOW_DAYS * DAY))).toBe(true);
+        expect(inClaimWindow(booking.startDate, booking.endDate, new Date(booking.endDate.getTime() + CLAIM_WINDOW_DAYS * DAY + 1))).toBe(false);
+    });
+
+    it('builds the same idempotency key for the same attempt', () => {
+        expect(damageIdempotencyKey('b1', 'r1')).toBe(damageIdempotencyKey('b1', 'r1'));
+        expect(damageIdempotencyKey('b1', 'r1')).not.toBe(damageIdempotencyKey('b1', 'r2'));
     });
 });

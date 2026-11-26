@@ -86,8 +86,12 @@ model DamageCharge {
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   amount    Float    // dollars
   note      String   // what was damaged; shown to the guest
-  // succeeded | failed | requires_action
+  // One per charge attempt from the admin panel; the Stripe idempotency key
+  // is built from it, so retrying the same requestId can never charge twice.
+  requestId String   @unique
+  // pending | unknown (not confirmed) | succeeded | failed | requires_action
   status    String
+  guestEmailed Boolean @default(false)
   failureMessage        String?
   stripePaymentIntentId String?
   createdBy String   // admin email
