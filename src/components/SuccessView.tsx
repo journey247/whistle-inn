@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { CheckCircle, Home, Printer } from 'lucide-react';
 import { useProperty } from '@/components/PropertyProvider';
+import { formatStayDate } from '@/lib/stay-dates';
 
 interface SuccessViewProps {
     booking: {
@@ -45,11 +46,11 @@ export function SuccessView({ booking }: SuccessViewProps) {
                             </div>
                             <div className="flex justify-between items-center py-2 border-b border-gray-50">
                                 <span className="text-slate-600">Check-in</span>
-                                <span className="font-medium text-slate-900">{new Date(booking.startDate).toLocaleDateString()}</span>
+                                <span className="font-medium text-slate-900">{formatStayDate(booking.startDate)}</span>
                             </div>
                             <div className="flex justify-between items-center py-2 border-b border-gray-50">
                                 <span className="text-slate-600">Check-out</span>
-                                <span className="font-medium text-slate-900">{new Date(booking.endDate).toLocaleDateString()}</span>
+                                <span className="font-medium text-slate-900">{formatStayDate(booking.endDate)}</span>
                             </div>
                             <div className="flex justify-between items-center py-2 border-b border-gray-50">
                                 <span className="text-slate-600">Guests</span>

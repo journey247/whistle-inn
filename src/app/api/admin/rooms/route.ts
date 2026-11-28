@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
 import { invalidatePricingCache } from '@/lib/pricing-server';
-import { getBookableRoomBySlug, getProperty } from '@/lib/property';
-import { bookableRooms } from '@/lib/property-schema';
+import { getBookableRoomBySlug, getProperty, getRoomBySlug, updateRoomContent, PropertySaveError } from '@/lib/property';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -28,10 +28,19 @@ export async function GET(request: Request) {
         const [rows, property] = await Promise.all([prisma.room.findMany(), getProperty()]);
         const bySlug = new Map(rows.map(r => [r.slug, r]));
 
-        const rooms = bookableRooms(property).map(room => {
+        // Every room, not just the bookable ones: a space like the living room
+        // has a page and a description the owner still needs to edit.
+        const rooms = property.rooms.map(room => {
             const row = bySlug.get(room.slug);
             return {
                 slug: room.slug,
+                bookable: room.bookable,
+                title: room.title,
+                summary: room.summary,
+                // The stored long description, blank when none is written —
+                // room.description falls back to the summary for display.
+                description: room.hasLongDescription ? room.description : '',
+                image: room.image,
                 name: row?.name ?? room.title,
                 weekdayPrice: row?.weekdayPrice ?? room.seedRate?.weekdayPrice ?? 0,
                 weekendPrice: row?.weekendPrice ?? room.seedRate?.weekendPrice ?? 0,
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
 
         const existing = await prisma.room.findMany({ select: { slug: true } });
         const have = new Set(existing.map(r => r.slug));
-        const rooms = bookableRooms(await getProperty());
+        const rooms = (await getProperty()).rooms.filter(r => r.bookable);
         const missing = rooms.filter(r => !have.has(r.slug) && r.seedRate);
 
         if (missing.length > 0) {
@@ -98,11 +107,35 @@ export async function PUT(request: Request) {
         const admin = await requireAdmin(request);
 
         const body = await request.json();
-        const { slug, weekdayPrice, weekendPrice, maxGuests, isActive, name } = body;
+        const { slug, weekdayPrice, weekendPrice, maxGuests, isActive, name, title, summary, description, image } = body;
 
-        const room = typeof slug === 'string' ? await getBookableRoomBySlug(slug) : undefined;
-        if (!room) {
+        const anyRoom = typeof slug === 'string' ? await getRoomBySlug(slug) : undefined;
+        if (!anyRoom) {
             return NextResponse.json({ error: 'Unknown room' }, { status: 400 });
+        }
+
+        // Copy and photo live in the property profile; price lives in the Room
+        // table. Save the copy first so a pricing error can't discard the text
+        // the owner just typed.
+        const content: Record<string, string> = {};
+        for (const [field, value] of Object.entries({ title, summary, description, image })) {
+            if (typeof value === 'string') content[field] = value;
+        }
+        if (Object.keys(content).length > 0) {
+            try {
+                await updateRoomContent(slug, content);
+            } catch (err) {
+                if (err instanceof PropertySaveError) {
+                    return NextResponse.json({ error: err.message }, { status: 400 });
+                }
+                throw err;
+            }
+        }
+
+        // Only a room sold on its own has a price row.
+        const room = await getBookableRoomBySlug(slug);
+        if (!room) {
+            return NextResponse.json({ ok: true, contentOnly: true });
         }
 
         // Prices are what the guest is charged, so a bad number here is a

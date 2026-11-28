@@ -4,10 +4,12 @@ import { prisma } from '@/lib/prisma';
 import { PROPERTY_DEFAULTS } from '@/config/property';
 import {
     buildProperty,
+    profileRoomSchema,
     legacyRoomContentKeys,
     mergeStoredProfile,
     profileFromConfig,
     type Property,
+    type ProfileRoom,
     type PropertyProfile,
     type PropertyRoom,
     type RoomRate,
@@ -116,6 +118,45 @@ export async function saveProperty(
     ]);
 
     // Every page reads the property, so purge the whole ISR cache.
+    revalidatePath('/', 'layout');
+}
+
+/**
+ * Update one room's copy and photo, leaving everything else alone.
+ *
+ * Exists so the owner can fix a room description from the Rooms tab without
+ * walking the six-step Property wizard — and, more importantly, without the
+ * save being blocked by an unrelated validation error elsewhere in the
+ * profile (a missing permit, a photo caption). Only this room is validated.
+ */
+export async function updateRoomContent(
+    slug: string,
+    patch: Partial<Pick<ProfileRoom, 'title' | 'summary' | 'description' | 'image'>>,
+): Promise<void> {
+    const row = await prisma.propertyProfile.findUnique({ where: { id: PROFILE_ID } });
+    const base = profileFromConfig(PROPERTY_DEFAULTS);
+    const profile = row ? mergeStoredProfile(base, row.data) : await legacyProfile();
+
+    if (!profile) throw new PropertySaveError('The saved property profile is invalid');
+
+    const index = profile.rooms.findIndex(r => r.slug === slug);
+    if (index === -1) throw new PropertySaveError('Unknown room');
+
+    const merged = { ...profile.rooms[index], ...patch };
+    const parsed = profileRoomSchema.safeParse(merged);
+    if (!parsed.success) {
+        throw new PropertySaveError(parsed.error.issues[0]?.message ?? 'Invalid room');
+    }
+
+    const rooms = profile.rooms.map((r, i) => (i === index ? parsed.data : r));
+
+    await prisma.propertyProfile.upsert({
+        where: { id: PROFILE_ID },
+        create: { id: PROFILE_ID, data: { ...profile, rooms }, onboardingCompletedAt: null },
+        update: { data: { ...profile, rooms } },
+    });
+
+    // The room page, the rooms index and the home page all show this copy.
     revalidatePath('/', 'layout');
 }
 
