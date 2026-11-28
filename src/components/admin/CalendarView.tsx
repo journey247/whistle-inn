@@ -28,6 +28,7 @@ function SourceBadge({ source }: { source: string }) {
 }
 import { format } from 'date-fns';
 import { useProperty } from '@/components/PropertyProvider';
+import { formatStayDate } from '@/lib/stay-dates';
 
 type CalendarEvent = {
     id: string;
@@ -226,8 +227,8 @@ export function CalendarView() {
                                             <div>Check-out</div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 font-medium">
-                                            <div>{format(new Date(evt.start), 'MMM d, yyyy')}</div>
-                                            <div>{format(new Date(evt.end), 'MMM d, yyyy')}</div>
+                                            <div>{formatStayDate(evt.start)}</div>
+                                            <div>{formatStayDate(evt.end)}</div>
                                         </div>
 
                                         <div className="pt-3 border-t border-slate-200 mt-3 flex justify-between items-center">

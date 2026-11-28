@@ -229,6 +229,12 @@ function PricingTab({ addToast }: { addToast: AddToast }) {
 
 type RoomRow = {
     slug: string;
+    bookable: boolean;
+    title: string;
+    summary: string;
+    /** Blank when no long description is written yet. */
+    description: string;
+    image: string;
     name: string;
     weekdayPrice: number;
     weekendPrice: number;
@@ -287,16 +293,21 @@ function RoomsTab({ addToast }: { addToast: AddToast }) {
                 headers: h(),
                 body: JSON.stringify({
                     slug: room.slug,
-                    weekdayPrice: Number(room.weekdayPrice),
-                    weekendPrice: Number(room.weekendPrice),
-                    maxGuests: Number(room.maxGuests),
-                    isActive: room.isActive,
+                    title: room.title,
+                    summary: room.summary,
+                    description: room.description,
+                    ...(room.bookable ? {
+                        weekdayPrice: Number(room.weekdayPrice),
+                        weekendPrice: Number(room.weekendPrice),
+                        maxGuests: Number(room.maxGuests),
+                        isActive: room.isActive,
+                    } : {}),
                 }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Save failed");
-            patch(room.slug, { configured: true });
-            addToast(`${room.name} saved`, "success");
+            if (room.bookable) patch(room.slug, { configured: true });
+            addToast(`${room.title || room.name} saved`, "success");
         } catch (err: any) {
             addToast(err?.message || "Could not save room", "error");
         } finally {
@@ -306,16 +317,15 @@ function RoomsTab({ addToast }: { addToast: AddToast }) {
 
     if (loading) return <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-gray-400" /></div>;
 
-    const unconfigured = rooms.filter(r => !r.configured).length;
+    const unconfigured = rooms.filter(r => r.bookable && !r.configured).length;
 
     return (
         <div className="space-y-5">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
-                <h3 className="font-semibold text-sm text-gray-900">Per-room rates</h3>
+                <h3 className="font-semibold text-sm text-gray-900">Your rooms</h3>
                 <p className="text-xs text-gray-500">
-                    Guests can book a single room at these rates or take the whole house at the
-                    rates on the Pricing tab. A booked room only blocks that room; a whole-house
-                    booking blocks all of them.
+                    Edit what guests read about each room and what it costs. Changes appear on the
+                    site within a minute. Photos and adding or removing a room are in Property setup.
                 </p>
                 {unconfigured > 0 && (
                     <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
@@ -335,18 +345,51 @@ function RoomsTab({ addToast }: { addToast: AddToast }) {
                 <div key={room.slug} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
                     <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                            <h4 className="font-semibold text-sm text-gray-900 truncate">{room.name}</h4>
+                            <h4 className="font-semibold text-sm text-gray-900 truncate">{room.title || room.name}</h4>
                             <p className="text-xs text-gray-400 truncate">/rooms/{room.slug}</p>
                         </div>
-                        <label className="flex items-center gap-2 text-xs text-gray-600 shrink-0">
+                        {room.bookable && <label className="flex items-center gap-2 text-xs text-gray-600 shrink-0">
                             <input type="checkbox" checked={room.isActive}
                                 onChange={e => patch(room.slug, { isActive: e.target.checked })}
                                 className="rounded border-gray-300 text-brand-gold focus:ring-brand-gold" />
                             Bookable
-                        </label>
+                        </label>}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">Room name</label>
+                        <input type="text" value={room.title} maxLength={80}
+                            onChange={e => patch(room.slug, { title: e.target.value })}
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-brand-gold/30 focus:border-brand-gold" />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                            Short line <span className="text-gray-400">— shown on cards and in Google results</span>
+                        </label>
+                        <textarea rows={2} value={room.summary} maxLength={400}
+                            onChange={e => patch(room.slug, { summary: e.target.value })}
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-brand-gold/30 focus:border-brand-gold" />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                            Description <span className="text-gray-400">— the room&rsquo;s own page</span>
+                        </label>
+                        <textarea rows={7} value={room.description} maxLength={5000}
+                            onChange={e => patch(room.slug, { description: e.target.value })}
+                            placeholder="Tell guests about this room. Leave a blank line between paragraphs."
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-brand-gold/30 focus:border-brand-gold" />
+                        <div className="flex justify-between items-center mt-1">
+                            <a href={`/rooms/${room.slug}`} target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-brand-gold hover:underline">View this page &rarr;</a>
+                            <span className="text-[11px] text-gray-400">
+                                {room.description ? `${room.description.length}/5000` : "Using the short line until you write one"}
+                            </span>
+                        </div>
+                    </div>
+
+                    {room.bookable && <div className="grid grid-cols-3 gap-3 pt-1 border-t border-gray-100">
                         {[
                             { label: "Weekday / night", key: "weekdayPrice" as const, money: true },
                             { label: "Weekend / night", key: "weekendPrice" as const, money: true },
@@ -362,13 +405,13 @@ function RoomsTab({ addToast }: { addToast: AddToast }) {
                                 </div>
                             </div>
                         ))}
-                    </div>
+                    </div>}
 
                     <button onClick={() => save(room)} disabled={savingSlug === room.slug}
                         className="w-full flex items-center justify-center gap-2 bg-brand-gold text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-yellow-500 transition disabled:opacity-50">
                         {savingSlug === room.slug
                             ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving…</>
-                            : <><Save className="w-3.5 h-3.5" /> Save {room.name}</>}
+                            : <><Save className="w-3.5 h-3.5" /> Save {room.title || room.name}</>}
                     </button>
                 </div>
             ))}

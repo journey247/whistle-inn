@@ -8,6 +8,7 @@ import { getProperty } from '@/lib/property';
 import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
 import { adFeeFor } from '@/lib/attribution';
 import { cardOnFileParams, CARD_ON_FILE_NOTICE } from '@/lib/damage-charge';
+import { formatStayDate } from '@/lib/stay-dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,8 +127,8 @@ export async function POST(request: Request) {
             session = { id: mockId, url: `${baseUrl}/success?session_id=${mockId}&booking_id=${booking.id}` };
         } else {
             try {
-                const checkIn = booking.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const checkOut = booking.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const checkIn = formatStayDate(booking.startDate);
+                const checkOut = formatStayDate(booking.endDate);
 
                 // Charged at the total quoted when the guest made the request
                 // (cleaning fee, any coupon and occupancy tax already included),
@@ -183,8 +184,8 @@ export async function POST(request: Request) {
         // strands an approval: the owner can text or read it to the guest instead.
         let emailed = false;
         try {
-            const checkIn = booking.startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const checkOut = booking.endDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const checkIn = formatStayDate(booking.startDate, 'full');
+            const checkOut = formatStayDate(booking.endDate, 'full');
             await sendEmail({
                 to: booking.email,
                 templateName: 'booking_request_approved',

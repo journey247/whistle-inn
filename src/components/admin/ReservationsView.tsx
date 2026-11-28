@@ -5,6 +5,7 @@ import { SharedProps, Booking } from "@/app/admin/page";
 import { Search, X, ChevronDown, Mail, Calendar, DollarSign, FileText, RefreshCw, Check, Inbox, Copy, Loader2, Power } from "lucide-react";
 import { useProperty } from '@/components/PropertyProvider';
 import { SOURCE_LABELS, type BookingSource } from "@/lib/attribution";
+import { formatStayDate } from "@/lib/stay-dates";
 
 function nightsBetween(a: string, b: string) {
     return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000);
@@ -284,8 +285,8 @@ function BookingDrawer({ booking, onClose, onStatusChange, onApprove, onDecline,
 
                     {/* Dates */}
                     <Card>
-                        <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Check-in"  value={fmt(booking.startDate)} />
-                        <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Check-out" value={fmt(booking.endDate)} />
+                        <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Check-in"  value={formatStayDate(booking.startDate)} />
+                        <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Check-out" value={formatStayDate(booking.endDate)} />
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Duration"  value={`${nights} night${nights !== 1 ? "s" : ""}`} />
                         <Row icon={<Calendar className="w-4 h-4 text-gray-400" />} label="Booked" value={booking.room ? booking.room.name : "Whole house"} />
                         {booking.source && booking.source !== "direct" && (
@@ -712,7 +713,7 @@ export function ReservationsView({ bookings: rawBookings, refreshData, dataLoadi
                                 <button onClick={() => setSelected(b)} className="w-full text-left">
                                     <p className="font-semibold text-sm text-gray-900">{b.guestName}</p>
                                     <p className="text-xs text-gray-500 mt-0.5">
-                                        {b.room ? b.room.name : "Whole house"} · {fmt(b.startDate, { month: "short", day: "numeric" })} → {fmt(b.endDate, { month: "short", day: "numeric" })} · {nights} night{nights !== 1 ? "s" : ""}
+                                        {b.room ? b.room.name : "Whole house"} · {formatStayDate(b.startDate, "short")} → {formatStayDate(b.endDate, "short")} · {nights} night{nights !== 1 ? "s" : ""}
                                         {b.guestCount ? ` · ${b.guestCount} guest${b.guestCount !== 1 ? "s" : ""}` : ""}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-0.5 break-all">
@@ -785,7 +786,7 @@ export function ReservationsView({ bookings: rawBookings, refreshData, dataLoadi
                                             </span>
                                         </div>
                                         <p className="text-xs text-gray-500 mt-1">
-                                            {fmt(b.startDate, { month: "short", day: "numeric" })} → {fmt(b.endDate, { month: "short", day: "numeric" })}
+                                            {formatStayDate(b.startDate, "short")} → {formatStayDate(b.endDate, "short")}
                                             {" · "}{nights} night{nights !== 1 ? "s" : ""}
                                         </p>
                                         <p className="text-xs font-semibold text-gray-700 mt-1">${b.totalPrice.toFixed(0)}</p>

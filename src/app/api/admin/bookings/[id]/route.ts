@@ -8,6 +8,7 @@ import { SITE_URL } from '@/config/property';
 import { getProperty } from '@/lib/property';
 import { getStripe, onAccount } from '@/lib/stripe';
 import { policySentence } from '@/lib/cancellationPolicy';
+import { formatStayDate } from '@/lib/stay-dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,12 +83,8 @@ export async function PATCH(request: Request) {
             // Send cancellation email to guest using DB template if available,
             // falling back to a sensible plain-text email.
             try {
-                const checkIn = new Date(existing.startDate).toLocaleDateString('en-US', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                });
-                const checkOut = new Date(existing.endDate).toLocaleDateString('en-US', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                });
+                const checkIn = formatStayDate(existing.startDate, 'full');
+                const checkOut = formatStayDate(existing.endDate, 'full');
 
                 await sendEmail({
                     to: existing.email,
@@ -158,12 +155,8 @@ export async function PATCH(request: Request) {
 
                 const baseUrl = SITE_URL;
                 const cancelUrl = `${baseUrl}/cancel/${cancellationToken}`;
-                const checkIn = new Date(updated.startDate).toLocaleDateString('en-US', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                });
-                const checkOut = new Date(updated.endDate).toLocaleDateString('en-US', {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                });
+                const checkIn = formatStayDate(updated.startDate, 'full');
+                const checkOut = formatStayDate(updated.endDate, 'full');
 
                 await sendEmail({
                     to: updated.email,

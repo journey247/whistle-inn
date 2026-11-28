@@ -13,6 +13,7 @@ import { getProperty } from '@/lib/property';
 import { getStripe, getChargeAccountId, onAccount, adFeePercent, feeParams } from '@/lib/stripe';
 import { attributionFromCookieHeader, adFeeFor } from '@/lib/attribution';
 import { cardOnFileParams, CARD_ON_FILE_NOTICE } from '@/lib/damage-charge';
+import { formatStayDate } from '@/lib/stay-dates';
 
 export const dynamic = 'force-dynamic';
 
@@ -332,8 +333,8 @@ export async function POST(request: Request) {
                     });
                 }
 
-                const checkInDate  = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const checkOutDate = end.toLocaleDateString('en-US',   { month: 'short', day: 'numeric', year: 'numeric' });
+                const checkInDate  = formatStayDate(start);
+                const checkOutDate = formatStayDate(end);
 
                 session = await stripe.checkout.sessions.create({
                     payment_method_types: ['card'],

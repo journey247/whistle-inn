@@ -10,6 +10,7 @@ import { getStripe, getConnectState, saveChargesEnabled, onAccount } from '@/lib
 import { CARD_ON_FILE_NOTICE } from '@/lib/damage-charge';
 import { policySentence } from '@/lib/cancellationPolicy';
 import { reportFailure } from '@/lib/alerts';
+import { formatStayDate } from '@/lib/stay-dates';
 
 /** Generate a cryptographically secure, URL-safe cancellation token */
 function generateCancellationToken(): string {
@@ -214,12 +215,8 @@ export async function POST(request: Request) {
                             const baseUrl = SITE_URL;
                             const cancelUrl = `${baseUrl}/cancel/${cancellationToken}`;
                             const guestName = session.customer_details?.name || existingBooking.guestName;
-                            const checkIn = new Date(existingBooking.startDate).toLocaleDateString('en-US', {
-                                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                            });
-                            const checkOut = new Date(existingBooking.endDate).toLocaleDateString('en-US', {
-                                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                            });
+                            const checkIn = formatStayDate(existingBooking.startDate, 'full');
+                            const checkOut = formatStayDate(existingBooking.endDate, 'full');
                             const amount = (session.amount_total ? session.amount_total / 100 : existingBooking.totalPrice).toFixed(2);
                             const accommodation = existingBooking.room
                                 ? existingBooking.room.name
