@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, AdminAuthError } from '@/lib/adminAuth';
-import { getStripe, getConnectState, saveConnectAccountId, saveChargesEnabled } from '@/lib/stripe';
+import { getStripe, getConnectState, saveConnectAccountId, saveChargesEnabled, isOwnAccountMode, getOwnAccount } from '@/lib/stripe';
 import { SITE_URL } from '@/config/property';
 import { getProperty } from '@/lib/property';
 
@@ -22,6 +22,22 @@ export async function GET(request: Request) {
     try {
         await requireAdmin(request);
         const stripe = getStripe();
+
+        if (stripe && isOwnAccountMode()) {
+            const account = await getOwnAccount(true);
+            if (!account) {
+                return NextResponse.json({ error: 'Could not load Stripe account status' }, { status: 502 });
+            }
+            return NextResponse.json({
+                configured: true,
+                ownAccount: true,
+                accountId: account.id,
+                chargesEnabled: !!account.charges_enabled,
+                payoutsEnabled: !!account.payouts_enabled,
+                detailsSubmitted: !!account.details_submitted,
+            });
+        }
+
         const state = await getConnectState();
 
         if (!stripe) {
@@ -68,6 +84,11 @@ export async function POST(request: Request) {
     try {
         const property = await getProperty();
         await requireAdmin(request);
+        if (isOwnAccountMode()) {
+            // Creating a connected account here would move guest payments
+            // away from the owner's existing account.
+            return NextResponse.json({ error: 'This site already takes payments on your own Stripe account.' }, { status: 409 });
+        }
         const stripe = getStripe();
         if (!stripe) {
             return NextResponse.json({ error: 'Stripe is not configured on this site.' }, { status: 503 });
